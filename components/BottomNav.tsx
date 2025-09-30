@@ -9,14 +9,18 @@ const items = [
       <path d="M3 10.5L12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-10.5z" fill={active?"#ffffff":"#9aa0a6"}/>
     </svg>
   ) },
-  { href: "/wallet/send", label: "Send", icon: (active: boolean) => (
+  { href: "/card", label: "Card", icon: (active: boolean) => (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M4 12h12M10 6l6 6-6 6" stroke={active?"#ffffff":"#9aa0a6"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <rect x="3" y="6" width="18" height="12" rx="2" stroke={active?"#ffffff":"#9aa0a6"} strokeWidth="2" />
+      <rect x="6" y="12" width="6" height="2" fill={active?"#ffffff":"#9aa0a6"} />
+      <rect x="14" y="12" width="4" height="2" fill={active?"#ffffff":"#9aa0a6"} />
+      <rect x="3" y="8" width="18" height="2" fill={active?"#ffffff":"#9aa0a6"} />
     </svg>
   ) },
-  { href: "/wallet/receive", label: "Receive", icon: (active: boolean) => (
+  { href: "/transactions", label: "Activity", icon: (active: boolean) => (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" stroke={active?"#ffffff":"#9aa0a6"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M4 12l4 4 8-8" stroke={active?"#ffffff":"#9aa0a6"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M20 7v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7" stroke={active?"#ffffff":"#9aa0a6"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   ) },
   { href: "/wallet/chat", label: "Chat", icon: (active: boolean) => (

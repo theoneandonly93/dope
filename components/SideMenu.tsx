@@ -72,11 +72,13 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
           </div>
           <button onClick={onClose} className="text-white/70" aria-label="Close">×</button>
         </div>
-        <div className="px-4 pt-3 flex gap-3 text-sm">
-          <button className={`px-3 py-2 rounded-lg ${tab==='profile'?'bg-white/10':''}`} onClick={()=>setTab('profile')}>Profile</button>
-          <button className={`px-3 py-2 rounded-lg ${tab==='wallets'?'bg-white/10':''}`} onClick={()=>setTab('wallets')}>Wallets</button>
-          <button className={`px-3 py-2 rounded-lg ${tab==='settings'?'bg-white/10':''}`} onClick={()=>setTab('settings')}>Settings</button>
-          <button className={`px-3 py-2 rounded-lg ${tab==='developer'?'bg-white/10':''}`} onClick={()=>setTab('developer')}>Developer</button>
+        <div className="px-4 pt-3 text-sm">
+          <div className="scroll-x-invisible flex gap-3 pr-1">
+            <button className={`px-3 py-2 rounded-lg ${tab==='profile'?'bg-white/10':''}`} onClick={()=>setTab('profile')}>Profile</button>
+            <button className={`px-3 py-2 rounded-lg ${tab==='wallets'?'bg-white/10':''}`} onClick={()=>setTab('wallets')}>Wallets</button>
+            <button className={`px-3 py-2 rounded-lg ${tab==='settings'?'bg-white/10':''}`} onClick={()=>setTab('settings')}>Settings</button>
+            <button className={`px-3 py-2 rounded-lg ${tab==='developer'?'bg-white/10':''}`} onClick={()=>setTab('developer')}>Developer</button>
+          </div>
         </div>
         <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(100vh-120px)]">
           {tab === 'profile' && (
