@@ -1,0 +1,23 @@
+{
+  "name": "DOPE Wallet",
+  "short_name": "DOPE",
+  "description": "DOPE Wallet for Dopelgngachain (PWA)",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0c10",
+  "theme_color": "#2a2b3a",
+  "icons": [
+    {
+      "src": "/logo-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

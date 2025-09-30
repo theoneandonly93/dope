@@ -1,0 +1,32 @@
+# Node / Next.js
+node_modules/
+.next/
+.turbo/
+.swc/
+dist/
+.vercel/
+
+# Logs
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env files (keep example)
+.env
+.env.*
+!.env.local.example
+!.env.example
+
+# Editor
+.vscode/
+.idea/
+
+# Local stray files (do not commit keys)
+:USERPROFILE.sshid_*
+id_ed25519*
+*.pem
+*.key
