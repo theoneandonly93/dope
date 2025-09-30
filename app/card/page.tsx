@@ -9,9 +9,25 @@ export default function CardPage() {
   const [name, setName] = useState<string>("");
   const [showDetails, setShowDetails] = useState(false);
   const [frozen, setFrozen] = useState(false);
+  const [qrSize, setQrSize] = useState(180);
+  const [tab, setTab] = useState<"walletpay" | "design" | "blocked" | "pin" | "support">("walletpay");
+  const [cardTheme, setCardTheme] = useState<"purple" | "teal" | "orange">("purple");
+  const [blocked, setBlocked] = useState<string[]>([]);
+  const [newBlocked, setNewBlocked] = useState("");
+  const [pin, setPin] = useState("");
+  const [pin2, setPin2] = useState("");
+  const [msg, setMsg] = useState("");
 
   useEffect(() => {
     try { setName(getActiveWallet()?.name || ""); } catch {}
+    try {
+      const savedTheme = localStorage.getItem("dope_card_theme") as any;
+      if (savedTheme === "teal" || savedTheme === "orange" || savedTheme === "purple") setCardTheme(savedTheme);
+    } catch {}
+    try {
+      const list = JSON.parse(localStorage.getItem("dope_blocked_merchants") || "[]");
+      if (Array.isArray(list)) setBlocked(list.filter((x) => typeof x === 'string'));
+    } catch {}
   }, []);
 
   const holder = name || (address ? `${address.slice(0, 4)}…${address.slice(-4)}` : "Unknown");
@@ -28,7 +44,11 @@ export default function CardPage() {
 
       <div className="rounded-2xl p-5 border border-white/10"
            style={{
-             background: "linear-gradient(135deg, rgba(165,140,255,0.25), rgba(60,60,120,0.35))",
+             background: cardTheme === 'teal'
+               ? "linear-gradient(135deg, rgba(0,180,160,0.25), rgba(20,60,80,0.35))"
+               : cardTheme === 'orange'
+               ? "linear-gradient(135deg, rgba(255,170,60,0.28), rgba(90,60,20,0.35))"
+               : "linear-gradient(135deg, rgba(165,140,255,0.25), rgba(60,60,120,0.35))",
            }}>
         <div className="flex items-center justify-between">
           <div className="text-white/80 text-sm">DOPE</div>
@@ -59,6 +79,146 @@ export default function CardPage() {
           <Link href="/wallet/receive" className="btn">Receive</Link>
           <Link href="/wallet/send" className="btn">Send</Link>
         </div>
+        {address && (
+          <div className="pt-3">
+            <div className="text-sm font-semibold mb-2">Quick Receive</div>
+            <div className="flex items-start gap-4">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}x${qrSize}&data=${encodeURIComponent(address)}`}
+                alt="Wallet QR"
+                width={qrSize}
+                height={qrSize}
+                className="rounded bg-white p-2"
+              />
+              <div className="text-xs text-white/70 leading-5">
+                Scan to receive to your address. You can also share the address directly.
+                <div className="mt-2 flex items-center gap-2">
+                  <label className="opacity-80">Size</label>
+                  <select className="bg-white/5 border border-white/10 rounded px-2 py-1" value={qrSize} onChange={(e)=>setQrSize(parseInt(e.target.value)||180)}>
+                    <option value={160}>160</option>
+                    <option value={180}>180</option>
+                    <option value={200}>200</option>
+                    <option value={240}>240</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Manage Card */}
+      <div className="glass rounded-2xl p-4 border border-white/10 space-y-4">
+        <div className="text-sm font-semibold">Manage Card</div>
+        <div className="scroll-x-invisible -mx-1 px-1">
+          <div className="flex gap-2 min-w-0">
+            <button className={`px-3 py-2 rounded-lg whitespace-nowrap ${tab==='walletpay'?'bg-white/10':''}`} onClick={()=>setTab('walletpay')}>Add card to Wallet pay</button>
+            <button className={`px-3 py-2 rounded-lg whitespace-nowrap ${tab==='design'?'bg-white/10':''}`} onClick={()=>setTab('design')}>Design new card</button>
+            <button className={`px-3 py-2 rounded-lg whitespace-nowrap ${tab==='blocked'?'bg-white/10':''}`} onClick={()=>setTab('blocked')}>Blocked Businesses</button>
+            <button className={`px-3 py-2 rounded-lg whitespace-nowrap ${tab==='pin'?'bg-white/10':''}`} onClick={()=>setTab('pin')}>Change PIN</button>
+            <button className={`px-3 py-2 rounded-lg whitespace-nowrap ${tab==='support'?'bg-white/10':''}`} onClick={()=>setTab('support')}>Get card support</button>
+          </div>
+        </div>
+
+        {tab === 'walletpay' && (
+          <div className="text-sm text-white/80 space-y-2">
+            <div>Add this virtual card to your device wallet for quick access.</div>
+            <div className="text-xs text-white/60">Integration coming soon. For now, use the Share button on your device to save the address.</div>
+            <div className="flex gap-2">
+              <button
+                className="btn"
+                onClick={async()=>{ if(!address) return; try{ await navigator.clipboard.writeText(address);}catch{} setMsg('Address copied'); setTimeout(()=>setMsg(''),1200); }}
+              >Copy address</button>
+              {msg && <div className="text-xs text-green-400 self-center">{msg}</div>}
+            </div>
+          </div>
+        )}
+
+        {tab === 'design' && (
+          <div className="space-y-3 text-sm">
+            <div className="text-white/80">Pick a style</div>
+            <div className="flex items-center gap-3">
+              <button
+                className={`px-3 py-2 rounded-lg border ${cardTheme==='purple'?'border-white/40 bg-white/10':'border-white/10'}`}
+                onClick={()=>{ setCardTheme('purple'); try{ localStorage.setItem('dope_card_theme','purple'); }catch{} }}
+              >Purple</button>
+              <button
+                className={`px-3 py-2 rounded-lg border ${cardTheme==='teal'?'border-white/40 bg-white/10':'border-white/10'}`}
+                onClick={()=>{ setCardTheme('teal'); try{ localStorage.setItem('dope_card_theme','teal'); }catch{} }}
+              >Teal</button>
+              <button
+                className={`px-3 py-2 rounded-lg border ${cardTheme==='orange'?'border-white/40 bg-white/10':'border-white/10'}`}
+                onClick={()=>{ setCardTheme('orange'); try{ localStorage.setItem('dope_card_theme','orange'); }catch{} }}
+              >Orange</button>
+            </div>
+            <div className="text-xs text-white/60">Your selection updates the card above and is saved on this device.</div>
+          </div>
+        )}
+
+        {tab === 'blocked' && (
+          <div className="space-y-3 text-sm">
+            <div className="text-white/80">Blocked Businesses</div>
+            <div className="flex gap-2">
+              <input
+                value={newBlocked}
+                onChange={(e)=>setNewBlocked(e.target.value)}
+                placeholder="Business name or domain"
+                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 outline-none"
+              />
+              <button
+                className="btn"
+                onClick={()=>{
+                  const v = newBlocked.trim();
+                  if(!v) return;
+                  const next = Array.from(new Set([...(blocked||[]), v]));
+                  setBlocked(next);
+                  setNewBlocked("");
+                  try { localStorage.setItem('dope_blocked_merchants', JSON.stringify(next)); } catch {}
+                }}
+              >Add</button>
+            </div>
+            <div className="space-y-2">
+              {blocked.length === 0 && <div className="text-white/60">No blocked businesses.</div>}
+              {blocked.map((b, i) => (
+                <div key={b+String(i)} className="flex items-center justify-between p-2 rounded border border-white/10">
+                  <div className="truncate max-w-[70%]">{b}</div>
+                  <button className="text-xs underline text-white/70" onClick={()=>{
+                    const next = blocked.filter((x, idx)=> idx!==i);
+                    setBlocked(next);
+                    try { localStorage.setItem('dope_blocked_merchants', JSON.stringify(next)); } catch {}
+                  }}>Remove</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab === 'pin' && (
+          <div className="space-y-3 text-sm">
+            <div className="text-white/80">Change PIN</div>
+            <div className="grid grid-cols-2 gap-2">
+              <input type="password" inputMode="numeric" pattern="[0-9]*" maxLength={6} placeholder="New PIN" value={pin} onChange={(e)=>setPin(e.target.value.replace(/[^0-9]/g,''))} className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 outline-none" />
+              <input type="password" inputMode="numeric" pattern="[0-9]*" maxLength={6} placeholder="Confirm PIN" value={pin2} onChange={(e)=>setPin2(e.target.value.replace(/[^0-9]/g,''))} className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 outline-none" />
+            </div>
+            <button className="btn" onClick={()=>{
+              setMsg("");
+              if (!pin || pin !== pin2 || pin.length < 4) { setMsg('Enter matching 4-6 digit PIN'); return; }
+              try { localStorage.setItem('dope_card_pin_set','1'); } catch {}
+              setMsg('PIN updated on this device');
+              setPin(''); setPin2('');
+              setTimeout(()=>setMsg(''), 1500);
+            }}>Update PIN</button>
+            {msg && <div className="text-xs text-green-400">{msg}</div>}
+            <div className="text-xs text-white/60">PIN is stored locally for UI actions only.</div>
+          </div>
+        )}
+
+        {tab === 'support' && (
+          <div className="space-y-2 text-sm text-white/80">
+            <div>Need help with your card?</div>
+            <div className="text-white/60 text-xs">For issues with your virtual card UI, contact support via the app store listing or email support@example.com.</div>
+          </div>
+        )}
       </div>
 
       {!address && (
@@ -67,4 +227,3 @@ export default function CardPage() {
     </div>
   );
 }
-

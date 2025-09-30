@@ -10,6 +10,8 @@ export default function TransactionsPage() {
   const [limit, setLimit] = useState(20);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"all" | "success" | "error" | "pending">("all");
+  const [from, setFrom] = useState<string>(""); // yyyy-mm-dd
+  const [to, setTo] = useState<string>("");
 
   useEffect(() => {
     let cancelled = false;
@@ -30,11 +32,15 @@ export default function TransactionsPage() {
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
+    const fromTs = from ? new Date(from + 'T00:00:00Z').getTime() / 1000 : null;
+    const toTs = to ? new Date(to + 'T23:59:59Z').getTime() / 1000 : null;
     return items.filter((tx) => {
       if (status !== 'all') {
         if (status === 'pending' && tx.status !== 'unknown') return false;
         if (status !== 'pending' && tx.status !== status) return false;
       }
+      if (fromTs && (tx.time ?? 0) < fromTs) return false;
+      if (toTs && (tx.time ?? 0) > toTs) return false;
       if (!s) return true;
       const sig = tx.signature.toLowerCase();
       return sig.includes(s);
@@ -57,6 +63,16 @@ export default function TransactionsPage() {
           <label className="flex items-center gap-2"><input type="radio" checked={status==='success'} onChange={()=>setStatus('success')} /> Success</label>
           <label className="flex items-center gap-2"><input type="radio" checked={status==='error'} onChange={()=>setStatus('error')} /> Failed</label>
           <label className="flex items-center gap-2"><input type="radio" checked={status==='pending'} onChange={()=>setStatus('pending')} /> Pending</label>
+        </div>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div>
+            <div className="text-xs text-white/60 mb-1">From</div>
+            <input type="date" value={from} onChange={(e)=>setFrom(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 outline-none" />
+          </div>
+          <div>
+            <div className="text-xs text-white/60 mb-1">To</div>
+            <input type="date" value={to} onChange={(e)=>setTo(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 outline-none" />
+          </div>
         </div>
       </div>
 
@@ -87,4 +103,3 @@ export default function TransactionsPage() {
     </div>
   );
 }
-
