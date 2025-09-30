@@ -76,7 +76,7 @@ export default function UnlockPage() {
               setShowInstall(false);
             }}
           >
-            ✕
+            ×
           </button>
         </div>
       )}
@@ -110,3 +110,4 @@ export default function UnlockPage() {
     </div>
   );
 }
+

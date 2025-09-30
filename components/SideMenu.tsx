@@ -70,7 +70,7 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
             <img src="/logo-192.png" alt="logo" className="w-6 h-6" />
             <span className="font-semibold">Menu</span>
           </div>
-          <button onClick={onClose} className="text-white/70">✕</button>
+          <button onClick={onClose} className="text-white/70" aria-label="Close">×</button>
         </div>
         <div className="px-4 pt-3 flex gap-3 text-sm">
           <button className={`px-3 py-2 rounded-lg ${tab==='profile'?'bg-white/10':''}`} onClick={()=>setTab('profile')}>Profile</button>
@@ -122,3 +122,4 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
     </div>
   );
 }
+
