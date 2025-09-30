@@ -12,6 +12,7 @@ export default function CardPage() {
   const [qrSize, setQrSize] = useState(180);
   const [tab, setTab] = useState<"walletpay" | "design" | "blocked" | "pin" | "support">("walletpay");
   const [cardTheme, setCardTheme] = useState<"purple" | "teal" | "orange">("purple");
+  const [cardDesign, setCardDesign] = useState<null | { id: string; name: string; type: 'classic' | 'metal'; price: number; bg: string }>(null);
   const [blocked, setBlocked] = useState<string[]>([]);
   const [newBlocked, setNewBlocked] = useState("");
   const [pin, setPin] = useState("");
@@ -29,6 +30,13 @@ export default function CardPage() {
     try {
       const list = JSON.parse(localStorage.getItem("dope_blocked_merchants") || "[]");
       if (Array.isArray(list)) setBlocked(list.filter((x) => typeof x === 'string'));
+    } catch {}
+    try {
+      const raw = localStorage.getItem('dope_card_design');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed.bg === 'string') setCardDesign(parsed);
+      }
     } catch {}
   }, []);
 
@@ -62,11 +70,11 @@ export default function CardPage() {
 
       <div className="rounded-2xl p-5 border border-white/10"
            style={{
-             background: cardTheme === 'teal'
+             background: cardDesign?.bg || (cardTheme === 'teal'
                ? "linear-gradient(135deg, rgba(0,180,160,0.25), rgba(20,60,80,0.35))"
                : cardTheme === 'orange'
                ? "linear-gradient(135deg, rgba(255,170,60,0.28), rgba(90,60,20,0.35))"
-               : "linear-gradient(135deg, rgba(165,140,255,0.25), rgba(60,60,120,0.35))",
+               : "linear-gradient(135deg, rgba(165,140,255,0.25), rgba(60,60,120,0.35))"),
            }}>
         <div className="flex items-center justify-between">
           <div className="text-white/80 text-sm">DOPE</div>
@@ -165,22 +173,12 @@ export default function CardPage() {
 
         {tab === 'design' && (
           <div className="space-y-3 text-sm">
-            <div className="text-white/80">Pick a style</div>
-            <div className="flex items-center gap-3">
-              <button
-                className={`px-3 py-2 rounded-lg border ${cardTheme==='purple'?'border-white/40 bg-white/10':'border-white/10'}`}
-                onClick={()=>{ setCardTheme('purple'); try{ localStorage.setItem('dope_card_theme','purple'); }catch{} }}
-              >Purple</button>
-              <button
-                className={`px-3 py-2 rounded-lg border ${cardTheme==='teal'?'border-white/40 bg-white/10':'border-white/10'}`}
-                onClick={()=>{ setCardTheme('teal'); try{ localStorage.setItem('dope_card_theme','teal'); }catch{} }}
-              >Teal</button>
-              <button
-                className={`px-3 py-2 rounded-lg border ${cardTheme==='orange'?'border-white/40 bg-white/10':'border-white/10'}`}
-                onClick={()=>{ setCardTheme('orange'); try{ localStorage.setItem('dope_card_theme','orange'); }catch{} }}
-              >Orange</button>
-            </div>
-            <div className="text-xs text-white/60">Your selection updates the card above and is saved on this device.</div>
+            <div className="text-white/80">Choose a style</div>
+            <div className="text-xs text-white/60">Open the designer to browse Classic ($5) and Metal ($50) styles.</div>
+            <Link href="/card/design" className="btn">Open Designer</Link>
+            {cardDesign && (
+              <div className="text-xs text-white/60">Current: {cardDesign.name} ({cardDesign.type}) — ${cardDesign.price}</div>
+            )}
           </div>
         )}
 
