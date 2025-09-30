@@ -1,8 +1,9 @@
 "use client";
+// Load polyfills (Buffer) before any other imports use it
+import "../polyfills";
 import "../styles/globals.css";
 import React, { useEffect, useState } from "react";
 import { WalletProvider } from "../components/WalletProvider";
-import { Buffer } from "buffer";
 import BottomNav from "../components/BottomNav";
 import SideMenu from "../components/SideMenu";
 import Link from "next/link";
@@ -10,16 +11,11 @@ import Link from "next/link";
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      // Ensure Buffer exists for browser libs (web3.js, bip39)
-      // @ts-ignore
-      if (!window.Buffer) window.Buffer = Buffer;
-      // Register service worker for PWA (production only, after load)
-      if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) {
-        const onLoad = () => navigator.serviceWorker.register("/sw.js").catch(() => {});
-        window.addEventListener("load", onLoad);
-        return () => window.removeEventListener("load", onLoad);
-      }
+    // Register service worker for PWA (production only, after load)
+    if (process.env.NODE_ENV === "production" && typeof window !== "undefined" && "serviceWorker" in navigator) {
+      const onLoad = () => navigator.serviceWorker.register("/sw.js").catch(() => {});
+      window.addEventListener("load", onLoad);
+      return () => window.removeEventListener("load", onLoad);
     }
   }, []);
 
