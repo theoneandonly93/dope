@@ -177,6 +177,13 @@ function updateActiveWallet(mut: (w: StoredWalletWithMeta) => void) {
   saveStore(store);
 }
 
+// Update the active wallet's display name
+export function setActiveWalletName(name: string) {
+  updateActiveWallet((w) => {
+    w.name = name.trim() || undefined;
+  });
+}
+
 export function getStoredWallet(): StoredWallet | null {
   const aw = getActiveWallet();
   return aw ? { encMnemonic: aw.encMnemonic, pubkey: aw.pubkey, createdAt: aw.createdAt, biometricEnabled: aw.biometricEnabled, scheme: aw.scheme } : null;
@@ -270,17 +277,39 @@ export async function setPasswordForDeviceWallet(newPassword: string) {
   });
 }
 
+const NET_KEY = "dope_network"; // 'mainnet' | 'devnet' | 'testnet'
+
+export type NetworkChoice = 'mainnet' | 'devnet' | 'testnet';
+
+export function getSelectedNetwork(): NetworkChoice {
+  try {
+    if (typeof window !== 'undefined') {
+      const v = localStorage.getItem(NET_KEY) as NetworkChoice | null;
+      if (v === 'devnet' || v === 'testnet' || v === 'mainnet') return v;
+    }
+  } catch {}
+  return 'mainnet';
+}
+
+export function setSelectedNetwork(n: NetworkChoice) {
+  try { localStorage.setItem(NET_KEY, n); } catch {}
+}
+
 export function getRpcEndpoint() {
   if (typeof window === "undefined") {
     return process.env.RPC_URL || process.env.NEXT_PUBLIC_RPC_URL || "https://api.mainnet-beta.solana.com";
   }
-  return "/api/rpc"; // proxy through Next API to avoid CORS/403
+  const net = getSelectedNetwork();
+  return `/api/rpc?net=${net}`; // proxy through Next API with selected network
 }
 
 export function getWsEndpoint(): string | undefined {
-  // Only NEXT_PUBLIC_* are exposed to the browser
   if (typeof window !== "undefined") {
-    return process.env.NEXT_PUBLIC_RPC_WS_URL as string | undefined;
+    const net = getSelectedNetwork();
+    if (net === 'devnet') return 'wss://api.devnet.solana.com';
+    if (net === 'testnet') return 'wss://api.testnet.solana.com';
+    const fromEnv = process.env.NEXT_PUBLIC_RPC_WS_URL as string | undefined;
+    return fromEnv || 'wss://api.mainnet-beta.solana.com';
   }
   return (process.env.RPC_WS_URL || process.env.NEXT_PUBLIC_RPC_WS_URL) as string | undefined;
 }
@@ -401,6 +430,18 @@ export async function getMnemonicForActiveWallet(password?: string): Promise<str
     return await decryptMnemonic(stored.encMnemonic, password);
   }
   throw new Error("Unsupported wallet scheme");
+}
+
+// Helper to fetch the mnemonic and derived secret key (base64) for the active wallet
+export async function getActiveWalletSecrets(password?: string): Promise<{ mnemonic: string; secretKeyB64: string }> {
+  const mnemonic = await getMnemonicForActiveWallet(password);
+  const kp = await mnemonicToKeypair(mnemonic);
+  // Convert secretKey (Uint8Array) to base64
+  let s = "";
+  const u8 = kp.secretKey;
+  for (let i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]);
+  const secretKeyB64 = btoa(s);
+  return { mnemonic, secretKeyB64 };
 }
 
 function buildMemoInstruction(text: string) {

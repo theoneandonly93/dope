@@ -15,7 +15,7 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
   const ctx = useWalletOptional();
   const address = ctx?.address || null;
   const logout = ctx?.logout || (() => {});
-  const [tab, setTab] = useState<"profile" | "wallets">("profile");
+  const [tab, setTab] = useState<"profile" | "wallets" | "settings" | "developer">("profile");
   const [scheme, setScheme] = useState<string>("");
   const [currentPwd, setCurrentPwd] = useState("");
   const [newPwd, setNewPwd] = useState("");
@@ -75,6 +75,8 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
         <div className="px-4 pt-3 flex gap-3 text-sm">
           <button className={`px-3 py-2 rounded-lg ${tab==='profile'?'bg-white/10':''}`} onClick={()=>setTab('profile')}>Profile</button>
           <button className={`px-3 py-2 rounded-lg ${tab==='wallets'?'bg-white/10':''}`} onClick={()=>setTab('wallets')}>Wallets</button>
+          <button className={`px-3 py-2 rounded-lg ${tab==='settings'?'bg-white/10':''}`} onClick={()=>setTab('settings')}>Settings</button>
+          <button className={`px-3 py-2 rounded-lg ${tab==='developer'?'bg-white/10':''}`} onClick={()=>setTab('developer')}>Developer</button>
         </div>
         <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(100vh-120px)]">
           {tab === 'profile' && (
@@ -117,9 +119,22 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
               </div>
             </div>
           )}
+
+          {tab === 'settings' && (
+            <div className="space-y-3">
+              <div className="text-sm text-white/80">Manage your wallet preferences.</div>
+              <button className="btn" onClick={() => { onClose(); router.push('/settings'); }}>Open Settings</button>
+            </div>
+          )}
+
+          {tab === 'developer' && (
+            <div className="space-y-3">
+              <div className="text-sm text-white/80">Developer options for network selection.</div>
+              <button className="btn" onClick={() => { onClose(); router.push('/settings/developer'); }}>Open Developer Settings</button>
+            </div>
+          )}
         </div>
       </aside>
     </div>
   );
 }
-

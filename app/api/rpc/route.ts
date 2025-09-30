@@ -1,6 +1,10 @@
 export const dynamic = "force-dynamic";
 
-function endpoint() {
+function endpointFromNet(net?: string | null) {
+  const n = (net || "").toLowerCase();
+  if (n === "devnet") return "https://api.devnet.solana.com";
+  if (n === "testnet") return "https://api.testnet.solana.com";
+  // mainnet (default) honors env override
   return process.env.RPC_URL || process.env.NEXT_PUBLIC_RPC_URL || "https://api.mainnet-beta.solana.com";
 }
 
@@ -13,7 +17,9 @@ function extraHeaders(): Record<string, string> {
 }
 
 export async function POST(req: Request) {
-  const rpc = endpoint();
+  const url = new URL(req.url);
+  const net = url.searchParams.get("net");
+  const rpc = endpointFromNet(net);
   const extra = extraHeaders();
   try {
     const body = await req.text();
@@ -31,6 +37,8 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET() {
-  return Response.json({ ok: true, rpc: endpoint() });
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const net = url.searchParams.get("net");
+  return Response.json({ ok: true, rpc: endpointFromNet(net) });
 }
