@@ -1,0 +1,8 @@
+Example test addresses and signatures for top-up (dev stub)
+
+User pubkey: 8ErX3PZ6gkV3z6fXvC9m1ZsYUiHcZVaXb1Gqk4nVTest
+Simulated signature: 4vW2uQS2zQyjs9YkXyTestSignature999999
+Amount DOPE: 1.23
+
+Note: With the current stub backend, any non-empty signature (length >= 16) passes verification.
+
