@@ -277,9 +277,7 @@ export default function Home() {
                 </div>
               </div>
               <div className="flex items-center gap-3 max-w-[60px] truncate text-right">
-                {!keypair && (
-                  <Link href="/unlock" className="text-xs underline text-white/70">Unlock</Link>
-                )}
+                {/* Unlock link removed; unlock modal will appear only when needed */}
               </div>
             </div>
           );
