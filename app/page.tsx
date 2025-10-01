@@ -194,7 +194,7 @@ export default function Home() {
         {syncMsg && <div className="text-xs text-white/70 mt-2">{syncMsg}</div>}
       </div>
 
-      <TxList address={address!} />
+  <TxList address={address || undefined} />
     </div>
     </ErrorBoundary>
   );
