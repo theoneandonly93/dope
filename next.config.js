@@ -9,8 +9,8 @@ const nextConfig = {
       'utf-8-validate': false,
       bufferutil: false,
       encoding: false,
-      // Avoid bundling Node ws on the client; let rpc-websockets use browser WebSocket
-      ...(isServer ? {} : { ws: false, 'rpc-websockets': require.resolve('./shims/rpc-websockets.js') }),
+      // Avoid bundling Node ws on the client; force rpc-websockets browser build
+      ...(isServer ? {} : { ws: false, 'rpc-websockets': require.resolve('rpc-websockets/dist/index.browser.mjs') }),
     };
     if (isServer) {
       // Prevent Next from trying to bundle optional native deps on server
