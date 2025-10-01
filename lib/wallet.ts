@@ -101,6 +101,7 @@ export function generateMnemonic(strength: 128 | 256 = 128) {
 export const DERIVATION_PRESETS: { key: string; label: string; path: string }[] = [
   { key: 'phantom', label: "Phantom / Backpack (m/44'/501'/0'/0')", path: "m/44'/501'/0'/0'" },
   { key: 'sollet', label: "Sollet (m/44'/501'/0')", path: "m/44'/501'/0'" },
+  { key: 'ledger_alt', label: "Ledger/Backpack Alt (m/44'/501'/0'/0'/0')", path: "m/44'/501'/0'/0'/0'" },
 ];
 
 export async function mnemonicToKeypairFromPath(mnemonic: string, path: string) {
@@ -254,6 +255,20 @@ export async function importWalletFromMnemonic(mnemonic: string, password: strin
     createdAt: Date.now(),
     scheme: "password",
     derivationPath: selected.path,
+  };
+  addWalletRecord(record);
+  return { address: record.pubkey };
+}
+
+export async function importWalletWithPath(mnemonic: string, password: string, path: string) {
+  const kp = await mnemonicToKeypairFromPath(mnemonic, path);
+  const enc = await encryptMnemonic(mnemonic, password);
+  const record: StoredWallet = {
+    encMnemonic: enc,
+    pubkey: kp.publicKey.toBase58(),
+    createdAt: Date.now(),
+    scheme: "password",
+    derivationPath: path,
   };
   addWalletRecord(record);
   return { address: record.pubkey };

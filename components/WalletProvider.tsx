@@ -8,6 +8,7 @@ import {
   clearStoredWallet,
   createNewWallet,
   importWalletFromMnemonic,
+  importWalletWithPath,
   isBiometricAvailable,
   biometricGate,
   unlockWithDevice,
@@ -81,8 +82,11 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     return res;
   };
 
-  const importWallet = async (mnemonic: string, password: string, derivationKey = 'phantom') => {
-    const res = await importWalletFromMnemonic(mnemonic, password, derivationKey);
+  const importWallet = async (mnemonic: string, password: string, derivationKeyOrPath = 'phantom') => {
+    const isPath = typeof derivationKeyOrPath === 'string' && derivationKeyOrPath.startsWith('m/');
+    const res = isPath
+      ? await importWalletWithPath(mnemonic, password, derivationKeyOrPath as string)
+      : await importWalletFromMnemonic(mnemonic, password, derivationKeyOrPath as string);
     setAddress(res.address);
     setHasWallet(true);
     return res;
