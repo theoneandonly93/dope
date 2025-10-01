@@ -13,16 +13,24 @@ export default function TxList({ address, tokenMint }: { address?: string, token
       if (!address) return;
       try {
         setLoading(true);
-        // Use Solscan API for transaction history
-        const res = await fetch(`https://public-api.solscan.io/account/transactions?account=${address}&limit=20`).then(r => r.json());
-        if (alive && Array.isArray(res)) {
+        // Try Solscan API first
+        let res = [];
+        try {
+          res = await fetch(`https://public-api.solscan.io/account/transactions?account=${address}&limit=20`).then(r => r.json());
+        } catch {}
+        if (alive && Array.isArray(res) && res.length > 0) {
           setItems(res.map((tx: any) => ({
             signature: tx.txHash,
             slot: tx.slot,
             time: tx.blockTime,
-            change: null, // Solscan does not provide direct balance change
+            change: null,
             status: tx.status === 'Success' ? 'success' : tx.status === 'Fail' ? 'error' : 'unknown',
           })));
+        } else {
+          // Fallback to Solana explorer RPC
+          const rpcTx = await import("../lib/wallet");
+          const fallback = await rpcTx.getRecentTransactions(address, 20);
+          setItems(fallback);
         }
       } catch (e) {
         if (alive) setItems([]);
@@ -32,7 +40,7 @@ export default function TxList({ address, tokenMint }: { address?: string, token
       }
     };
     fetchTx();
-    const iv = setInterval(fetchTx, 5000); // poll every 5s for Solscan
+    const iv = setInterval(fetchTx, 5000);
     return () => { alive = false; clearInterval(iv); };
   }, [address]);
 
