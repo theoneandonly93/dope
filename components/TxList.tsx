@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { getRecentTransactions, RecentTx } from "../lib/wallet";
+import { Connection, PublicKey } from "@solana/web3.js";
 
 
 export default function TxList({ address, tokenMint }: { address?: string, tokenMint?: string }) {
@@ -13,25 +14,26 @@ export default function TxList({ address, tokenMint }: { address?: string, token
       if (!address) return;
       try {
         setLoading(true);
-        // Try Solscan API first
-        let res = [];
-        try {
-          res = await fetch(`https://public-api.solscan.io/account/transactions?account=${address}&limit=20`).then(r => r.json());
-        } catch {}
-        if (alive && Array.isArray(res) && res.length > 0) {
-          setItems(res.map((tx: any) => ({
-            signature: tx.txHash,
-            slot: tx.slot,
-            time: tx.blockTime,
-            change: null,
-            status: tx.status === 'Success' ? 'success' : tx.status === 'Fail' ? 'error' : 'unknown',
-          })));
-        } else {
-          // Fallback to Solana explorer RPC
-          const rpcTx = await import("../lib/wallet");
-          const fallback = await rpcTx.getRecentTransactions(address, 20);
-          setItems(fallback);
-        }
+        const connection = new Connection(process.env.NEXT_PUBLIC_RPC_URL || "https://api.mainnet-beta.solana.com");
+        const pubkey = new PublicKey(address);
+        const signatures = await connection.getSignaturesForAddress(pubkey, { limit: 20 });
+        const txs = await Promise.all(
+          signatures.map(async sig => {
+            const tx = await connection.getParsedTransaction(sig.signature, { commitment: "confirmed" });
+            let status: "success" | "error" | "unknown" = "unknown";
+            if (tx) {
+              status = tx.meta?.err ? "error" : "success";
+            }
+            return {
+              signature: sig.signature,
+              slot: sig.slot,
+              time: tx?.blockTime ?? null,
+              change: null,
+              status,
+            };
+          })
+        );
+        if (alive) setItems(txs);
       } catch (e) {
         if (alive) setItems([]);
         console.error('Transaction history error:', e);
