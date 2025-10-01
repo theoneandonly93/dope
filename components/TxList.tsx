@@ -13,16 +13,17 @@ export default function TxList({ address }: { address?: string }) {
       if (!address) return;
       try {
         setLoading(true);
-        const res = await getRecentTransactions(address, 10);
+        const res = await getRecentTransactions(address, 20); // fetch more transactions for better coverage
         if (alive) setItems(res);
-      } catch {
+      } catch (e) {
         if (alive) setItems([]);
+        console.error('Transaction history error:', e);
       } finally {
         setLoading(false);
       }
     };
     fetchTx();
-    const iv = setInterval(fetchTx, 5000);
+    const iv = setInterval(fetchTx, 3000); // faster polling for real-time updates
     return () => { alive = false; clearInterval(iv); };
   }, [address]);
 
