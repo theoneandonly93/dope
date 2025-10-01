@@ -21,7 +21,7 @@ export default function Home() {
   // Top-level fallback UI for runtime errors
   const [fatalError, setFatalError] = useState<string>("");
 
-  // Swap UI state
+  // Move swap UI state hooks to top level
   const [showSwap, setShowSwap] = useState(false);
   const [showTokenInfo, setShowTokenInfo] = useState<{mint: string, name: string} | null>(null);
   const [swapAmount, setSwapAmount] = useState(0);
@@ -30,8 +30,18 @@ export default function Home() {
   const [tokenA, setTokenA] = useState("So11111111111111111111111111111111111111112"); // default SOL
   const [tokenB, setTokenB] = useState("FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33"); // default DOPE
   const [swapDirection, setSwapDirection] = useState(true); // true: A->B, false: B->A
+  const [slippage, setSlippage] = useState(0.5); // default 0.5%
+  const [tokenList, setTokenList] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("/tokenlist.json")
+      .then(res => res.json())
+      .then(setTokenList)
+      .catch(() => setTokenList([]));
+  }, []);
 
   // Do not auto-redirect to /unlock to avoid flicker; surface contextual Unlock links instead
+  // Debug output for address and errors
   useEffect(() => {
     if (!address) return;
     let unsub: null | (() => void) = null;
@@ -42,24 +52,27 @@ export default function Home() {
         setBalance(bal);
       } catch (e: any) {
         setBalance(null);
-        setFatalError("Failed to fetch SOL balance. Please check your network or RPC endpoint.");
+        setFatalError("Failed to fetch SOL balance. Please check your network or RPC endpoint. " + (e?.message || ""));
       }
       try {
         const spl = await getDopeTokenBalance(address);
         setDopeSpl(spl);
       } catch (e: any) {
         setDopeSpl(null);
-        setFatalError("Failed to fetch DOPE token balance. Please check your network or RPC endpoint.");
+        setFatalError("Failed to fetch DOPE token balance. Please check your network or RPC endpoint. " + (e?.message || ""));
       }
     };
     refresh();
     try {
-      unsub = subscribeBalance(address, setBalance);
+      unsub = subscribeBalance(address, (b) => {
+        setBalance(b);
+        refresh(); // also refresh SPL and history instantly on SOL change
+      });
     } catch (e: any) {
       // ignore
     }
     if (!unsub) {
-      iv = setInterval(refresh, 5000);
+      iv = setInterval(refresh, 3000); // faster polling for instant updates
     }
     return () => { unsub?.(); if (iv) clearInterval(iv); };
   }, [address]);
@@ -131,8 +144,10 @@ export default function Home() {
     <ErrorBoundary>
       <div className="pb-24 space-y-6">
       <div className="glass rounded-2xl p-5 border border-white/5">
-        <div className="text-xs text-white/60">Address</div>
+        <div className="text-xs text-white/60">Address (debug)</div>
         <div className="font-mono break-all text-sm">{address}</div>
+        <div className="mt-2 text-xs text-white/60">Current network: mainnet-beta</div>
+        <div className="mt-2 text-xs text-white/60">If your balance is missing, verify this address matches Solscan.</div>
         <div className="mt-4 text-xs text-white/60">Balance</div>
         <div className="text-3xl font-bold">{balance === null ? "—" : balance.toFixed(4)} <span className="text-base font-medium text-white/60">SOL</span></div>
       </div>
@@ -144,36 +159,59 @@ export default function Home() {
       </div>
 
       {showSwap && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="glass rounded-2xl p-6 border border-white/10 w-full max-w-md">
-            <h2 className="text-lg font-semibold mb-2">Swap Tokens</h2>
-            <div className="mb-2 flex flex-col gap-2">
-              <input
-                type="text"
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 outline-none"
-                placeholder="Token A Mint Address"
-                value={tokenA}
-                onChange={e => setTokenA(e.target.value)}
-                disabled={!swapDirection}
-              />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90">
+          <div className="rounded-2xl p-6 w-full max-w-md border border-white/10" style={{background: '#000'}}>
+            <h2 className="text-lg font-semibold mb-4 text-white">Swap Tokens</h2>
+            <div className="mb-4 flex flex-col gap-4">
+              <div className="flex gap-2 items-center">
+                <select
+                  className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"
+                  value={tokenA}
+                  onChange={e => setTokenA(e.target.value)}
+                  disabled={!swapDirection}
+                >
+                  {tokenList.map(t => (
+                    <option key={t.mint} value={t.mint}>{t.name} ({t.symbol})</option>
+                  ))}
+                </select>
+                <img src={tokenList.find(t => t.mint === tokenA)?.logo || "/logo-192.png"} alt="tokenA" className="w-8 h-8 rounded-full" />
+              </div>
               <button className="btn w-full" onClick={handleSwitch}>⇅ Switch</button>
-              <input
-                type="text"
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 outline-none"
-                placeholder="Token B Mint Address"
-                value={tokenB}
-                onChange={e => setTokenB(e.target.value)}
-                disabled={swapDirection}
-              />
+              <div className="flex gap-2 items-center">
+                <select
+                  className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"
+                  value={tokenB}
+                  onChange={e => setTokenB(e.target.value)}
+                  disabled={swapDirection}
+                >
+                  {tokenList.map(t => (
+                    <option key={t.mint} value={t.mint}>{t.name} ({t.symbol})</option>
+                  ))}
+                </select>
+                <img src={tokenList.find(t => t.mint === tokenB)?.logo || "/logo-192.png"} alt="tokenB" className="w-8 h-8 rounded-full" />
+              </div>
               <input
                 type="number"
                 min="0"
                 step="any"
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 outline-none mt-2"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 outline-none mt-2 text-white"
                 placeholder="Amount to swap"
                 value={swapAmount}
                 onChange={e => setSwapAmount(Number(e.target.value))}
               />
+              <div className="flex items-center gap-2">
+                <span className="text-white/70">Slippage</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="5"
+                  step="0.1"
+                  className="w-20 bg-white/5 border border-white/10 rounded-lg px-2 py-1 outline-none text-white"
+                  value={slippage}
+                  onChange={e => setSlippage(Number(e.target.value))}
+                />
+                <span className="text-white/60">%</span>
+              </div>
             </div>
             <button className="btn w-full mb-2" onClick={handleSwap}>Swap</button>
             {swapResult && <div className="text-green-400 text-sm mb-2">{swapResult}</div>}
@@ -217,7 +255,7 @@ export default function Home() {
         {syncMsg && <div className="text-xs text-white/70 mt-2">{syncMsg}</div>}
       </div>
 
-  <TxList address={address || undefined} />
+  <TxList address={address || undefined} key={address} />
     </div>
     </ErrorBoundary>
   );

@@ -1,0 +1,14 @@
+[
+  {
+    "symbol": "SOL",
+    "name": "Solana",
+    "mint": "So11111111111111111111111111111111111111112",
+    "logo": "/logo-192.png"
+  },
+  {
+    "symbol": "DOPE",
+    "name": "Dope Token",
+    "mint": "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33",
+    "logo": "/logo-192.png"
+  }
+]
