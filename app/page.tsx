@@ -268,21 +268,15 @@ export default function Home() {
               <div className="flex items-center gap-3">
                 <img src={token.logo || "/logo-192.png"} alt={token.symbol} className="w-9 h-9 rounded-full" />
                 <div>
-                  <div className="text-sm font-semibold">{token.name}</div>
-                  <div className="text-xs text-white/60">{isSol ? "Network currency (SOL)" : "Token balance (mint)"}</div>
+                  <div className="text-sm font-semibold">{token.name} <span className="text-xs text-white/60">{token.symbol}</span></div>
                   <div className="text-sm font-semibold mt-1">{formatTokenAmount(tokenBalance, token.symbol)}</div>
                   <div className="text-xs text-green-400 mt-1">
                     {tokenBalance !== null && tokenPrices[token.mint] ? `$${(tokenBalance * tokenPrices[token.mint]).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD` : "—"}
                   </div>
-                  {isDope && (
-                    <div className="text-xs text-white/40 mt-1">DOPE debug: balance={tokenBalance}, price={tokenPrices[token.mint]}</div>
-                  )}
+                  {/* ...no debug info... */}
                 </div>
               </div>
               <div className="flex items-center gap-3 max-w-[60px] truncate text-right">
-                {isDope && (
-                  <button className="btn text-xs" onClick={onSyncDope} disabled={syncing || !keypair}>{syncing ? 'Syncing…' : 'Sync'}</button>
-                )}
                 {!keypair && (
                   <Link href="/unlock" className="text-xs underline text-white/70">Unlock</Link>
                 )}
