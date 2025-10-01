@@ -1,6 +1,6 @@
 // Swap helper (stub): DOPE -> USDC quoting and placeholders for execution
 
-export const DOPE_MINT = 'FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33';
+export const DOPE_MINT = (process.env.NEXT_PUBLIC_DOPE_MINT || 'FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33');
 export const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 
 export type SwapQuote = { dopeIn: number; usdcOut: number; price: number; fee: number; slippage: number };
@@ -23,4 +23,3 @@ export async function executeSwapDopeToUsdc(dopeAmount: number): Promise<{ usdcO
   const sig = Math.random().toString(36).slice(2) + Date.now().toString(36);
   return { usdcOut: q.usdcOut, signature: sig };
 }
-
