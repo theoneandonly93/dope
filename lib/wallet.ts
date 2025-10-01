@@ -300,7 +300,6 @@ export async function importWalletFromSecretKey(secret: Uint8Array | number[], p
 export async function unlockWithPassword(password: string) {
   const stored = getStoredWallet();
   if (!stored) throw new Error("No wallet on this device");
-  const mnemonic = await decryptMnemonic(stored.encMnemonic, password);
   let kp: Keypair;
   if (stored.scheme === 'raw' && stored.encSecretKey) {
     // decrypt raw secret key
@@ -310,6 +309,7 @@ export async function unlockWithPassword(password: string) {
     for (let i = 0; i < bin.length; i++) sk[i] = bin.charCodeAt(i);
     kp = Keypair.fromSecretKey(sk);
   } else {
+    const mnemonic = await decryptMnemonic(stored.encMnemonic, password);
     let passphrase: string | undefined = undefined;
     if (stored.bip39PassphraseEnc) {
       try { passphrase = await decryptMnemonic(stored.bip39PassphraseEnc, password); } catch {}
