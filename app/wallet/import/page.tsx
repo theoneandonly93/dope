@@ -2,6 +2,8 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useWallet } from "../../../components/WalletProvider";
+import { Keypair } from "@solana/web3.js";
+import bs58 from "bs58";
 import { DERIVATION_PRESETS } from "../../../lib/wallet";
 import { scanMnemonicForAccounts } from "../../../lib/walletScan";
 
@@ -18,6 +20,7 @@ export default function ImportWallet() {
   const [bip39Passphrase, setBip39Passphrase] = useState<string>("");
   const [keypairJson, setKeypairJson] = useState<string>("");
   const [pendingKeypair, setPendingKeypair] = useState(false);
+  const [previewPk, setPreviewPk] = useState<string>("");
 
   const onImport = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,8 +66,26 @@ export default function ImportWallet() {
     }
   };
 
-  const onImportKeypair = async (e: React.FormEvent) => {
-    e.preventDefault();
+  function parseSecret(input: string): Uint8Array | null {
+    const s = input.trim();
+    if (!s) return null;
+    try {
+      if (s.startsWith("[")) {
+        const arr = JSON.parse(s);
+        if (Array.isArray(arr)) return new Uint8Array(arr.map((x: any) => Number(x)));
+      } else if (/^[A-Za-z0-9+/=]+$/.test(s) && s.includes("=")) {
+        const bin = atob(s);
+        const u8 = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+        return u8;
+      } else if (/^[1-9A-HJ-NP-Za-km-z]+$/.test(s)) {
+        return bs58.decode(s);
+      }
+    } catch {}
+    return null;
+  }
+
+  const onImportKeypair = async () => {
     setError(""); setPendingKeypair(true);
     try {
       await importKeypair(keypairJson, password);
@@ -73,6 +94,18 @@ export default function ImportWallet() {
       setError(e?.message || 'Failed to import keypair');
     } finally {
       setPendingKeypair(false);
+    }
+  };
+
+  const onKeypairChange = (val: string) => {
+    setKeypairJson(val);
+    setPreviewPk("");
+    const sk = parseSecret(val);
+    if (sk && (sk.length === 64 || sk.length === 32)) {
+      try {
+        const kp = Keypair.fromSecretKey(sk.length === 64 ? sk : (()=>{ const b=new Uint8Array(64); b.set(sk); return b; })());
+        setPreviewPk(kp.publicKey.toBase58());
+      } catch {}
     }
   };
 
@@ -152,18 +185,21 @@ export default function ImportWallet() {
 
       <div className="space-y-3 mt-6">
         <div className="text-sm font-semibold">Or import from keypair (id.json)</div>
-        <form onSubmit={onImportKeypair} className="space-y-3">
+        <div className="space-y-3">
           <textarea
             className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-3 outline-none focus:border-[#a58cff] min-h-[110px]"
             placeholder="Paste keypair JSON array or base58/base64 secret"
             value={keypairJson}
-            onChange={(e)=>setKeypairJson(e.target.value)}
+            onChange={(e)=>onKeypairChange(e.target.value)}
           />
-          <button className="w-full btn disabled:opacity-50" disabled={pendingKeypair || password.length < 6 || keypairJson.trim().length < 3}>
+          {previewPk && (
+            <div className="text-xs text-white/70">Derived Public Key: <span className="font-mono">{previewPk}</span></div>
+          )}
+          <button type="button" onClick={onImportKeypair} className="w-full btn disabled:opacity-50" disabled={pendingKeypair || password.length < 6 || keypairJson.trim().length < 3}>
             {pendingKeypair ? 'Importing...' : 'Import Keypair'}
           </button>
           <div className="text-[11px] text-white/50">Tip: To get your JSON, open ~/.config/solana/id.json and paste the full array (e.g., [159,150,...]).</div>
-        </form>
+        </div>
       </div>
     </form>
   );
