@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { PublicKey, Connection } from "@solana/web3.js";
 import { getQuote, swap, SOL_MINT } from "../lib/raydiumSwap";
 import Link from "next/link";
+import TokenDetailModal from "./TokenDetailModal";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { useRouter } from "next/navigation";
 import { useWallet } from "../components/WalletProvider";
@@ -271,11 +272,11 @@ export default function Home() {
                   <div className="text-xs text-white/60">{isSol ? "Network currency (SOL)" : "Token balance (mint)"}</div>
                 </div>
               </div>
-              <div className="flex items-center gap-3 max-w-[100px] truncate text-right">
+              <div className="flex items-center gap-3 max-w-[120px] truncate text-right">
                 <div className="text-sm font-semibold">{formatTokenAmount(tokenBalance, token.symbol)}</div>
-                {tokenPrices[token.mint] && tokenBalance !== null && (
-                  <div className="text-xs text-green-400">${(tokenBalance * tokenPrices[token.mint]).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</div>
-                )}
+                <div className="text-xs text-green-400">
+                  {tokenBalance !== null ? `$${((tokenBalance * (tokenPrices[token.mint] ?? 0)).toLocaleString(undefined, { maximumFractionDigits: 2 }))} USD` : "—"}
+                </div>
                 {isDope && (
                   <button className="btn text-xs" onClick={onSyncDope} disabled={syncing || !keypair}>{syncing ? 'Syncing…' : 'Sync'}</button>
                 )}
@@ -287,26 +288,14 @@ export default function Home() {
           );
         })}
         {showTokenInfo && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90">
-            <div className="rounded-2xl p-6 w-full max-w-lg border border-white/10" style={{background: '#000'}}>
-              <h2 className="text-lg font-semibold mb-2 text-white">{showTokenInfo.name} Info</h2>
-              <div className="mb-4">
-                <div className="text-xs text-white/60 mb-1">Mint Address:</div>
-                <div className="font-mono text-xs break-all text-white mb-2">{showTokenInfo.mint}</div>
-                {/* Placeholder for chart, MC, holders, volume, creation time */}
-                <div className="text-white/80 mb-2">Chart, Market Cap, Holders, Volume, Creation Time (coming soon)</div>
-              </div>
-              <div className="mt-4">
-                <div className="text-sm font-semibold mb-2 text-white">Your Transaction History</div>
-                <TxList address={address} tokenMint={showTokenInfo.mint} />
-              </div>
-              <div className="mt-4">
-                <h3 className="text-sm font-semibold mb-2 text-white">Send {showTokenInfo.name}</h3>
-                <SendTokenForm mint={showTokenInfo.mint} balance={showTokenInfo.mint === tokenA ? balance : dopeSpl} keypair={keypair} />
-              </div>
-              <button className="btn w-full mt-4" onClick={() => setShowTokenInfo(null)}>Close</button>
-            </div>
-          </div>
+          <TokenDetailModal
+            mint={showTokenInfo.mint}
+            name={showTokenInfo.name}
+            address={address}
+            keypair={keypair}
+            balance={showTokenInfo.mint === "So11111111111111111111111111111111111111112" ? balance : dopeSpl}
+            onClose={() => setShowTokenInfo(null)}
+          />
         )}
       </div>
 
