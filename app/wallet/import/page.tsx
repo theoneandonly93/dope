@@ -15,13 +15,14 @@ export default function ImportWallet() {
   const [derivation, setDerivation] = useState<string>('phantom');
   const [scanResults, setScanResults] = useState<{ path: string; pubkey: string; balance: number }[]>([]);
   const [scanning, setScanning] = useState(false);
+  const [bip39Passphrase, setBip39Passphrase] = useState<string>("");
 
   const onImport = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setPending(true);
     try {
-      await importWallet(mnemonic.trim().toLowerCase(), password, derivation);
+      await importWallet(mnemonic.trim().toLowerCase(), password, derivation, bip39Passphrase || undefined);
       router.replace("/unlock");
     } catch (e: any) {
       setError(e?.message || "Failed to import");
@@ -33,7 +34,7 @@ export default function ImportWallet() {
   const onScan = async () => {
     setScanning(true); setScanResults([]); setError("");
     try {
-      const res = await scanMnemonicForAccounts(mnemonic.trim().toLowerCase());
+      const res = await scanMnemonicForAccounts(mnemonic.trim().toLowerCase(), bip39Passphrase || undefined);
       setScanResults(res);
     } catch (e: any) {
       setError(e?.message || 'Scan failed');
@@ -49,7 +50,8 @@ export default function ImportWallet() {
     if (password.length >= 6) {
       try {
         setPending(true);
-        await importWallet(mnemonic.trim().toLowerCase(), password, key);
+        // Use raw path to ensure exact match and include optional BIP39 passphrase
+        await importWallet(mnemonic.trim().toLowerCase(), password, path, bip39Passphrase || undefined);
         router.replace('/unlock');
       } catch (e: any) {
         setError(e?.message || 'Failed to import');
@@ -74,6 +76,13 @@ export default function ImportWallet() {
         placeholder="New password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
+      />
+      <input
+        type="password"
+        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-3 outline-none focus:border-[#a58cff]"
+        placeholder="BIP39 passphrase (optional)"
+        value={bip39Passphrase}
+        onChange={(e)=>setBip39Passphrase(e.target.value)}
       />
       <div className="flex gap-2">
         <button type="button" onClick={onScan} className="btn" disabled={scanning || mnemonic.split(' ').length < 12}>{scanning? 'Scanning...' : 'Scan Accounts'}</button>

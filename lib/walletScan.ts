@@ -33,12 +33,12 @@ function generateCandidatePaths(maxAccount = 5, maxChange = 2, maxIndex = 2): st
   return uniq([ ...preset, ...baseA ]);
 }
 
-export async function scanMnemonicForAccounts(mnemonic: string) {
+export async function scanMnemonicForAccounts(mnemonic: string, bip39Passphrase?: string) {
   const results: { path: string; pubkey: string; balance: number }[] = [];
   const candidates = generateCandidatePaths();
   for (const path of candidates) {
     try {
-      const kp = await mnemonicToKeypairFromPath(mnemonic, path);
+      const kp = await mnemonicToKeypairFromPath(mnemonic, path, bip39Passphrase);
       const pubkey = kp.publicKey.toBase58();
       const balance = await getDopeBalanceForAddress(pubkey);
       results.push({ path, pubkey, balance });

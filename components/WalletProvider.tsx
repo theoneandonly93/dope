@@ -82,11 +82,11 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     return res;
   };
 
-  const importWallet = async (mnemonic: string, password: string, derivationKeyOrPath = 'phantom') => {
+  const importWallet = async (mnemonic: string, password: string, derivationKeyOrPath = 'phantom', bip39Passphrase?: string) => {
     const isPath = typeof derivationKeyOrPath === 'string' && derivationKeyOrPath.startsWith('m/');
     const res = isPath
-      ? await importWalletWithPath(mnemonic, password, derivationKeyOrPath as string)
-      : await importWalletFromMnemonic(mnemonic, password, derivationKeyOrPath as string);
+      ? await importWalletWithPath(mnemonic, password, derivationKeyOrPath as string, bip39Passphrase)
+      : await importWalletFromMnemonic(mnemonic, password, derivationKeyOrPath as string, bip39Passphrase);
     setAddress(res.address);
     setHasWallet(true);
     return res;

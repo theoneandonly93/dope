@@ -21,6 +21,7 @@ export type StoredWallet = {
   biometricEnabled?: boolean;
   scheme?: WalletScheme;
   derivationPath?: string; // optional BIP44 derivation path used to derive keypair
+  bip39PassphraseEnc?: EncryptedData; // optional encrypted BIP39 passphrase
 };
 
 type StoredWalletWithMeta = StoredWallet & { id: string; name?: string };
@@ -104,18 +105,18 @@ export const DERIVATION_PRESETS: { key: string; label: string; path: string }[] 
   { key: 'ledger_alt', label: "Ledger/Backpack Alt (m/44'/501'/0'/0'/0')", path: "m/44'/501'/0'/0'/0'" },
 ];
 
-export async function mnemonicToKeypairFromPath(mnemonic: string, path: string) {
+export async function mnemonicToKeypairFromPath(mnemonic: string, path: string, bip39Passphrase?: string) {
   if (!bip39.validateMnemonic(mnemonic)) throw new Error("Invalid mnemonic");
-  const seed = await bip39.mnemonicToSeed(mnemonic);
+  const seed = await bip39.mnemonicToSeed(mnemonic, bip39Passphrase || "");
   const derived = derivePath(path, Buffer.from(seed).toString("hex"));
   const kp = nacl.sign.keyPair.fromSeed(new Uint8Array(derived.key));
   return Keypair.fromSecretKey(kp.secretKey);
 }
 
 // Back-compat helper using prior account index scheme (maps to Phantom path for account=0)
-export async function mnemonicToKeypair(mnemonic: string, account = 0) {
+export async function mnemonicToKeypair(mnemonic: string, account = 0, bip39Passphrase?: string) {
   const path = `m/44'/501'/${account}'/0'`;
-  return mnemonicToKeypairFromPath(mnemonic, path);
+  return mnemonicToKeypairFromPath(mnemonic, path, bip39Passphrase);
 }
 
 function makeId() {
@@ -245,9 +246,9 @@ export async function createNewWallet(password: string, derivationKey: string = 
   return { mnemonic, address: record.pubkey };
 }
 
-export async function importWalletFromMnemonic(mnemonic: string, password: string, derivationKey: string = 'phantom') {
+export async function importWalletFromMnemonic(mnemonic: string, password: string, derivationKey: string = 'phantom', bip39Passphrase?: string) {
   const selected = DERIVATION_PRESETS.find((d) => d.key === derivationKey) || DERIVATION_PRESETS[0];
-  const kp = await mnemonicToKeypairFromPath(mnemonic, selected.path);
+  const kp = await mnemonicToKeypairFromPath(mnemonic, selected.path, bip39Passphrase);
   const enc = await encryptMnemonic(mnemonic, password);
   const record: StoredWallet = {
     encMnemonic: enc,
@@ -255,13 +256,14 @@ export async function importWalletFromMnemonic(mnemonic: string, password: strin
     createdAt: Date.now(),
     scheme: "password",
     derivationPath: selected.path,
+    bip39PassphraseEnc: bip39Passphrase ? await encryptMnemonic(bip39Passphrase, password) : undefined,
   };
   addWalletRecord(record);
   return { address: record.pubkey };
 }
 
-export async function importWalletWithPath(mnemonic: string, password: string, path: string) {
-  const kp = await mnemonicToKeypairFromPath(mnemonic, path);
+export async function importWalletWithPath(mnemonic: string, password: string, path: string, bip39Passphrase?: string) {
+  const kp = await mnemonicToKeypairFromPath(mnemonic, path, bip39Passphrase);
   const enc = await encryptMnemonic(mnemonic, password);
   const record: StoredWallet = {
     encMnemonic: enc,
@@ -269,6 +271,7 @@ export async function importWalletWithPath(mnemonic: string, password: string, p
     createdAt: Date.now(),
     scheme: "password",
     derivationPath: path,
+    bip39PassphraseEnc: bip39Passphrase ? await encryptMnemonic(bip39Passphrase, password) : undefined,
   };
   addWalletRecord(record);
   return { address: record.pubkey };
@@ -278,9 +281,13 @@ export async function unlockWithPassword(password: string) {
   const stored = getStoredWallet();
   if (!stored) throw new Error("No wallet on this device");
   const mnemonic = await decryptMnemonic(stored.encMnemonic, password);
+  let passphrase: string | undefined = undefined;
+  if (stored.bip39PassphraseEnc) {
+    try { passphrase = await decryptMnemonic(stored.bip39PassphraseEnc, password); } catch {}
+  }
   const kp = stored.derivationPath
-    ? await mnemonicToKeypairFromPath(mnemonic, stored.derivationPath)
-    : await mnemonicToKeypair(mnemonic);
+    ? await mnemonicToKeypairFromPath(mnemonic, stored.derivationPath, passphrase)
+    : await mnemonicToKeypair(mnemonic, 0, passphrase);
   markUnlocked();
   return kp;
 }
