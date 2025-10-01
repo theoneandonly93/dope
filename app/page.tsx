@@ -3,13 +3,14 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useWallet } from "../components/WalletProvider";
-import { getSolBalance, getStoredWallet, subscribeBalance } from "../lib/wallet";
+import { getSolBalance, getStoredWallet, subscribeBalance, getDopeTokenBalance } from "../lib/wallet";
 import TxList from "../components/TxList";
 
 export default function Home() {
   const router = useRouter();
   const { address, unlocked, hasWallet } = useWallet();
   const [balance, setBalance] = useState<number | null>(null);
+  const [dopeSpl, setDopeSpl] = useState<number | null>(null);
 
   useEffect(() => {
     if (!hasWallet) return;
@@ -24,6 +25,8 @@ export default function Home() {
     let iv: any = null;
     const refresh = () => getSolBalance(address).then(setBalance).catch(() => setBalance(null));
     refresh();
+    // fetch DOPE SPL balance in parallel
+    getDopeTokenBalance(address).then(setDopeSpl).catch(()=>setDopeSpl(null));
     try {
       unsub = subscribeBalance(address, setBalance);
     } catch {
@@ -68,11 +71,21 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <img src="/logo-192.png" alt="DOPE" className="w-9 h-9 rounded-full" />
             <div>
-              <div className="text-sm font-semibold">DOPE</div>
-              <div className="text-xs text-white/60">Native token</div>
+              <div className="text-sm font-semibold">DOPE (native)</div>
+              <div className="text-xs text-white/60">Network currency (SOL)</div>
             </div>
           </div>
           <div className="text-sm font-semibold">{balance === null ? "—" : balance.toFixed(4)} DOPE</div>
+        </div>
+        <div className="flex items-center justify-between py-2 border-t border-white/10 mt-2 pt-2">
+          <div className="flex items-center gap-3">
+            <img src="/logo-192.png" alt="DOPE" className="w-9 h-9 rounded-full" />
+            <div>
+              <div className="text-sm font-semibold">DOPE (SPL)</div>
+              <div className="text-xs text-white/60">Token balance (mint)</div>
+            </div>
+          </div>
+          <div className="text-sm font-semibold">{dopeSpl === null ? "—" : dopeSpl.toFixed(4)} DOPE</div>
         </div>
       </div>
 
@@ -82,4 +95,3 @@ export default function Home() {
     </div>
   );
 }
-

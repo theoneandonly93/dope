@@ -2,6 +2,7 @@ import * as bip39 from "bip39";
 import nacl from "tweetnacl";
 import { derivePath } from "ed25519-hd-key";
 import { Keypair, PublicKey, Connection, SystemProgram, Transaction, TransactionInstruction } from "@solana/web3.js";
+import { DOPE_MINT } from "./swap";
 import { Buffer } from "buffer";
 
 export type EncryptedData = {
@@ -397,6 +398,22 @@ export const LAMPORTS_PER_DOPE = 1_000_000_000; // align with Solana-style preci
 
 export function lamportsToDope(lamports: number) {
   return lamports / LAMPORTS_PER_DOPE;
+}
+
+// Read DOPE SPL token balance (using parsed token accounts)
+export async function getDopeTokenBalance(ownerAddress: string): Promise<number> {
+  try {
+    const conn = getConnection();
+    const owner = new PublicKey(ownerAddress);
+    const mint = new PublicKey(DOPE_MINT);
+    const parsed = await conn.getParsedTokenAccountsByOwner(owner, { mint });
+    if (!parsed || parsed.value.length === 0) return 0;
+    const acc: any = parsed.value[0].account.data;
+    const ui = acc?.parsed?.info?.tokenAmount?.uiAmount;
+    return typeof ui === 'number' ? ui : 0;
+  } catch {
+    return 0;
+  }
 }
 
 export async function getSolBalance(pubkey: string) {
