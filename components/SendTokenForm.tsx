@@ -6,10 +6,12 @@ import { getOrCreateAssociatedTokenAccount, transferChecked } from "@solana/spl-
 export default function SendTokenForm({ mint, balance, keypair }: { mint: string, balance: number | null, keypair: Keypair | null }) {
 
   const [toAddress, setToAddress] = useState("");
-  const [amount, setAmount] = useState(0);
+  const [amount, setAmount] = useState<number | "">("");
   const [status, setStatus] = useState("");
   const [sending, setSending] = useState(false);
   const [showUnlock, setShowUnlock] = useState(false);
+  const [showApprove, setShowApprove] = useState(false);
+  const [txid, setTxid] = useState<string>("");
 
   async function getTokenDecimals(connection: Connection, mint: string): Promise<number> {
     try {
@@ -29,7 +31,7 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
       setStatus("Unlock your wallet first.");
       return;
     }
-    if (!toAddress || amount <= 0) {
+    if (!toAddress || !amount || Number(amount) <= 0) {
       setStatus("Enter a valid address and amount.");
       return;
     }
@@ -40,35 +42,49 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
       setStatus("Invalid recipient address.");
       return;
     }
-    if (balance !== null && amount > balance) {
+    if (balance !== null && Number(amount) > balance) {
       setStatus("Insufficient balance.");
       return;
     }
+    setShowApprove(true);
+  };
+
+  const handleApprove = async () => {
+    setShowApprove(false);
     setSending(true);
+    setStatus("Signing and sending transaction...");
     try {
       const connection = new Connection(process.env.NEXT_PUBLIC_RPC_URL || "https://api.mainnet-beta.solana.com");
-      let txid = "";
+      let txidVal = "";
       if (mint === "So11111111111111111111111111111111111111112") {
-        txid = await sendSol(keypair, toAddress, amount);
+        txidVal = await sendSol(keypair, toAddress, Number(amount));
       } else {
         // SPL token send
         const mintPubkey = new PublicKey(mint);
         const decimals = await getTokenDecimals(connection, mint);
-        // Only use owner as payer for sender's ATA, recipient's ATA should use owner as payer only if not exists
+        let recipient: PublicKey;
+        try {
+          recipient = new PublicKey(toAddress);
+        } catch {
+          setStatus("Invalid recipient address.");
+          setSending(false);
+          return;
+        }
         const fromTokenAccount = await getOrCreateAssociatedTokenAccount(connection, keypair, mintPubkey, keypair.publicKey);
         const toTokenAccount = await getOrCreateAssociatedTokenAccount(connection, keypair, mintPubkey, recipient);
-        txid = await transferChecked(
+        txidVal = await transferChecked(
           connection,
           keypair,
           fromTokenAccount.address,
           mintPubkey,
           toTokenAccount.address,
           keypair,
-          amount,
+          Number(amount),
           decimals
         );
       }
-      setStatus(`Sent! Transaction: ${txid}`);
+      setTxid(txidVal);
+      setStatus(`Sent! Transaction: ${txidVal}`);
     } catch (e: any) {
       setStatus(e?.message || "Send failed");
     } finally {
@@ -92,13 +108,27 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
         className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 outline-none text-white"
         placeholder="Amount"
         value={amount}
-        onChange={e => setAmount(Number(e.target.value))}
+        onChange={e => setAmount(e.target.value === "" ? "" : Number(e.target.value))}
       />
       <button className="btn w-full" onClick={handleSend} disabled={sending || !keypair}>{sending ? "Sending..." : "Send"}</button>
       {showUnlock && (
         <div className="mt-2">
           <a href="/unlock" className="btn w-full">Unlock Wallet</a>
         </div>
+      )}
+      {showApprove && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="rounded-2xl p-6 w-full max-w-sm border border-white/10 bg-black text-white">
+            <h2 className="text-lg font-semibold mb-4">Approve Transaction</h2>
+            <div className="mb-2">You are about to send <span className="font-bold">{amount} {mint === "So11111111111111111111111111111111111111112" ? "SOL" : "Token"}</span> to <span className="font-mono">{toAddress}</span>.</div>
+            <div className="mb-4 text-xs text-white/70">Please confirm and sign this transaction to proceed on the blockchain.</div>
+            <button className="btn w-full mb-2" onClick={handleApprove}>Approve & Sign</button>
+            <button className="btn w-full" onClick={() => setShowApprove(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+      {txid && (
+        <div className="mt-2 text-green-400 text-xs">Transaction sent! <a href={`https://explorer.solana.com/tx/${txid}?cluster=mainnet-beta`} target="_blank" rel="noreferrer" className="underline">View on Solana Explorer</a></div>
       )}
       {status && <div className="text-xs text-white/70 mt-2">{status}</div>}
     </div>
