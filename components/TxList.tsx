@@ -13,9 +13,17 @@ export default function TxList({ address, tokenMint }: { address?: string, token
       if (!address) return;
       try {
         setLoading(true);
-        let res = await getRecentTransactions(address, 20); // fetch more transactions for better coverage
-        // Show all transactions for the address; tokenMint filter removed
-        if (alive) setItems(res);
+        // Use Solscan API for transaction history
+        const res = await fetch(`https://public-api.solscan.io/account/transactions?account=${address}&limit=20`).then(r => r.json());
+        if (alive && Array.isArray(res)) {
+          setItems(res.map((tx: any) => ({
+            signature: tx.txHash,
+            slot: tx.slot,
+            time: tx.blockTime,
+            change: null, // Solscan does not provide direct balance change
+            status: tx.status === 'Success' ? 'success' : tx.status === 'Fail' ? 'error' : 'unknown',
+          })));
+        }
       } catch (e) {
         if (alive) setItems([]);
         console.error('Transaction history error:', e);
@@ -24,7 +32,7 @@ export default function TxList({ address, tokenMint }: { address?: string, token
       }
     };
     fetchTx();
-    const iv = setInterval(fetchTx, 3000); // faster polling for real-time updates
+    const iv = setInterval(fetchTx, 5000); // poll every 5s for Solscan
     return () => { alive = false; clearInterval(iv); };
   }, [address]);
 
