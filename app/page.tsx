@@ -232,7 +232,7 @@ export default function Home() {
               <div className="text-xs text-white/60">Network currency (SOL)</div>
             </div>
           </div>
-          <div className="text-sm font-semibold">{balance === null ? "—" : balance.toFixed(4)} SOL</div>
+          <div className="text-sm font-semibold max-w-[100px] truncate text-right">{balance === null ? "—" : balance >= 1000000 ? balance.toExponential(2) : balance.toLocaleString(undefined, { maximumFractionDigits: 4 })} SOL</div>
         </div>
         <div className="flex items-center justify-between py-2 border-t border-white/10 mt-2 pt-2 cursor-pointer" onClick={() => setShowTokenInfo({mint: "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33", name: "DOPE (SPL)"})}>
           <div className="flex items-center gap-3">
@@ -242,15 +242,32 @@ export default function Home() {
               <div className="text-xs text-white/60">Token balance (mint)</div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="text-sm font-semibold">{dopeSpl === null ? "—" : dopeSpl.toFixed(4)} DOPE</div>
+          <div className="flex items-center gap-3 max-w-[100px] truncate text-right">
+            <div className="text-sm font-semibold">{dopeSpl === null ? "—" : dopeSpl >= 1000000 ? dopeSpl.toExponential(2) : dopeSpl.toLocaleString(undefined, { maximumFractionDigits: 4 })} DOPE</div>
             <button className="btn text-xs" onClick={onSyncDope} disabled={syncing || !keypair}>{syncing? 'Syncing…' : 'Sync'}</button>
             {!keypair && (
               <Link href="/unlock" className="text-xs underline text-white/70">Unlock</Link>
             )}
           </div>
         </div>
-        {syncMsg && <div className="text-xs text-white/70 mt-2">{syncMsg}</div>}
+        {showTokenInfo && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90">
+            <div className="rounded-2xl p-6 w-full max-w-lg border border-white/10" style={{background: '#000'}}>
+              <h2 className="text-lg font-semibold mb-2 text-white">{showTokenInfo.name} Info</h2>
+              <div className="mb-4">
+                <div className="text-xs text-white/60 mb-1">Mint Address:</div>
+                <div className="font-mono text-xs break-all text-white mb-2">{showTokenInfo.mint}</div>
+                {/* Placeholder for chart, MC, holders, volume, creation time */}
+                <div className="text-white/80 mb-2">Chart, Market Cap, Holders, Volume, Creation Time (coming soon)</div>
+              </div>
+              <div className="mt-4">
+                <div className="text-sm font-semibold mb-2 text-white">Your Transaction History</div>
+                <TxList address={address} tokenMint={showTokenInfo.mint} />
+              </div>
+              <button className="btn w-full mt-4" onClick={() => setShowTokenInfo(null)}>Close</button>
+            </div>
+          </div>
+        )}
       </div>
 
   <TxList address={address || undefined} key={address} />

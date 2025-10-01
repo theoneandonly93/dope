@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { getRecentTransactions, RecentTx } from "../lib/wallet";
 
 
-export default function TxList({ address }: { address?: string }) {
+export default function TxList({ address, tokenMint }: { address?: string, tokenMint?: string }) {
   const [items, setItems] = useState<RecentTx[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -13,7 +13,11 @@ export default function TxList({ address }: { address?: string }) {
       if (!address) return;
       try {
         setLoading(true);
-        const res = await getRecentTransactions(address, 20); // fetch more transactions for better coverage
+        let res = await getRecentTransactions(address, 20); // fetch more transactions for better coverage
+        if (tokenMint) {
+          // Filter for token-related transactions if tokenMint is provided
+          res = res.filter(tx => tx.signature && tx.signature.includes(tokenMint)); // Placeholder: improve with real token filter
+        }
         if (alive) setItems(res);
       } catch (e) {
         if (alive) setItems([]);
@@ -25,7 +29,7 @@ export default function TxList({ address }: { address?: string }) {
     fetchTx();
     const iv = setInterval(fetchTx, 3000); // faster polling for real-time updates
     return () => { alive = false; clearInterval(iv); };
-  }, [address]);
+  }, [address, tokenMint]);
 
   if (!address) {
     return <div className="glass rounded-2xl p-5 border border-white/5 text-white/60 text-sm">No address provided.</div>;
