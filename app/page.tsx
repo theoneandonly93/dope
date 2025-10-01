@@ -270,13 +270,13 @@ export default function Home() {
                 <div>
                   <div className="text-sm font-semibold">{token.name}</div>
                   <div className="text-xs text-white/60">{isSol ? "Network currency (SOL)" : "Token balance (mint)"}</div>
+                  <div className="text-sm font-semibold mt-1">{formatTokenAmount(tokenBalance, token.symbol)}</div>
+                  <div className="text-xs text-green-400 mt-1">
+                    {tokenBalance !== null ? `$${((tokenBalance * (tokenPrices[token.mint] ?? 0)).toLocaleString(undefined, { maximumFractionDigits: 2 }))} USD` : "—"}
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-3 max-w-[120px] truncate text-right">
-                <div className="text-sm font-semibold">{formatTokenAmount(tokenBalance, token.symbol)}</div>
-                <div className="text-xs text-green-400">
-                  {tokenBalance !== null ? `$${((tokenBalance * (tokenPrices[token.mint] ?? 0)).toLocaleString(undefined, { maximumFractionDigits: 2 }))} USD` : "—"}
-                </div>
+              <div className="flex items-center gap-3 max-w-[60px] truncate text-right">
                 {isDope && (
                   <button className="btn text-xs" onClick={onSyncDope} disabled={syncing || !keypair}>{syncing ? 'Syncing…' : 'Sync'}</button>
                 )}
