@@ -18,6 +18,49 @@
 - Biometric acts as a quick user-verification gate. It does not replace the password-derived encryption key.
 - RPC URL is read from `NEXT_PUBLIC_RPC_URL`.
 
+## Airdrop utility (SPL or devnet SOL)
+
+Script: `scripts/airdrop.ts`
+
+- Dry-run by default (set `DRY_RUN=true` or omit `--execute`).
+- Supports SPL token airdrop (fixed `--amount` per recipient or `--percent` of admin balance distributed equally).
+- Creates ATAs as needed; if `MINT_AUTH_SECRET` is provided and matches mint authority, mints directly to recipients; otherwise transfers from admin ATA after checking balance.
+- Outputs CSV receipts to `airdrop_receipts.csv` by default.
+
+Env
+- `RPC_URL` — Solana RPC (defaults to devnet)
+- `ADMIN_SECRET_KEY` — base58 secret key (or use `--keypair <path>`)
+- `MINT_ADDRESS` — SPL mint (omit and use `--sol` for devnet SOL faucet)
+- `MINT_AUTH_SECRET` — base58 mint authority (optional)
+- `DRY_RUN=true` — safety default
+
+Examples
+
+1) Prepare addresses
+```
+cp scripts/addresses.sample.txt addresses.txt
+# edit addresses.txt to your 10 recipients
+```
+
+2) Dry run SPL token airdrop (2% of admin balance distributed equally)
+```
+DRY_RUN=true npx ts-node scripts/airdrop.ts --addresses addresses.txt --percent 2 --mint $MINT_ADDRESS
+```
+
+3) Execute fixed amount per recipient
+```
+npx ts-node scripts/airdrop.ts --addresses addresses.txt --amount 12.5 --mint $MINT_ADDRESS --execute --yes
+```
+
+4) Devnet SOL faucet airdrop
+```
+npx ts-node scripts/airdrop.ts --addresses addresses.txt --amount 0.1 --sol --execute --yes
+```
+
+Notes
+- The script prints a summary and requires confirmation unless `--yes` is passed.
+- When not using a mint authority, the total required must be ≤ admin token balance.
+
 ## Virtual Card Top-Up (DOPE → USDC)
 
 This repo includes a stubbed end-to-end flow to top up a virtual card balance in USDC using DOPE.

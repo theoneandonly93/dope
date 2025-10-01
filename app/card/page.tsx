@@ -77,7 +77,7 @@ export default function CardPage() {
                : "linear-gradient(135deg, rgba(165,140,255,0.25), rgba(60,60,120,0.35))"),
            }}>
         <div className="flex items-center justify-between">
-          <div className="text-white/80 text-sm">DOPE</div>
+          <img src="/dopelganga.svg" alt="dopelganga" className="h-5 w-auto opacity-90" />
           <div className={`text-xs px-2 py-1 rounded-full ${frozen ? 'bg-red-500/20 text-red-300' : 'bg-white/10 text-white/80'}`}>{frozen ? 'Frozen' : 'Active'}</div>
         </div>
         <div className="mt-6 font-mono text-lg tracking-widest select-all">

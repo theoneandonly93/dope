@@ -20,6 +20,7 @@ export type StoredWallet = {
   createdAt: number;
   biometricEnabled?: boolean;
   scheme?: WalletScheme;
+  derivationPath?: string; // optional BIP44 derivation path used to derive keypair
 };
 
 type StoredWalletWithMeta = StoredWallet & { id: string; name?: string };
@@ -97,13 +98,23 @@ export function generateMnemonic(strength: 128 | 256 = 128) {
   return bip39.entropyToMnemonic(hex);
 }
 
-export async function mnemonicToKeypair(mnemonic: string, account = 0) {
+export const DERIVATION_PRESETS: { key: string; label: string; path: string }[] = [
+  { key: 'phantom', label: "Phantom / Backpack (m/44'/501'/0'/0')", path: "m/44'/501'/0'/0'" },
+  { key: 'sollet', label: "Sollet (m/44'/501'/0')", path: "m/44'/501'/0'" },
+];
+
+export async function mnemonicToKeypairFromPath(mnemonic: string, path: string) {
   if (!bip39.validateMnemonic(mnemonic)) throw new Error("Invalid mnemonic");
   const seed = await bip39.mnemonicToSeed(mnemonic);
-  const path = `m/44'/501'/${account}'/0'`;
   const derived = derivePath(path, Buffer.from(seed).toString("hex"));
   const kp = nacl.sign.keyPair.fromSeed(new Uint8Array(derived.key));
   return Keypair.fromSecretKey(kp.secretKey);
+}
+
+// Back-compat helper using prior account index scheme (maps to Phantom path for account=0)
+export async function mnemonicToKeypair(mnemonic: string, account = 0) {
+  const path = `m/44'/501'/${account}'/0'`;
+  return mnemonicToKeypairFromPath(mnemonic, path);
 }
 
 function makeId() {
@@ -217,28 +228,32 @@ export function markUnlocked() {
   sessionStorage.setItem(SESSION_UNLOCK_KEY, "1");
 }
 
-export async function createNewWallet(password: string) {
+export async function createNewWallet(password: string, derivationKey: string = 'phantom') {
   const mnemonic = generateMnemonic(128);
-  const kp = await mnemonicToKeypair(mnemonic);
+  const selected = DERIVATION_PRESETS.find((d) => d.key === derivationKey) || DERIVATION_PRESETS[0];
+  const kp = await mnemonicToKeypairFromPath(mnemonic, selected.path);
   const enc = await encryptMnemonic(mnemonic, password);
   const record: StoredWallet = {
     encMnemonic: enc,
     pubkey: kp.publicKey.toBase58(),
     createdAt: Date.now(),
     scheme: "password",
+    derivationPath: selected.path,
   };
   addWalletRecord(record);
   return { mnemonic, address: record.pubkey };
 }
 
-export async function importWalletFromMnemonic(mnemonic: string, password: string) {
-  const kp = await mnemonicToKeypair(mnemonic);
+export async function importWalletFromMnemonic(mnemonic: string, password: string, derivationKey: string = 'phantom') {
+  const selected = DERIVATION_PRESETS.find((d) => d.key === derivationKey) || DERIVATION_PRESETS[0];
+  const kp = await mnemonicToKeypairFromPath(mnemonic, selected.path);
   const enc = await encryptMnemonic(mnemonic, password);
   const record: StoredWallet = {
     encMnemonic: enc,
     pubkey: kp.publicKey.toBase58(),
     createdAt: Date.now(),
     scheme: "password",
+    derivationPath: selected.path,
   };
   addWalletRecord(record);
   return { address: record.pubkey };
@@ -248,7 +263,9 @@ export async function unlockWithPassword(password: string) {
   const stored = getStoredWallet();
   if (!stored) throw new Error("No wallet on this device");
   const mnemonic = await decryptMnemonic(stored.encMnemonic, password);
-  const kp = await mnemonicToKeypair(mnemonic);
+  const kp = stored.derivationPath
+    ? await mnemonicToKeypairFromPath(mnemonic, stored.derivationPath)
+    : await mnemonicToKeypair(mnemonic);
   markUnlocked();
   return kp;
 }
@@ -631,13 +648,15 @@ async function decryptWithDeviceSecret(ed: EncryptedData): Promise<string> {
 
 export async function createWalletImmediateSave() {
   const mnemonic = generateMnemonic(128);
-  const kp = await mnemonicToKeypair(mnemonic);
+  const defaultPath = DERIVATION_PRESETS[0].path; // phantom/backpack
+  const kp = await mnemonicToKeypairFromPath(mnemonic, defaultPath);
   const enc = await encryptWithDeviceSecret(mnemonic);
   const record: StoredWallet = {
     encMnemonic: enc,
     pubkey: kp.publicKey.toBase58(),
     createdAt: Date.now(),
     scheme: "device",
+    derivationPath: defaultPath,
   };
   addWalletRecord(record);
   markUnlocked();
@@ -648,7 +667,9 @@ export async function unlockWithDevice() {
   const stored = getStoredWallet();
   if (!stored) throw new Error("No wallet on this device");
   const mnemonic = await decryptWithDeviceSecret(stored.encMnemonic);
-  const kp = await mnemonicToKeypair(mnemonic);
+  const kp = stored.derivationPath
+    ? await mnemonicToKeypairFromPath(mnemonic, stored.derivationPath)
+    : await mnemonicToKeypair(mnemonic);
   markUnlocked();
   return kp;
 }

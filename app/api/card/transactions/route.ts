@@ -7,7 +7,6 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const pubkey = String(searchParams.get('pubkey') || '');
   if (!pubkey) return Response.json({ error: 'pubkey required' }, { status: 400 });
-  const txs = listCardTransactions(pubkey);
+  const txs = await listCardTransactions(pubkey);
   return Response.json({ ok: true, txs });
 }
-

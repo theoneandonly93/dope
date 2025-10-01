@@ -19,7 +19,7 @@ type Ctx = {
   keypair: Keypair | null;
   hasWallet: boolean;
   createWallet: (password: string) => Promise<{ mnemonic: string; address: string }>;
-  importWallet: (mnemonic: string, password: string) => Promise<{ address: string }>;
+  importWallet: (mnemonic: string, password: string, derivationKey?: string) => Promise<{ address: string }>;
   unlock: (password: string) => Promise<void>;
   tryBiometricUnlock: () => Promise<boolean>;
   lock: () => void;
@@ -81,8 +81,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     return res;
   };
 
-  const importWallet = async (mnemonic: string, password: string) => {
-    const res = await importWalletFromMnemonic(mnemonic, password);
+  const importWallet = async (mnemonic: string, password: string, derivationKey = 'phantom') => {
+    const res = await importWalletFromMnemonic(mnemonic, password, derivationKey);
     setAddress(res.address);
     setHasWallet(true);
     return res;
