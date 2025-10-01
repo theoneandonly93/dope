@@ -20,7 +20,12 @@ type Ctx = {
   keypair: Keypair | null;
   hasWallet: boolean;
   createWallet: (password: string) => Promise<{ mnemonic: string; address: string }>;
-  importWallet: (mnemonic: string, password: string, derivationKey?: string) => Promise<{ address: string }>;
+  importWallet: (
+    mnemonic: string,
+    password: string,
+    derivationKeyOrPath?: string,
+    bip39Passphrase?: string
+  ) => Promise<{ address: string }>;
   unlock: (password: string) => Promise<void>;
   tryBiometricUnlock: () => Promise<boolean>;
   lock: () => void;
