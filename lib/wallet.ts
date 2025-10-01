@@ -201,7 +201,17 @@ export function setActiveWalletName(name: string) {
 
 export function getStoredWallet(): StoredWallet | null {
   const aw = getActiveWallet();
-  return aw ? { encMnemonic: aw.encMnemonic, pubkey: aw.pubkey, createdAt: aw.createdAt, biometricEnabled: aw.biometricEnabled, scheme: aw.scheme } : null;
+  if (!aw) return null;
+  return {
+    encMnemonic: aw.encMnemonic,
+    pubkey: aw.pubkey,
+    createdAt: aw.createdAt,
+    biometricEnabled: aw.biometricEnabled,
+    scheme: aw.scheme,
+    derivationPath: (aw as any).derivationPath,
+    bip39PassphraseEnc: (aw as any).bip39PassphraseEnc,
+    encSecretKey: (aw as any).encSecretKey,
+  } as StoredWallet;
 }
 
 export function setStoredWallet(w: StoredWallet) {

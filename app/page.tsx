@@ -108,6 +108,9 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <div className="text-sm font-semibold">{dopeSpl === null ? "—" : dopeSpl.toFixed(4)} DOPE</div>
             <button className="btn text-xs" onClick={onSyncDope} disabled={syncing || !unlocked}>{syncing? 'Syncing…' : 'Sync'}</button>
+            {!unlocked && (
+              <Link href="/unlock" className="text-xs underline text-white/70">Unlock</Link>
+            )}
           </div>
         </div>
         {syncMsg && <div className="text-xs text-white/70 mt-2">{syncMsg}</div>}
