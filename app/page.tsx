@@ -1,4 +1,3 @@
-// ...existing code...
 "use client";
 import React, { useEffect, useState } from "react";
 import { PublicKey, Connection } from "@solana/web3.js";
@@ -19,19 +18,44 @@ export default function Home() {
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState("");
 
-  // Do not auto-redirect to /unlock to avoid flicker; surface contextual Unlock links instead
+  // Top-level fallback UI for runtime errors
+  const [fatalError, setFatalError] = useState<string>("");
 
+  // Swap UI state
+  const [showSwap, setShowSwap] = useState(false);
+  const [showTokenInfo, setShowTokenInfo] = useState<{mint: string, name: string} | null>(null);
+  const [swapAmount, setSwapAmount] = useState(0);
+  const [swapResult, setSwapResult] = useState<string>("");
+  const [swapError, setSwapError] = useState<string>("");
+  const [tokenA, setTokenA] = useState("So11111111111111111111111111111111111111112"); // default SOL
+  const [tokenB, setTokenB] = useState("FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33"); // default DOPE
+  const [swapDirection, setSwapDirection] = useState(true); // true: A->B, false: B->A
+
+  // Do not auto-redirect to /unlock to avoid flicker; surface contextual Unlock links instead
   useEffect(() => {
     if (!address) return;
     let unsub: null | (() => void) = null;
     let iv: any = null;
-    const refresh = () => getSolBalance(address).then(setBalance).catch(() => setBalance(null));
+    const refresh = async () => {
+      try {
+        const bal = await getSolBalance(address);
+        setBalance(bal);
+      } catch (e: any) {
+        setBalance(null);
+        setFatalError("Failed to fetch SOL balance. Please check your network or RPC endpoint.");
+      }
+      try {
+        const spl = await getDopeTokenBalance(address);
+        setDopeSpl(spl);
+      } catch (e: any) {
+        setDopeSpl(null);
+        setFatalError("Failed to fetch DOPE token balance. Please check your network or RPC endpoint.");
+      }
+    };
     refresh();
-    // fetch DOPE SPL balance in parallel
-    getDopeTokenBalance(address).then(setDopeSpl).catch(()=>setDopeSpl(null));
     try {
       unsub = subscribeBalance(address, setBalance);
-    } catch {
+    } catch (e: any) {
       // ignore
     }
     if (!unsub) {
@@ -56,28 +80,6 @@ export default function Home() {
       setSyncing(false);
     }
   };
-
-  if (!hasWallet) {
-    return (
-      <div className="space-y-5">
-        <h1 className="text-xl font-semibold">Welcome to DOPE</h1>
-        <p className="text-white/70 text-sm">Create a DOPE wallet in seconds.</p>
-        <Link href="/get-started" className="btn w-full text-center">Get Started</Link>
-        <div className="text-center text-xs text-white/60">
-          Already have a wallet? <Link href="/wallet/import" className="underline">Import</Link>
-        </div>
-      </div>
-    );
-  }
-
-  const [showSwap, setShowSwap] = useState(false);
-  const [showTokenInfo, setShowTokenInfo] = useState<{mint: string, name: string} | null>(null);
-  const [swapAmount, setSwapAmount] = useState(0);
-  const [swapResult, setSwapResult] = useState<string>("");
-  const [swapError, setSwapError] = useState<string>("");
-  const [tokenA, setTokenA] = useState("So11111111111111111111111111111111111111112"); // default SOL
-  const [tokenB, setTokenB] = useState("FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33"); // default DOPE
-  const [swapDirection, setSwapDirection] = useState(true); // true: A->B, false: B->A
 
   const handleSwap = async () => {
     setSwapError("");
@@ -104,6 +106,27 @@ export default function Home() {
     setTokenA(tokenB);
     setTokenB(temp);
   };
+  if (fatalError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen text-center">
+        <div className="text-2xl font-bold text-red-400 mb-4">A network or runtime error occurred</div>
+        <div className="text-white/80 mb-4">{fatalError}</div>
+        <button className="btn" onClick={() => window.location.reload()}>Reload</button>
+      </div>
+    );
+  }
+  if (!hasWallet) {
+    return (
+      <div className="space-y-5">
+        <h1 className="text-xl font-semibold">Welcome to DOPE</h1>
+        <p className="text-white/70 text-sm">Create a DOPE wallet in seconds.</p>
+        <Link href="/get-started" className="btn w-full text-center">Get Started</Link>
+        <div className="text-center text-xs text-white/60">
+          Already have a wallet? <Link href="/wallet/import" className="underline">Import</Link>
+        </div>
+      </div>
+    );
+  }
   return (
     <ErrorBoundary>
       <div className="pb-24 space-y-6">
