@@ -7,7 +7,7 @@ import { scanMnemonicForAccounts } from "../../../lib/walletScan";
 
 export default function ImportWallet() {
   const router = useRouter();
-  const { importWallet } = useWallet();
+  const { importWallet, importKeypair } = useWallet();
   const [mnemonic, setMnemonic] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -16,6 +16,8 @@ export default function ImportWallet() {
   const [scanResults, setScanResults] = useState<{ path: string; pubkey: string; balance: number }[]>([]);
   const [scanning, setScanning] = useState(false);
   const [bip39Passphrase, setBip39Passphrase] = useState<string>("");
+  const [keypairJson, setKeypairJson] = useState<string>("");
+  const [pendingKeypair, setPendingKeypair] = useState(false);
 
   const onImport = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,6 +60,19 @@ export default function ImportWallet() {
       } finally {
         setPending(false);
       }
+    }
+  };
+
+  const onImportKeypair = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(""); setPendingKeypair(true);
+    try {
+      await importKeypair(keypairJson, password);
+      router.replace('/unlock');
+    } catch (e: any) {
+      setError(e?.message || 'Failed to import keypair');
+    } finally {
+      setPendingKeypair(false);
     }
   };
 
@@ -134,6 +149,22 @@ export default function ImportWallet() {
           </div>
         </div>
       )}
+
+      <div className="space-y-3 mt-6">
+        <div className="text-sm font-semibold">Or import from keypair (id.json)</div>
+        <form onSubmit={onImportKeypair} className="space-y-3">
+          <textarea
+            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-3 outline-none focus:border-[#a58cff] min-h-[110px]"
+            placeholder="Paste keypair JSON array or base58/base64 secret"
+            value={keypairJson}
+            onChange={(e)=>setKeypairJson(e.target.value)}
+          />
+          <button className="w-full btn disabled:opacity-50" disabled={pendingKeypair || password.length < 6 || keypairJson.trim().length < 3}>
+            {pendingKeypair ? 'Importing...' : 'Import Keypair'}
+          </button>
+          <div className="text-[11px] text-white/50">Tip: To get your JSON, open ~/.config/solana/id.json and paste the full array (e.g., [159,150,...]).</div>
+        </form>
+      </div>
     </form>
   );
 }

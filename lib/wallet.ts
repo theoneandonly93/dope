@@ -12,7 +12,7 @@ export type EncryptedData = {
   cipherText: string; // base64
 };
 
-export type WalletScheme = "password" | "device";
+export type WalletScheme = "password" | "device" | "raw";
 
 export type StoredWallet = {
   encMnemonic: EncryptedData;
@@ -22,6 +22,7 @@ export type StoredWallet = {
   scheme?: WalletScheme;
   derivationPath?: string; // optional BIP44 derivation path used to derive keypair
   bip39PassphraseEnc?: EncryptedData; // optional encrypted BIP39 passphrase
+  encSecretKey?: EncryptedData; // when importing a raw CLI keypair
 };
 
 type StoredWalletWithMeta = StoredWallet & { id: string; name?: string };
@@ -277,17 +278,46 @@ export async function importWalletWithPath(mnemonic: string, password: string, p
   return { address: record.pubkey };
 }
 
+// Import a raw CLI keypair (secret key bytes) and encrypt the secret with a password
+export async function importWalletFromSecretKey(secret: Uint8Array | number[], password: string) {
+  const sk = secret instanceof Uint8Array ? secret : new Uint8Array(secret);
+  const kp = Keypair.fromSecretKey(sk);
+  const secretB64 = toB64(sk);
+  const encSk = await encryptMnemonic(secretB64, password); // reuse encrypt helper
+  // store an empty encMnemonic for type compatibility
+  const fakeEnc: EncryptedData = { algo: "AES-GCM", iv: toB64(new Uint8Array(12)), salt: toB64(new Uint8Array(16)), iterations: 0, cipherText: toB64(new Uint8Array(0)) };
+  const record: StoredWallet = {
+    encMnemonic: fakeEnc,
+    encSecretKey: encSk,
+    pubkey: kp.publicKey.toBase58(),
+    createdAt: Date.now(),
+    scheme: "raw",
+  };
+  addWalletRecord(record);
+  return { address: record.pubkey };
+}
+
 export async function unlockWithPassword(password: string) {
   const stored = getStoredWallet();
   if (!stored) throw new Error("No wallet on this device");
   const mnemonic = await decryptMnemonic(stored.encMnemonic, password);
-  let passphrase: string | undefined = undefined;
-  if (stored.bip39PassphraseEnc) {
-    try { passphrase = await decryptMnemonic(stored.bip39PassphraseEnc, password); } catch {}
+  let kp: Keypair;
+  if (stored.scheme === 'raw' && stored.encSecretKey) {
+    // decrypt raw secret key
+    const skB64 = await decryptMnemonic(stored.encSecretKey, password);
+    const bin = atob(skB64);
+    const sk = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) sk[i] = bin.charCodeAt(i);
+    kp = Keypair.fromSecretKey(sk);
+  } else {
+    let passphrase: string | undefined = undefined;
+    if (stored.bip39PassphraseEnc) {
+      try { passphrase = await decryptMnemonic(stored.bip39PassphraseEnc, password); } catch {}
+    }
+    kp = stored.derivationPath
+      ? await mnemonicToKeypairFromPath(mnemonic, stored.derivationPath, passphrase)
+      : await mnemonicToKeypair(mnemonic, 0, passphrase);
   }
-  const kp = stored.derivationPath
-    ? await mnemonicToKeypairFromPath(mnemonic, stored.derivationPath, passphrase)
-    : await mnemonicToKeypair(mnemonic, 0, passphrase);
   markUnlocked();
   return kp;
 }

@@ -1,6 +1,7 @@
 "use client";
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { Keypair } from "@solana/web3.js";
+import bs58 from "bs58";
 import {
   getStoredWallet,
   isUnlocked,
@@ -26,6 +27,7 @@ type Ctx = {
     derivationKeyOrPath?: string,
     bip39Passphrase?: string
   ) => Promise<{ address: string }>;
+  importKeypair: (secretInput: string, password: string) => Promise<{ address: string }>;
   unlock: (password: string) => Promise<void>;
   tryBiometricUnlock: () => Promise<boolean>;
   lock: () => void;
@@ -97,6 +99,32 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     return res;
   };
 
+  const importKeypair = async (secretInput: string, password: string) => {
+    let secret: Uint8Array | null = null;
+    const s = secretInput.trim();
+    try {
+      if (s.startsWith("[")) {
+        const arr = JSON.parse(s);
+        if (Array.isArray(arr)) secret = new Uint8Array(arr.map((x: any) => Number(x)));
+      } else if (/^[A-Za-z0-9+/=]+$/.test(s) && s.includes("=")) {
+        // base64
+        const bin = atob(s);
+        const u8 = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+        secret = u8;
+      } else if (/^[1-9A-HJ-NP-Za-km-z]+$/.test(s)) {
+        // base58
+        secret = bs58.decode(s);
+      }
+    } catch {}
+    if (!secret) throw new Error("Invalid keypair input. Paste JSON array, base58, or base64 secret key.");
+    const { importWalletFromSecretKey } = await import("../lib/wallet");
+    const res = await importWalletFromSecretKey(secret, password);
+    setAddress(res.address);
+    setHasWallet(true);
+    return res;
+  };
+
   const unlock = async (password: string) => {
     const kp = await unlockWithPassword(password);
     setKeypair(kp);
@@ -131,7 +159,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <WalletContext.Provider value={{ address, unlocked, keypair, hasWallet, createWallet, importWallet, unlock, tryBiometricUnlock, lock, logout }}>
+    <WalletContext.Provider value={{ address, unlocked, keypair, hasWallet, createWallet, importWallet, importKeypair, unlock, tryBiometricUnlock, lock, logout }}>
       {children}
     </WalletContext.Provider>
   );
