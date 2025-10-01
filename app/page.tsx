@@ -144,10 +144,8 @@ export default function Home() {
     <ErrorBoundary>
       <div className="pb-24 space-y-6">
       <div className="glass rounded-2xl p-5 border border-white/5">
-        <div className="text-xs text-white/60">Address (debug)</div>
+        <div className="text-xs text-white/60">Address</div>
         <div className="font-mono break-all text-sm">{address}</div>
-        <div className="mt-2 text-xs text-white/60">Current network: mainnet-beta</div>
-        <div className="mt-2 text-xs text-white/60">If your balance is missing, verify this address matches Solscan.</div>
         <div className="mt-4 text-xs text-white/60">Balance</div>
         <div className="text-3xl font-bold">{balance === null ? "—" : balance.toFixed(4)} <span className="text-base font-medium text-white/60">SOL</span></div>
       </div>
