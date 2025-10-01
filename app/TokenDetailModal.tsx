@@ -61,7 +61,7 @@ export default function TokenDetailModal({ mint, name, address, keypair, balance
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90">
-      <div className="rounded-2xl p-6 w-full max-w-lg border border-white/10" style={{background: '#000'}}>
+      <div className="rounded-2xl p-6 w-full max-w-lg border border-white/10 overflow-y-auto max-h-[90vh]" style={{background: '#000'}}>
         <h2 className="text-lg font-semibold mb-2 text-white">{name} Info</h2>
         <div className="mb-4">
           <div className="text-xs text-white/60 mb-1">Mint Address:</div>
