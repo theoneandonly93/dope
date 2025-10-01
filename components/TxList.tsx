@@ -39,7 +39,7 @@ export default function TxList({ address }: { address?: string }) {
         {items.map((tx) => (
           <a
             key={tx.signature || Math.random().toString(36)}
-            href={tx.signature ? `https://explorer.solana.com/tx/${tx.signature}?cluster=custom` : undefined}
+            href={tx.signature ? `https://explorer.solana.com/tx/${tx.signature}?cluster=mainnet-beta` : undefined}
             target="_blank"
             rel="noreferrer"
             className="flex items-center justify-between p-3 rounded-lg border border-white/10 hover:bg-white/5"
@@ -47,8 +47,9 @@ export default function TxList({ address }: { address?: string }) {
             <div className="flex flex-col">
               <span className="text-xs text-white/60">{tx.status === 'success' ? 'Confirmed' : tx.status === 'error' ? 'Failed' : 'Pending'}</span>
               <span className="font-mono text-xs break-all max-w-[220px]">{tx.signature ? `${tx.signature.slice(0, 12)}…${tx.signature.slice(-6)}` : '—'}</span>
+              <span className="text-xs text-white/50 mt-1">{tx.time ? new Date(tx.time * 1000).toLocaleString() : ''}</span>
             </div>
-            <div className={`text-sm font-semibold ${typeof tx.change === 'number' ? (tx.change >= 0 ? 'text-green-400' : 'text-red-400') : 'text-white/70'}`}>
+            <div className={`text-sm font-semibold ${typeof tx.change === 'number' ? (tx.change >= 0 ? 'text-green-400' : 'text-red-400') : 'text-white/70'}`}> 
               {typeof tx.change === 'number' ? `${tx.change >= 0 ? '+' : ''}${tx.change.toFixed(4)} DOPE` : '—'}
             </div>
           </a>
