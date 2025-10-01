@@ -19,7 +19,7 @@ export default function TxList({ address }: { address: string }) {
       }
     };
     fetchTx();
-    const iv = setInterval(fetchTx, 15000);
+  const iv = setInterval(fetchTx, 5000);
     return () => { alive = false; clearInterval(iv); };
   }, [address]);
 

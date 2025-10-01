@@ -2,8 +2,9 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { PublicKey, Connection } from "@solana/web3.js";
-import { raydiumSwapAnyToken } from "../lib/raydiumSwap";
+import { getQuote, swap, SOL_MINT } from "../lib/raydiumSwap";
 import Link from "next/link";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 import { useRouter } from "next/navigation";
 import { useWallet } from "../components/WalletProvider";
 import { getSolBalance, getStoredWallet, subscribeBalance, getDopeTokenBalance } from "../lib/wallet";
@@ -34,7 +35,7 @@ export default function Home() {
       // ignore
     }
     if (!unsub) {
-      iv = setInterval(refresh, 15000);
+      iv = setInterval(refresh, 5000);
     }
     return () => { unsub?.(); if (iv) clearInterval(iv); };
   }, [address]);
@@ -87,13 +88,10 @@ export default function Home() {
     }
     try {
       const connection = new Connection(process.env.NEXT_PUBLIC_RPC_URL || "https://api.mainnet-beta.solana.com");
-      const txid = await raydiumSwapAnyToken({
-        connection,
-        ownerKeypair: keypair,
-        tokenInMint: new PublicKey(tokenA),
-        tokenOutMint: new PublicKey(tokenB),
-        amountIn: swapAmount,
-      });
+      // Use lamports for SOL, token decimals for SPL
+      const amount = swapAmount;
+      const quote = await getQuote(tokenA, tokenB, amount);
+      const txid = await swap({ connection, ownerKeypair: keypair, quote });
       setSwapResult(`Swap successful! Transaction: ${txid}`);
     } catch (e: any) {
       setSwapError(e?.message || "Swap failed");
@@ -107,7 +105,8 @@ export default function Home() {
     setTokenB(temp);
   };
   return (
-    <div className="pb-24 space-y-6">
+    <ErrorBoundary>
+      <div className="pb-24 space-y-6">
       <div className="glass rounded-2xl p-5 border border-white/5">
         <div className="text-xs text-white/60">Address</div>
         <div className="font-mono break-all text-sm">{address}</div>
@@ -197,5 +196,8 @@ export default function Home() {
 
       <TxList address={address!} />
     </div>
+    </ErrorBoundary>
   );
 }
+
+
