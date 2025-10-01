@@ -1,6 +1,8 @@
 const webpack = require('webpack');
 
 const nextConfig = {
+  // Allow overriding build dir to avoid cross-FS issues (e.g., WSL on Windows drives)
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   reactStrictMode: true,
   webpack: (config, { isServer }) => {
     config.resolve = config.resolve || {};
@@ -9,8 +11,8 @@ const nextConfig = {
       'utf-8-validate': false,
       bufferutil: false,
       encoding: false,
-      // Avoid bundling Node ws on the client; force rpc-websockets browser build
-      ...(isServer ? {} : { ws: false, 'rpc-websockets': require.resolve('rpc-websockets/dist/index.browser.mjs') }),
+      // Avoid bundling Node ws on the client; disable ws. We don't alias rpc-websockets; WS is disabled in code.
+      ...(isServer ? {} : { ws: false }),
     };
     if (isServer) {
       // Prevent Next from trying to bundle optional native deps on server

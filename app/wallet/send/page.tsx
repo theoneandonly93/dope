@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useWallet } from "../../../components/WalletProvider";
 import { sendSol } from "../../../lib/wallet";
+import { PublicKey } from "@solana/web3.js";
 
 export default function SendPage() {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function SendPage() {
   const [error, setError] = useState("");
   const [sig, setSig] = useState("");
   const [pending, setPending] = useState(false);
+  const [validTo, setValidTo] = useState<boolean>(false);
 
   useEffect(() => {
     if (!unlocked) router.replace("/unlock");
@@ -24,6 +26,7 @@ export default function SendPage() {
     if (!keypair) return setError("Wallet is locked");
     const amt = parseFloat(amount);
     if (!(amt > 0)) return setError("Enter a valid amount");
+    try { new PublicKey(to.trim()); setValidTo(true); } catch { setValidTo(false); return setError("Invalid recipient address"); }
     setPending(true);
     try {
       const tx = await sendSol(keypair, to.trim(), amt);
@@ -42,7 +45,7 @@ export default function SendPage() {
         className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-3 outline-none focus:border-[#a58cff]"
         placeholder="Recipient address"
         value={to}
-        onChange={(e) => setTo(e.target.value)}
+        onChange={(e) => { setTo(e.target.value); try { new PublicKey(e.target.value.trim()); setValidTo(true);} catch { setValidTo(false);} }}
       />
       <input
         className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-3 outline-none focus:border-[#a58cff]"
@@ -56,7 +59,7 @@ export default function SendPage() {
           Sent. Signature: {sig}
         </div>
       )}
-      <button disabled={pending} className="w-full btn disabled:opacity-50">
+      <button disabled={pending || !validTo} className="w-full btn disabled:opacity-50">
         {pending ? "Sending..." : "Send"}
       </button>
     </form>

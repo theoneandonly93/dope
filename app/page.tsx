@@ -1,5 +1,8 @@
+// ...existing code...
 "use client";
 import React, { useEffect, useState } from "react";
+import { PublicKey, Connection } from "@solana/web3.js";
+import { raydiumSwapAnyToken } from "../lib/raydiumSwap";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useWallet } from "../components/WalletProvider";
@@ -66,33 +69,114 @@ export default function Home() {
     );
   }
 
+  const [showSwap, setShowSwap] = useState(false);
+  const [showTokenInfo, setShowTokenInfo] = useState<{mint: string, name: string} | null>(null);
+  const [swapAmount, setSwapAmount] = useState(0);
+  const [swapResult, setSwapResult] = useState<string>("");
+  const [swapError, setSwapError] = useState<string>("");
+  const [tokenA, setTokenA] = useState("So11111111111111111111111111111111111111112"); // default SOL
+  const [tokenB, setTokenB] = useState("FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33"); // default DOPE
+  const [swapDirection, setSwapDirection] = useState(true); // true: A->B, false: B->A
+
+  const handleSwap = async () => {
+    setSwapError("");
+    setSwapResult("");
+    if (!keypair || swapAmount <= 0 || !tokenA || !tokenB) {
+      setSwapError("Unlock wallet, enter valid amount and token addresses.");
+      return;
+    }
+    try {
+      const connection = new Connection(process.env.NEXT_PUBLIC_RPC_URL || "https://api.mainnet-beta.solana.com");
+      const txid = await raydiumSwapAnyToken({
+        connection,
+        ownerKeypair: keypair,
+        tokenInMint: new PublicKey(tokenA),
+        tokenOutMint: new PublicKey(tokenB),
+        amountIn: swapAmount,
+      });
+      setSwapResult(`Swap successful! Transaction: ${txid}`);
+    } catch (e: any) {
+      setSwapError(e?.message || "Swap failed");
+    }
+  };
+
+  const handleSwitch = () => {
+    setSwapDirection(!swapDirection);
+    const temp = tokenA;
+    setTokenA(tokenB);
+    setTokenB(temp);
+  };
   return (
     <div className="pb-24 space-y-6">
       <div className="glass rounded-2xl p-5 border border-white/5">
         <div className="text-xs text-white/60">Address</div>
         <div className="font-mono break-all text-sm">{address}</div>
         <div className="mt-4 text-xs text-white/60">Balance</div>
-        <div className="text-3xl font-bold">{balance === null ? "—" : balance.toFixed(4)} <span className="text-base font-medium text-white/60">DOPE</span></div>
+        <div className="text-3xl font-bold">{balance === null ? "—" : balance.toFixed(4)} <span className="text-base font-medium text-white/60">SOL</span></div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <Link href="/wallet/send" className="btn text-center">Send</Link>
         <Link href="/wallet/receive" className="btn text-center">Receive</Link>
+        <button className="btn text-center" onClick={() => setShowSwap(true)}>Swap</button>
       </div>
 
+      {showSwap && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="glass rounded-2xl p-6 border border-white/10 w-full max-w-md">
+            <h2 className="text-lg font-semibold mb-2">Swap Tokens</h2>
+            <div className="mb-2 flex flex-col gap-2">
+              <input
+                type="text"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 outline-none"
+                placeholder="Token A Mint Address"
+                value={tokenA}
+                onChange={e => setTokenA(e.target.value)}
+                disabled={!swapDirection}
+              />
+              <button className="btn w-full" onClick={handleSwitch}>⇅ Switch</button>
+              <input
+                type="text"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 outline-none"
+                placeholder="Token B Mint Address"
+                value={tokenB}
+                onChange={e => setTokenB(e.target.value)}
+                disabled={swapDirection}
+              />
+              <input
+                type="number"
+                min="0"
+                step="any"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 outline-none mt-2"
+                placeholder="Amount to swap"
+                value={swapAmount}
+                onChange={e => setSwapAmount(Number(e.target.value))}
+              />
+            </div>
+            <button className="btn w-full mb-2" onClick={handleSwap}>Swap</button>
+            {swapResult && <div className="text-green-400 text-sm mb-2">{swapResult}</div>}
+            {swapError && <div className="text-red-400 text-sm mb-2">{swapError}</div>}
+            <button className="btn w-full" onClick={() => setShowSwap(false)}>Close</button>
+          </div>
+        </div>
+      )}
+
       <div className="glass rounded-2xl p-5 border border-white/5">
-        <div className="text-sm font-semibold mb-2">Tokens</div>
-        <div className="flex items-center justify-between py-2">
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-sm font-semibold">Tokens</div>
+          <button className="btn text-xs" style={{marginLeft: 'auto'}} onClick={() => alert('Manage tokens coming soon!')}>Manage Token</button>
+        </div>
+        <div className="flex items-center justify-between py-2 cursor-pointer" onClick={() => setShowTokenInfo({mint: "So11111111111111111111111111111111111111112", name: "Solana (native)"})}>
           <div className="flex items-center gap-3">
-            <img src="/logo-192.png" alt="DOPE" className="w-9 h-9 rounded-full" />
+            <img src="/logo-192.png" alt="Solana" className="w-9 h-9 rounded-full" />
             <div>
-              <div className="text-sm font-semibold">DOPE (native)</div>
+              <div className="text-sm font-semibold">Solana (native)</div>
               <div className="text-xs text-white/60">Network currency (SOL)</div>
             </div>
           </div>
-          <div className="text-sm font-semibold">{balance === null ? "—" : balance.toFixed(4)} DOPE</div>
+          <div className="text-sm font-semibold">{balance === null ? "—" : balance.toFixed(4)} SOL</div>
         </div>
-        <div className="flex items-center justify-between py-2 border-t border-white/10 mt-2 pt-2">
+        <div className="flex items-center justify-between py-2 border-t border-white/10 mt-2 pt-2 cursor-pointer" onClick={() => setShowTokenInfo({mint: "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33", name: "DOPE (SPL)"})}>
           <div className="flex items-center gap-3">
             <img src="/logo-192.png" alt="DOPE" className="w-9 h-9 rounded-full" />
             <div>
@@ -112,8 +196,6 @@ export default function Home() {
       </div>
 
       <TxList address={address!} />
-
-      
     </div>
   );
 }

@@ -1,0 +1,9 @@
+(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[623],{1906:function(e,t,r){Promise.resolve().then(r.bind(r,2470))},2470:function(e,t,r){"use strict";r.r(t),r.d(t,{default:function(){return a}});var n=r(7437),s=r(1396),l=r.n(s);function a(){return(0,n.jsxs)("div",{className:"space-y-5",children:[(0,n.jsx)("h1",{className:"text-xl font-semibold",children:"Add Wallet"}),(0,n.jsx)("p",{className:"text-white/70 text-sm",children:"Create a new wallet or import an existing one."}),(0,n.jsxs)("div",{className:"grid grid-cols-1 gap-3",children:[(0,n.jsx)(l(),{href:"/get-started",className:"btn w-full text-center",children:"Create (Immediate Save)"}),(0,n.jsx)(l(),{href:"/wallet/create",className:"btn w-full text-center",children:"Create (with Password)"}),(0,n.jsx)(l(),{href:"/wallet/import",className:"btn w-full text-center",children:"Import from Seed"})]})]})}r(2265)},622:function(e,t,r){"use strict";/**
+ * @license React
+ * react-jsx-runtime.production.min.js
+ *
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */var n=r(2265),s=Symbol.for("react.element"),l=Symbol.for("react.fragment"),a=Object.prototype.hasOwnProperty,o=n.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentOwner,c={key:!0,ref:!0,__self:!0,__source:!0};function i(e,t,r){var n,l={},i=null,f=null;for(n in void 0!==r&&(i=""+r),void 0!==t.key&&(i=""+t.key),void 0!==t.ref&&(f=t.ref),t)a.call(t,n)&&!c.hasOwnProperty(n)&&(l[n]=t[n]);if(e&&e.defaultProps)for(n in t=e.defaultProps)void 0===l[n]&&(l[n]=t[n]);return{$$typeof:s,type:e,key:i,ref:f,props:l,_owner:o.current}}t.Fragment=l,t.jsx=i,t.jsxs=i},7437:function(e,t,r){"use strict";e.exports=r(622)}},function(e){e.O(0,[847,971,596,744],function(){return e(e.s=1906)}),_N_E=e.O()}]);

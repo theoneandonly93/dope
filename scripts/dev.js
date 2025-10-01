@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const net = require('net');
 const { spawn } = require('child_process');
+const path = require('path');
 
 function checkPort(port) {
   return new Promise((resolve) => {
@@ -49,7 +50,12 @@ async function findFreePort(start) {
   }
   console.log(`→ Using port ${port} (base ${base}).`);
   const args = ['dev', '-p', String(port), ...process.argv.slice(2)];
-  const child = spawn('next', args, { stdio: 'inherit', env: { ...process.env, PORT: String(port) } });
+
+  // Use the local Next.js binary
+  const nextCmd = process.platform === 'win32'
+    ? path.join(__dirname, '..', 'node_modules', '.bin', 'next.cmd')
+    : path.join(__dirname, '..', 'node_modules', '.bin', 'next');
+
+  const child = spawn(nextCmd, args, { stdio: 'inherit', env: { ...process.env, PORT: String(port) } });
   child.on('exit', (code) => process.exit(code ?? 0));
 })();
-
