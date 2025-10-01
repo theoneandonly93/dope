@@ -94,12 +94,18 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
 
   return (
     <div className="space-y-2">
+      {!keypair && (
+        <div className="mt-2">
+          <a href="/unlock" className="btn w-full">Unlock Wallet</a>
+        </div>
+      )}
       <input
         type="text"
         className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 outline-none text-white"
         placeholder="Recipient address"
         value={toAddress}
         onChange={e => setToAddress(e.target.value)}
+        disabled={!keypair}
       />
       <input
         type="number"
@@ -109,13 +115,9 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
         placeholder="Amount"
         value={amount}
         onChange={e => setAmount(e.target.value === "" ? "" : Number(e.target.value))}
+        disabled={!keypair}
       />
       <button className="btn w-full" onClick={handleSend} disabled={sending || !keypair}>{sending ? "Sending..." : "Send"}</button>
-      {showUnlock && (
-        <div className="mt-2">
-          <a href="/unlock" className="btn w-full">Unlock Wallet</a>
-        </div>
-      )}
       {showApprove && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
           <div className="rounded-2xl p-6 w-full max-w-sm border border-white/10 bg-black text-white">

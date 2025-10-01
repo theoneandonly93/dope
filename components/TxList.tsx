@@ -14,10 +14,7 @@ export default function TxList({ address, tokenMint }: { address?: string, token
       try {
         setLoading(true);
         let res = await getRecentTransactions(address, 20); // fetch more transactions for better coverage
-        if (tokenMint) {
-          // Filter for token-related transactions if tokenMint is provided
-          res = res.filter(tx => tx.signature && tx.signature.includes(tokenMint)); // Placeholder: improve with real token filter
-        }
+        // Show all transactions for the address; tokenMint filter removed
         if (alive) setItems(res);
       } catch (e) {
         if (alive) setItems([]);
@@ -29,7 +26,7 @@ export default function TxList({ address, tokenMint }: { address?: string, token
     fetchTx();
     const iv = setInterval(fetchTx, 3000); // faster polling for real-time updates
     return () => { alive = false; clearInterval(iv); };
-  }, [address, tokenMint]);
+  }, [address]);
 
   if (!address) {
     return <div className="glass rounded-2xl p-5 border border-white/5 text-white/60 text-sm">No address provided.</div>;
