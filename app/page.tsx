@@ -23,7 +23,9 @@ export default function Home() {
   const router = useRouter();
   const { address, unlocked, hasWallet, keypair, ready } = useWallet() as any;
   const [balance, setBalance] = useState<number | null>(null);
+  const [solPrice, setSolPrice] = useState<number | null>(null);
   const [dopeSpl, setDopeSpl] = useState<number | null>(null);
+  const [dopePrice, setDopePrice] = useState<number | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState("");
 
@@ -41,12 +43,28 @@ export default function Home() {
   const [swapDirection, setSwapDirection] = useState(true); // true: A->B, false: B->A
   const [slippage, setSlippage] = useState(0.5); // default 0.5%
   const [tokenList, setTokenList] = useState<any[]>([]);
+  const [tokenPrices, setTokenPrices] = useState<{[mint: string]: number}>({});
 
   useEffect(() => {
     fetch("/tokenlist.json")
       .then(res => res.json())
       .then(setTokenList)
       .catch(() => setTokenList([]));
+    // Fetch prices for all tokens in tokenList
+    const ids = ["solana", "dope"];
+    fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(",")}&vs_currencies=usd`)
+      .then(res => res.json())
+      .then(data => {
+        const prices: {[mint: string]: number} = {};
+        prices["So11111111111111111111111111111111111111112"] = data?.solana?.usd ?? null;
+        prices["FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33"] = data?.dope?.usd ?? 0.01;
+        setTokenPrices(prices);
+        setSolPrice(data?.solana?.usd ?? null);
+        setDopePrice(data?.dope?.usd ?? 0.01);
+      })
+      .catch(() => {
+        setTokenPrices({"So11111111111111111111111111111111111111112": null, "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33": 0.01});
+      });
   }, []);
 
   // Do not auto-redirect to /unlock to avoid flicker; surface contextual Unlock links instead
@@ -157,6 +175,9 @@ export default function Home() {
         <div className="font-mono break-all text-sm">{address}</div>
         <div className="mt-4 text-xs text-white/60">Balance</div>
         <div className="text-3xl font-bold">{balance === null ? "—" : balance.toFixed(4)} <span className="text-base font-medium text-white/60">SOL</span></div>
+        {solPrice && balance !== null && (
+          <div className="text-lg text-green-400 mt-2">${(balance * solPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -233,32 +254,38 @@ export default function Home() {
           <div className="text-sm font-semibold">Tokens</div>
           <button className="btn text-xs" style={{marginLeft: 'auto'}} onClick={() => alert('Manage tokens coming soon!')}>Manage Token</button>
         </div>
-        <div className="flex items-center justify-between py-2 cursor-pointer" onClick={() => setShowTokenInfo({mint: "So11111111111111111111111111111111111111112", name: "Solana (native)"})}>
-          <div className="flex items-center gap-3">
-            <img src="/logo-192.png" alt="Solana" className="w-9 h-9 rounded-full" />
-            <div>
-              <div className="text-sm font-semibold">Solana (native)</div>
-              <div className="text-xs text-white/60">Network currency (SOL)</div>
+        {tokenList.map((token, idx) => {
+          const isSol = token.mint === "So11111111111111111111111111111111111111112";
+          const isDope = token.mint === "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33";
+          const tokenBalance = isSol ? balance : isDope ? dopeSpl : null;
+          return (
+            <div
+              key={token.mint}
+              className={`flex items-center justify-between py-2${idx > 0 ? " border-t border-white/10 mt-2 pt-2" : ""} cursor-pointer`}
+              onClick={() => setShowTokenInfo({ mint: token.mint, name: `${token.name} (${token.symbol})` })}
+            >
+              <div className="flex items-center gap-3">
+                <img src={token.logo || "/logo-192.png"} alt={token.symbol} className="w-9 h-9 rounded-full" />
+                <div>
+                  <div className="text-sm font-semibold">{token.name}</div>
+                  <div className="text-xs text-white/60">{isSol ? "Network currency (SOL)" : "Token balance (mint)"}</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 max-w-[100px] truncate text-right">
+                <div className="text-sm font-semibold">{formatTokenAmount(tokenBalance, token.symbol)}</div>
+                {tokenPrices[token.mint] && tokenBalance !== null && (
+                  <div className="text-xs text-green-400">${(tokenBalance * tokenPrices[token.mint]).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</div>
+                )}
+                {isDope && (
+                  <button className="btn text-xs" onClick={onSyncDope} disabled={syncing || !keypair}>{syncing ? 'Syncing…' : 'Sync'}</button>
+                )}
+                {!keypair && (
+                  <Link href="/unlock" className="text-xs underline text-white/70">Unlock</Link>
+                )}
+              </div>
             </div>
-          </div>
-          <div className="text-sm font-semibold max-w-[100px] truncate text-right">{formatTokenAmount(balance, "SOL")}</div>
-        </div>
-        <div className="flex items-center justify-between py-2 border-t border-white/10 mt-2 pt-2 cursor-pointer" onClick={() => setShowTokenInfo({mint: "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33", name: "DOPE (SPL)"})}>
-          <div className="flex items-center gap-3">
-            <img src="/logo-192.png" alt="DOPE" className="w-9 h-9 rounded-full" />
-            <div>
-              <div className="text-sm font-semibold">DOPE (SPL)</div>
-              <div className="text-xs text-white/60">Token balance (mint)</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 max-w-[100px] truncate text-right">
-            <div className="text-sm font-semibold">{formatTokenAmount(dopeSpl, "DOPE")}</div>
-            <button className="btn text-xs" onClick={onSyncDope} disabled={syncing || !keypair}>{syncing? 'Syncing…' : 'Sync'}</button>
-            {!keypair && (
-              <Link href="/unlock" className="text-xs underline text-white/70">Unlock</Link>
-            )}
-          </div>
-        </div>
+          );
+        })}
         {showTokenInfo && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90">
             <div className="rounded-2xl p-6 w-full max-w-lg border border-white/10" style={{background: '#000'}}>
