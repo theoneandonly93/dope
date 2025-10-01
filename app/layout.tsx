@@ -33,7 +33,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen bg-[#0b0c10] text-white">
         <WalletProvider>
-          {(() => { const w = useWallet(); return (
           <header className="sticky top-0 z-30 backdrop-blur glass px-4 py-3 border-b border-white/5">
             <div className="mx-auto w-full max-w-md md:max-w-lg lg:max-w-xl flex items-center justify-between">
               <button onClick={() => setMenuOpen(true)} className="flex items-center gap-2">
@@ -41,14 +40,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <span className="font-semibold tracking-wide">DOPE</span>
               </button>
               <div className="flex items-center gap-3">
-                {!w.unlocked && (
-                  <Link href="/unlock" className="text-xs underline text-white/70">Unlock</Link>
-                )}
+                <Link href="/unlock" className="text-xs underline text-white/70">Unlock</Link>
                 <Link href="/wallet/add" className="btn">+ Add</Link>
               </div>
           </div>
         </header>
-          ); })()}
           <main className="mx-auto w-full max-w-md md:max-w-lg lg:max-w-xl pb-20 px-4 pt-4" style={{ paddingBottom: "calc(6rem + env(safe-area-inset-bottom))" }}>
             {children}
           </main>
