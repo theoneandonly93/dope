@@ -20,6 +20,7 @@ type Ctx = {
   unlocked: boolean;
   keypair: Keypair | null;
   hasWallet: boolean;
+  ready: boolean;
   createWallet: (password: string) => Promise<{ mnemonic: string; address: string }>;
   importWallet: (
     mnemonic: string,
@@ -39,9 +40,10 @@ export const WalletContext = createContext<Ctx | null>(null);
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [address, setAddress] = useState<string | null>(null);
   const [keypair, setKeypair] = useState<Keypair | null>(null);
-  const [unlocked, setUnlocked] = useState<boolean>(false);
+  const [unlocked, setUnlocked] = useState<boolean>(typeof window !== 'undefined' ? isUnlocked() : false);
   const [bioAvailable, setBioAvailable] = useState(false);
   const [hasWallet, setHasWallet] = useState<boolean>(false);
+  const [ready, setReady] = useState<boolean>(false);
 
   useEffect(() => {
     const stored = getStoredWallet();
@@ -80,6 +82,11 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         window.removeEventListener('dope:store', onStore);
       }
     };
+  }, []);
+
+  useEffect(() => {
+    // mark provider initialized so pages can gate redirects until state is hydrated
+    setReady(true);
   }, []);
 
   const createWallet = async (password: string) => {
@@ -159,7 +166,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <WalletContext.Provider value={{ address, unlocked, keypair, hasWallet, createWallet, importWallet, importKeypair, unlock, tryBiometricUnlock, lock, logout }}>
+    <WalletContext.Provider value={{ address, unlocked, keypair, hasWallet, ready, createWallet, importWallet, importKeypair, unlock, tryBiometricUnlock, lock, logout }}>
       {children}
     </WalletContext.Provider>
   );

@@ -9,18 +9,18 @@ import TxList from "../components/TxList";
 
 export default function Home() {
   const router = useRouter();
-  const { address, unlocked, hasWallet, keypair } = useWallet() as any;
+  const { address, unlocked, hasWallet, keypair, ready } = useWallet() as any;
   const [balance, setBalance] = useState<number | null>(null);
   const [dopeSpl, setDopeSpl] = useState<number | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState("");
 
   useEffect(() => {
-    if (!hasWallet) return;
+    if (!hasWallet || !ready) return;
     const stored = getStoredWallet();
     const scheme = stored?.scheme;
     if (!unlocked && scheme !== "device") router.replace("/unlock");
-  }, [hasWallet, unlocked, router]);
+  }, [hasWallet, unlocked, ready, router]);
 
   useEffect(() => {
     if (!address) return;
