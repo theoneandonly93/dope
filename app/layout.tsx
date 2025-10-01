@@ -23,7 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   function HeaderBar() {
     const w = useWalletOptional();
-    const isLocked = !w?.keypair; // show Unlock when no keypair is in memory
+    // Header stays clean; Unlock is only shown contextually on pages (e.g., DOPE Sync row)
     return (
       <header className="sticky top-0 z-30 backdrop-blur glass px-4 py-3 border-b border-white/5">
         <div className="mx-auto w-full max-w-md md:max-w-lg lg:max-w-xl flex items-center justify-between">
@@ -32,9 +32,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <span className="font-semibold tracking-wide">DOPE</span>
           </button>
           <div className="flex items-center gap-3">
-            {isLocked && (
-              <Link href="/unlock" className="text-xs underline text-white/70">Unlock</Link>
-            )}
             <Link href="/wallet/add" className="btn">+ Add</Link>
           </div>
         </div>
@@ -53,7 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <title>DOPE</title>
       </head>
-      <body className="min-h-screen bg-[#0b0c10] text-white">
+      <body className="min-h-[100dvh] bg-[#0b0c10] text-white">
         <WalletProvider>
           <HeaderBar />
           <main className="mx-auto w-full max-w-md md:max-w-lg lg:max-w-xl pb-20 px-4 pt-4" style={{ paddingBottom: "calc(6rem + env(safe-area-inset-bottom))" }}>

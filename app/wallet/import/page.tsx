@@ -156,8 +156,8 @@ export default function ImportWallet() {
       {scanResults.length > 0 && (
         <div className="space-y-2 mt-4">
           <div className="text-sm font-semibold">Detected Accounts</div>
-          <div className="rounded-xl border border-white/10 overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="rounded-xl border border-white/10 overflow-hidden overflow-x-auto">
+            <table className="w-full text-sm min-w-[640px]">
               <thead>
                 <tr className="text-left bg-white/5">
                   <th className="px-3 py-2">Derivation Path</th>
