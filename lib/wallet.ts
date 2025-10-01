@@ -386,13 +386,9 @@ export function getRpcEndpoint() {
 }
 
 export function getWsEndpoint(): string | undefined {
-  if (typeof window !== "undefined") {
-    const net = getSelectedNetwork();
-    if (net === 'devnet') return 'wss://api.devnet.solana.com';
-    if (net === 'testnet') return 'wss://api.testnet.solana.com';
-    const fromEnv = process.env.NEXT_PUBLIC_RPC_WS_URL as string | undefined;
-    return fromEnv || 'wss://api.mainnet-beta.solana.com';
-  }
+  // Disable WebSocket on the client to avoid rpc-websockets compatibility issues;
+  // Connection will use HTTP with polling and fallbacks in subscribeBalance.
+  if (typeof window !== 'undefined') return undefined;
   return (process.env.RPC_WS_URL || process.env.NEXT_PUBLIC_RPC_WS_URL) as string | undefined;
 }
 

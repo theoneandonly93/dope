@@ -15,12 +15,7 @@ export default function Home() {
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState("");
 
-  useEffect(() => {
-    if (!hasWallet || !ready) return;
-    const stored = getStoredWallet();
-    const scheme = stored?.scheme;
-    if (!unlocked && scheme !== "device") router.replace("/unlock");
-  }, [hasWallet, unlocked, ready, router]);
+  // Do not auto-redirect to /unlock to avoid flicker; surface contextual Unlock links instead
 
   useEffect(() => {
     if (!address) return;
