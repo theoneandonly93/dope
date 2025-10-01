@@ -2,8 +2,11 @@ import React, { useState, useEffect } from "react";
 import { PublicKey, Connection, Keypair } from "@solana/web3.js";
 import { sendSol } from "../lib/wallet";
 import { getOrCreateAssociatedTokenAccount, transferChecked } from "@solana/spl-token";
+import UnlockModal from "./UnlockModal";
+import { useWallet } from "./WalletProvider";
 
 export default function SendTokenForm({ mint, balance, keypair }: { mint: string, balance: number | null, keypair: Keypair | null }) {
+  const { unlock } = useWallet();
 
   const [toAddress, setToAddress] = useState("");
   const [amount, setAmount] = useState<number | "">("");
@@ -28,7 +31,6 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
     setStatus("");
     if (!keypair) {
       setShowUnlock(true);
-      setStatus("Unlock your wallet first.");
       return;
     }
     if (!toAddress || !amount || Number(amount) <= 0) {
@@ -95,18 +97,13 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
 
   return (
     <div className="space-y-2">
-      {!keypair && (
-        <div className="mt-2">
-          <a href="/unlock" className="btn w-full">Unlock Wallet</a>
-        </div>
-      )}
       <input
         type="text"
         className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 outline-none text-white"
         placeholder="Recipient address"
         value={toAddress}
         onChange={e => setToAddress(e.target.value)}
-        disabled={!keypair}
+        disabled={sending}
       />
       <input
         type="number"
@@ -116,9 +113,18 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
         placeholder="Amount"
         value={amount}
         onChange={e => setAmount(e.target.value === "" ? "" : Number(e.target.value))}
-        disabled={!keypair}
+        disabled={sending}
       />
-      <button className="btn w-full" onClick={handleSend} disabled={sending || !keypair}>{sending ? "Sending..." : "Send"}</button>
+      <button className="btn w-full" onClick={handleSend} disabled={sending}>{sending ? "Sending..." : "Send"}</button>
+      {showUnlock && (
+        <UnlockModal
+          onUnlock={async (password) => {
+            await unlock(password);
+            setShowUnlock(false);
+          }}
+          onClose={() => setShowUnlock(false)}
+        />
+      )}
       {showApprove && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
           <div className="rounded-2xl p-6 w-full max-w-sm border border-white/10 bg-black text-white">

@@ -100,7 +100,7 @@ export default function Home() {
       // ignore
     }
     if (!unsub) {
-      iv = setInterval(refresh, 3000); // faster polling for instant updates
+      iv = setInterval(refresh, 1000); // poll every second for real-time updates
     }
     return () => { unsub?.(); if (iv) clearInterval(iv); };
   }, [address]);
