@@ -9,6 +9,7 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
   const [amount, setAmount] = useState(0);
   const [status, setStatus] = useState("");
   const [sending, setSending] = useState(false);
+  const [showUnlock, setShowUnlock] = useState(false);
 
   async function getTokenDecimals(connection: Connection, mint: string): Promise<number> {
     try {
@@ -24,6 +25,7 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
   const handleSend = async () => {
     setStatus("");
     if (!keypair) {
+      setShowUnlock(true);
       setStatus("Unlock your wallet first.");
       return;
     }
@@ -92,7 +94,12 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
         value={amount}
         onChange={e => setAmount(Number(e.target.value))}
       />
-      <button className="btn w-full" onClick={handleSend} disabled={sending}>{sending ? "Sending..." : "Send"}</button>
+      <button className="btn w-full" onClick={handleSend} disabled={sending || !keypair}>{sending ? "Sending..." : "Send"}</button>
+      {showUnlock && (
+        <div className="mt-2">
+          <a href="/unlock" className="btn w-full">Unlock Wallet</a>
+        </div>
+      )}
       {status && <div className="text-xs text-white/70 mt-2">{status}</div>}
     </div>
   );
