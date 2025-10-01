@@ -7,6 +7,7 @@ import { WalletProvider } from "../components/WalletProvider";
 import BottomNav from "../components/BottomNav";
 import SideMenu from "../components/SideMenu";
 import Link from "next/link";
+import { useWalletOptional } from "../components/WalletProvider";
 import { useWallet } from "../components/WalletProvider";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -19,6 +20,27 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       return () => window.removeEventListener("load", onLoad);
     }
   }, []);
+
+  function HeaderBar() {
+    const w = useWalletOptional();
+    const unlocked = !!w?.unlocked;
+    return (
+      <header className="sticky top-0 z-30 backdrop-blur glass px-4 py-3 border-b border-white/5">
+        <div className="mx-auto w-full max-w-md md:max-w-lg lg:max-w-xl flex items-center justify-between">
+          <button onClick={() => setMenuOpen(true)} className="flex items-center gap-2">
+            <img src="/logo-192.png" alt="logo" className="w-6 h-6 rounded" />
+            <span className="font-semibold tracking-wide">DOPE</span>
+          </button>
+          <div className="flex items-center gap-3">
+            {!unlocked && (
+              <Link href="/unlock" className="text-xs underline text-white/70">Unlock</Link>
+            )}
+            <Link href="/wallet/add" className="btn">+ Add</Link>
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <html lang="en">
@@ -33,18 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen bg-[#0b0c10] text-white">
         <WalletProvider>
-          <header className="sticky top-0 z-30 backdrop-blur glass px-4 py-3 border-b border-white/5">
-            <div className="mx-auto w-full max-w-md md:max-w-lg lg:max-w-xl flex items-center justify-between">
-              <button onClick={() => setMenuOpen(true)} className="flex items-center gap-2">
-                <img src="/logo-192.png" alt="logo" className="w-6 h-6 rounded" />
-                <span className="font-semibold tracking-wide">DOPE</span>
-              </button>
-              <div className="flex items-center gap-3">
-                <Link href="/unlock" className="text-xs underline text-white/70">Unlock</Link>
-                <Link href="/wallet/add" className="btn">+ Add</Link>
-              </div>
-          </div>
-        </header>
+          <HeaderBar />
           <main className="mx-auto w-full max-w-md md:max-w-lg lg:max-w-xl pb-20 px-4 pt-4" style={{ paddingBottom: "calc(6rem + env(safe-area-inset-bottom))" }}>
             {children}
           </main>
