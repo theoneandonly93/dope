@@ -92,18 +92,6 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
     }
   };
 
-  // Check if wallet is unlocked after redirect from /unlock
-  useEffect(() => {
-    if (typeof window !== "undefined" && window.location.pathname === "/unlock") {
-      // Wait for unlock, then check if keypair is present
-      const checkUnlocked = setInterval(() => {
-        if (keypair) {
-          window.location.replace(window.location.origin + window.location.pathname.replace("/unlock", ""));
-        }
-      }, 500);
-      return () => clearInterval(checkUnlocked);
-    }
-  }, [keypair]);
 
   return (
     <div className="space-y-2">
