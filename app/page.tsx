@@ -9,6 +9,15 @@ import { useWallet } from "../components/WalletProvider";
 import { getSolBalance, getStoredWallet, subscribeBalance, getDopeTokenBalance } from "../lib/wallet";
 import { syncDopeTokenAccounts } from "../lib/dopeToken";
 import TxList from "../components/TxList";
+import SendTokenForm from "../components/SendTokenForm";
+
+function formatTokenAmount(amount: number | null, symbol: string): string {
+  if (amount === null) return "—";
+  if (amount >= 1_000_000_000) return `${(amount / 1_000_000_000).toFixed(2)}B ${symbol}`;
+  if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(2)}M ${symbol}`;
+  if (amount >= 1_000) return `${(amount / 1_000).toFixed(2)}K ${symbol}`;
+  return `${amount.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${symbol}`;
+}
 
 export default function Home() {
   const router = useRouter();
@@ -232,7 +241,7 @@ export default function Home() {
               <div className="text-xs text-white/60">Network currency (SOL)</div>
             </div>
           </div>
-          <div className="text-sm font-semibold max-w-[100px] truncate text-right">{balance === null ? "—" : balance >= 1000000 ? balance.toExponential(2) : balance.toLocaleString(undefined, { maximumFractionDigits: 4 })} SOL</div>
+          <div className="text-sm font-semibold max-w-[100px] truncate text-right">{formatTokenAmount(balance, "SOL")}</div>
         </div>
         <div className="flex items-center justify-between py-2 border-t border-white/10 mt-2 pt-2 cursor-pointer" onClick={() => setShowTokenInfo({mint: "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33", name: "DOPE (SPL)"})}>
           <div className="flex items-center gap-3">
@@ -243,7 +252,7 @@ export default function Home() {
             </div>
           </div>
           <div className="flex items-center gap-3 max-w-[100px] truncate text-right">
-            <div className="text-sm font-semibold">{dopeSpl === null ? "—" : dopeSpl >= 1000000 ? dopeSpl.toExponential(2) : dopeSpl.toLocaleString(undefined, { maximumFractionDigits: 4 })} DOPE</div>
+            <div className="text-sm font-semibold">{formatTokenAmount(dopeSpl, "DOPE")}</div>
             <button className="btn text-xs" onClick={onSyncDope} disabled={syncing || !keypair}>{syncing? 'Syncing…' : 'Sync'}</button>
             {!keypair && (
               <Link href="/unlock" className="text-xs underline text-white/70">Unlock</Link>
@@ -263,6 +272,10 @@ export default function Home() {
               <div className="mt-4">
                 <div className="text-sm font-semibold mb-2 text-white">Your Transaction History</div>
                 <TxList address={address} tokenMint={showTokenInfo.mint} />
+              </div>
+              <div className="mt-4">
+                <h3 className="text-sm font-semibold mb-2 text-white">Send {showTokenInfo.name}</h3>
+                <SendTokenForm mint={showTokenInfo.mint} balance={showTokenInfo.mint === tokenA ? balance : dopeSpl} keypair={keypair} />
               </div>
               <button className="btn w-full mt-4" onClick={() => setShowTokenInfo(null)}>Close</button>
             </div>
