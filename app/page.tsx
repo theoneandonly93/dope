@@ -107,8 +107,8 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-3">
             <div className="text-sm font-semibold">{dopeSpl === null ? "—" : dopeSpl.toFixed(4)} DOPE</div>
-            <button className="btn text-xs" onClick={onSyncDope} disabled={syncing || !unlocked}>{syncing? 'Syncing…' : 'Sync'}</button>
-            {!unlocked && (
+            <button className="btn text-xs" onClick={onSyncDope} disabled={syncing || !keypair}>{syncing? 'Syncing…' : 'Sync'}</button>
+            {!keypair && (
               <Link href="/unlock" className="text-xs underline text-white/70">Unlock</Link>
             )}
           </div>

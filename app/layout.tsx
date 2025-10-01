@@ -23,7 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   function HeaderBar() {
     const w = useWalletOptional();
-    const unlocked = !!w?.unlocked;
+    const isLocked = !w?.keypair; // show Unlock when no keypair is in memory
     return (
       <header className="sticky top-0 z-30 backdrop-blur glass px-4 py-3 border-b border-white/5">
         <div className="mx-auto w-full max-w-md md:max-w-lg lg:max-w-xl flex items-center justify-between">
@@ -32,7 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <span className="font-semibold tracking-wide">DOPE</span>
           </button>
           <div className="flex items-center gap-3">
-            {!unlocked && (
+            {isLocked && (
               <Link href="/unlock" className="text-xs underline text-white/70">Unlock</Link>
             )}
             <Link href="/wallet/add" className="btn">+ Add</Link>
