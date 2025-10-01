@@ -4,13 +4,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useWallet } from "../components/WalletProvider";
 import { getSolBalance, getStoredWallet, subscribeBalance, getDopeTokenBalance } from "../lib/wallet";
+import { syncDopeTokenAccounts } from "../lib/dopeToken";
 import TxList from "../components/TxList";
 
 export default function Home() {
   const router = useRouter();
-  const { address, unlocked, hasWallet } = useWallet();
+  const { address, unlocked, hasWallet, keypair } = useWallet() as any;
   const [balance, setBalance] = useState<number | null>(null);
   const [dopeSpl, setDopeSpl] = useState<number | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState("");
 
   useEffect(() => {
     if (!hasWallet) return;
@@ -37,6 +40,23 @@ export default function Home() {
     }
     return () => { unsub?.(); if (iv) clearInterval(iv); };
   }, [address]);
+
+  const onSyncDope = async () => {
+    setSyncMsg("");
+    setSyncing(true);
+    try {
+      // Obtain keypair via unlock; prompt user to unlock if not unlocked
+      // We don't have direct keypair here; rely on unlock gate in flow
+      if (!keypair) { setSyncMsg('Unlock the wallet first, then try again.'); return; }
+      const res = await syncDopeTokenAccounts(keypair);
+      setSyncMsg(`Synced. Consolidated ${res.movedUi.toFixed(6)} DOPE to ATA.`);
+      if (address) getDopeTokenBalance(address).then(setDopeSpl).catch(()=>{});
+    } catch (e: any) {
+      setSyncMsg(e?.message || 'Sync failed');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   if (!hasWallet) {
     return (
@@ -85,8 +105,12 @@ export default function Home() {
               <div className="text-xs text-white/60">Token balance (mint)</div>
             </div>
           </div>
-          <div className="text-sm font-semibold">{dopeSpl === null ? "—" : dopeSpl.toFixed(4)} DOPE</div>
+          <div className="flex items-center gap-3">
+            <div className="text-sm font-semibold">{dopeSpl === null ? "—" : dopeSpl.toFixed(4)} DOPE</div>
+            <button className="btn text-xs" onClick={onSyncDope} disabled={syncing || !unlocked}>{syncing? 'Syncing…' : 'Sync'}</button>
+          </div>
         </div>
+        {syncMsg && <div className="text-xs text-white/70 mt-2">{syncMsg}</div>}
       </div>
 
       <TxList address={address!} />
