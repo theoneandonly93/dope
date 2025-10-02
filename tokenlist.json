@@ -1,0 +1,32 @@
+[
+  {
+    "mint": "So11111111111111111111111111111111111111112",
+    "name": "Solana",
+    "symbol": "SOL",
+    "logo": "/sol.png"
+  },
+  {
+    "mint": "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33",
+    "name": "Dope",
+    "symbol": "DOPE",
+    "logo": "/dope.png"
+  },
+  {
+    "mint": "btc",
+    "name": "Bitcoin",
+    "symbol": "BTC",
+    "logo": "/btc.png"
+  },
+  {
+    "mint": "eth",
+    "name": "Ethereum",
+    "symbol": "ETH",
+    "logo": "/eth.png"
+  },
+  {
+    "mint": "ape",
+    "name": "Ape Chain",
+    "symbol": "APE",
+    "logo": "/ape.png"
+  }
+]

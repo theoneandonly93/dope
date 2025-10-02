@@ -26,6 +26,7 @@ function formatTokenAmount(amount: number | null, symbol: string): string {
 import ManageTokensModal from "../components/ManageTokensModal";
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState<'tokens'|'nfts'>('tokens');
   const [showSendModal, setShowSendModal] = useState(false);
   const [sendTokenMint, setSendTokenMint] = useState<string|null>(null);
   const [showManageModal, setShowManageModal] = useState(false);
@@ -292,63 +293,79 @@ export default function Home() {
       )}
 
       <div className="glass rounded-2xl p-5 border border-white/5">
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-sm font-semibold">Tokens</div>
-          <button className="btn text-xs" style={{marginLeft: 'auto'}} onClick={() => setShowManageModal(true)}>Manage Token</button>
+        <div className="flex items-center gap-2 mb-4">
+          <button
+            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border border-white/10 shadow-sm ${activeTab === 'tokens' ? 'bg-white/10 text-white' : 'bg-black/30 text-white/60'}`}
+            onClick={() => setActiveTab('tokens')}
+          >Tokens</button>
+          <button
+            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border border-white/10 shadow-sm ${activeTab === 'nfts' ? 'bg-white/10 text-white' : 'bg-black/30 text-white/60'}`}
+            onClick={() => setActiveTab('nfts')}
+          >NFTs</button>
+          <button className="btn text-xs ml-auto" onClick={() => setShowManageModal(true)}>Manage Token</button>
         </div>
-        {(() => {
-          // Always show SOL, DOPE, BTC, ETH first, then any other tokens user enabled
-          const alwaysTokens = [
-            { mint: "So11111111111111111111111111111111111111112", name: "Solana", symbol: "SOL", logo: "/sol.png" },
-            { mint: "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33", name: "Dope", symbol: "DOPE", logo: "/dope.png" },
-            { mint: "btc", name: "Bitcoin", symbol: "BTC", logo: "/btc.png" },
-            { mint: "eth", name: "Ethereum", symbol: "ETH", logo: "/eth.png" }
-          ];
-          // Filter out duplicates from tokenList
-          const extraTokens = tokenList.filter(t => !alwaysTokens.some(at => at.mint === t.mint));
-          const allTokens = [...alwaysTokens, ...extraTokens];
-          // Only show tokens that are enabled
-          const shown = allTokens.filter(token => shownTokens.includes(token.mint));
-          return shown.map((token, idx) => {
-            let tokenBalance = null;
-            if (token.mint === "So11111111111111111111111111111111111111112") tokenBalance = balance;
-            else if (token.mint === "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33") tokenBalance = dopeSpl;
-            else if (["btc", "eth"].includes(token.mint)) tokenBalance = 0;
-            const usdValue = (tokenBalance !== null && tokenPrices[token.mint]) ? (tokenBalance * tokenPrices[token.mint]) : null;
-            // Use consistent logo size for all tokens, and correct logo for DOPE and SOL
-            let logoSize = "w-9 h-9";
-            let logoSrc = token.logo || "/logo-192.png";
-            if (token.mint === "So11111111111111111111111111111111111111112") logoSize = "w-7 h-7";
-            if (token.mint === "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33") logoSrc = "/logo-192.png";
-            return (
-              <div
-                key={token.mint}
-                className={`flex items-center justify-between py-2${idx > 0 ? " border-t border-white/10 mt-2 pt-2" : ""} cursor-pointer`}
-                onClick={() => setShowTokenInfo({ mint: token.mint, name: `${token.name} (${token.symbol})` })}
-              >
-                <div className="flex items-center gap-3">
-                  <img src={logoSrc} alt={token.symbol} className={`${logoSize} rounded-full`} />
-                  <div>
-                    <div className="text-sm font-semibold">{token.name} <span className="text-xs text-white/60">{token.symbol}</span></div>
-                    <div className="text-sm font-semibold mt-1">{formatTokenAmount(tokenBalance, token.symbol)}</div>
-                    <div className="text-xs text-green-400 mt-1">
-                      {usdValue !== null ? `$${usdValue.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD` : "—"}
+        {activeTab === 'tokens' && (
+          <>
+            {(() => {
+              // ...existing token rendering code...
+              const alwaysTokens = [
+                { mint: "So11111111111111111111111111111111111111112", name: "Solana", symbol: "SOL", logo: "/sol.png" },
+                { mint: "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33", name: "Dope", symbol: "DOPE", logo: "/dope.png" },
+                { mint: "btc", name: "Bitcoin", symbol: "BTC", logo: "/btc.png" },
+                { mint: "eth", name: "Ethereum", symbol: "ETH", logo: "/eth.png" }
+              ];
+              const extraTokens = tokenList.filter(t => !alwaysTokens.some(at => at.mint === t.mint));
+              const allTokens = [...alwaysTokens, ...extraTokens];
+              const shown = allTokens.filter(token => shownTokens.includes(token.mint));
+              return shown.map((token, idx) => {
+                let tokenBalance = null;
+                if (token.mint === "So11111111111111111111111111111111111111112") tokenBalance = balance;
+                else if (token.mint === "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33") tokenBalance = dopeSpl;
+                else if (["btc", "eth"].includes(token.mint)) tokenBalance = 0;
+                const usdValue = (tokenBalance !== null && tokenPrices[token.mint]) ? (tokenBalance * tokenPrices[token.mint]) : null;
+                let logoSize = "w-9 h-9";
+                let logoSrc = token.logo || "/logo-192.png";
+                if (token.mint === "So11111111111111111111111111111111111111112") logoSize = "w-7 h-7";
+                if (token.mint === "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33") logoSrc = "/logo-192.png";
+                return (
+                  <div
+                    key={token.mint}
+                    className={`flex items-center justify-between py-2${idx > 0 ? " border-t border-white/10 mt-2 pt-2" : ""} cursor-pointer`}
+                    onClick={() => setShowTokenInfo({ mint: token.mint, name: `${token.name} (${token.symbol})` })}
+                  >
+                    <div className="flex items-center gap-3">
+                      <img src={logoSrc} alt={token.symbol} className={`${logoSize} rounded-full`} />
+                      <div>
+                        <div className="text-sm font-semibold">{token.name} <span className="text-xs text-white/60">{token.symbol}</span></div>
+                        <div className="text-sm font-semibold mt-1">{formatTokenAmount(tokenBalance, token.symbol)}</div>
+                        <div className="text-xs text-green-400 mt-1">
+                          {usdValue !== null ? `$${usdValue.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD` : "—"}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            );
-          });
-        })()}
-        {showTokenInfo && (
-          <TokenDetailModal
-            mint={showTokenInfo.mint}
-            name={showTokenInfo.name}
-            address={address}
-            keypair={keypair}
-            balance={showTokenInfo.mint === "So11111111111111111111111111111111111111112" ? balance : dopeSpl}
-            onClose={() => setShowTokenInfo(null)}
-          />
+                );
+              });
+            })()}
+            {showTokenInfo && (
+              <TokenDetailModal
+                mint={showTokenInfo.mint}
+                name={showTokenInfo.name}
+                address={address}
+                keypair={keypair}
+                balance={showTokenInfo.mint === "So11111111111111111111111111111111111111112" ? balance : dopeSpl}
+                onClose={() => setShowTokenInfo(null)}
+              />
+            )}
+          </>
+        )}
+        {activeTab === 'nfts' && (
+          <div className="mt-2">
+            {/* NFT list component */}
+            {address && <React.Suspense fallback={<div className="text-white/60 text-sm">Loading NFTs...</div>}>
+              {React.createElement(require('../components/NftList').default, { address })}
+            </React.Suspense>}
+          </div>
         )}
         {showManageModal && (
           <ManageTokensModal
@@ -357,7 +374,7 @@ export default function Home() {
                      { mint: "btc", name: "Bitcoin", symbol: "BTC", logo: "/logo-192.png" },
                      { mint: "eth", name: "Ethereum", symbol: "ETH", logo: "/logo-192.png" },
                      { mint: "bnb", name: "BNB", symbol: "BNB", logo: "/logo-192.png" },
-                     ...tokenList]} // add more tokens here
+                     ...tokenList]}
             shownTokens={shownTokens}
             onToggle={mint => setShownTokens(shownTokens => shownTokens.includes(mint) ? shownTokens.filter(m => m !== mint) : [...shownTokens, mint])}
             onAdd={mint => setShownTokens(shownTokens => shownTokens.includes(mint) ? shownTokens : [...shownTokens, mint])}
