@@ -99,7 +99,6 @@ export default function Home() {
     try {
       unsub = subscribeBalance(address, (b) => {
         setBalance(b);
-        refresh(); // also refresh SPL and history instantly on SOL change
       });
     } catch (e: any) {
       // ignore
