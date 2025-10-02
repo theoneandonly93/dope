@@ -98,8 +98,20 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
         );
       }
       setTxid(txidVal);
-      setStatus(`Sent! Transaction: ${txidVal}`);
-      logLocalTx({ signature: txidVal, status: 'success', time: Date.now()/1000, change: Number(amount) });
+      // Robust post-send check: fetch transaction and check status
+      let txStatus = 'success';
+      try {
+        const tx = await connection.getParsedTransaction(txidVal, { commitment: "confirmed" });
+        if (tx?.meta?.err) {
+          txStatus = 'error';
+        }
+      } catch {}
+      if (txStatus === 'success') {
+        setStatus(`Sent! Transaction: ${txidVal}`);
+      } else {
+        setStatus(`Send failed. Transaction: ${txidVal}`);
+      }
+      logLocalTx({ signature: txidVal, status: txStatus, time: Date.now()/1000, change: Number(amount) });
     } catch (e: any) {
       setStatus(e?.message || "Send failed");
       logLocalTx({ signature: '', status: 'error', time: Date.now()/1000, change: null });
