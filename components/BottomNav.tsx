@@ -23,12 +23,10 @@ const items = [
       <path d="M20 7v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7" stroke={active?"#ffffff":"#9aa0a6"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   ) },
-  { href: "/wallet/chat", label: "Chat", icon: (active: boolean) => (
+  { href: "/wallet/browser", label: "Browser", icon: (active: boolean) => (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M20 12c0 4-3.582 7-8 7-0.69 0-1.36-0.07-2-0.2L6 20l1.2-3C5.85 15.9 4 14.17 4 12 4 8 7.582 5 12 5s8 3 8 7z" stroke={active?"#ffffff":"#9aa0a6"} strokeWidth="2" strokeLinejoin="round" fill="none"/>
-      <circle cx="10" cy="12" r="1" fill={active?"#ffffff":"#9aa0a6"} />
-      <circle cx="13" cy="12" r="1" fill={active?"#ffffff":"#9aa0a6"} />
-      <circle cx="16" cy="12" r="1" fill={active?"#ffffff":"#9aa0a6"} />
+      <circle cx="12" cy="12" r="10" stroke={active?"#ffffff":"#9aa0a6"} strokeWidth="2" fill="none"/>
+      <path d="M2 12h20M12 2a10 10 0 0 1 0 20M12 2a10 10 0 0 0 0 20" stroke={active?"#ffffff":"#9aa0a6"} strokeWidth="2" fill="none"/>
     </svg>
   ) },
 ];

@@ -382,11 +382,15 @@ export default function Home() {
         )}
         {activeTab === 'nfts' && (
           <div className="mt-2">
-            {/* NFT list component, only for Solana */}
-            {activeChain === 'solana' && address && <React.Suspense fallback={<div className="text-white/60 text-sm">Loading NFTs...</div>}>
-              {React.createElement(require('../components/NftList').default, { address })}
-            </React.Suspense>}
-            {activeChain !== 'solana' && <div className="text-white/60 text-sm">NFTs only supported on Solana for now.</div>}
+            {/* NFT list component, for Solana and Ape Chain */}
+            {(activeChain === 'solana' || activeChain === 'ape') && address && (
+              <React.Suspense fallback={<div className="text-white/60 text-sm">Loading NFTs...</div>}>
+                {React.createElement(require('../components/NftList').default, { address })}
+              </React.Suspense>
+            )}
+            {(activeChain !== 'solana' && activeChain !== 'ape') && (
+              <div className="text-white/60 text-sm">NFTs only supported on Solana and Ape Chain for now.</div>
+            )}
           </div>
         )}
         {showManageModal && (
