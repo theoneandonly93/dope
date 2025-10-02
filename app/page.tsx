@@ -136,21 +136,32 @@ export default function Home() {
       } catch (e: any) {
         newBalances.bnb = null;
       }
-      // Sei (placeholder, replace with real API)
+      // Sei
       try {
-        newBalances.sei = 0; // TODO: Add Sei API logic
+        // Example: Sei mainnet REST API (replace with your address format if needed)
+        const seiRes = await fetch(`https://rest.sei-apis.com/cosmos/bank/v1beta1/balances/${address}`);
+        const seiJson = await seiRes.json();
+        // Find SEI token balance (denom: 'usei')
+        const seiBal = seiJson?.balances?.find((b: any) => b.denom === 'usei');
+        newBalances.sei = seiBal ? Number(seiBal.amount) / 1e6 : 0;
       } catch (e: any) {
         newBalances.sei = null;
       }
-      // Base (placeholder, replace with real API)
+      // Base
       try {
-        newBalances.base = 0; // TODO: Add Base API logic
+        // Example: BaseScan API (replace with your address format if needed)
+        const baseRes = await fetch(`https://api.basescan.org/api?module=account&action=balance&address=${address}`);
+        const baseJson = await baseRes.json();
+        newBalances.base = baseJson?.result ? Number(baseJson.result) / 1e18 : 0;
       } catch (e: any) {
         newBalances.base = null;
       }
-      // Ape (placeholder, replace with real API)
+      // Ape
       try {
-        newBalances.ape = 0; // TODO: Add Ape API logic
+        // Example: Blockscout API for ApeChain (replace with your address format if needed)
+        const apeRes = await fetch(`https://blockscout.apecoin.com/api?module=account&action=balance&address=${address}`);
+        const apeJson = await apeRes.json();
+        newBalances.ape = apeJson?.result ? Number(apeJson.result) / 1e18 : 0;
       } catch (e: any) {
         newBalances.ape = null;
       }
@@ -384,7 +395,8 @@ export default function Home() {
                 const chainTokens: {[key:string]: any[]} = {
                   solana: [
                     { mint: "So11111111111111111111111111111111111111112", name: "Solana", symbol: "SOL", logo: "/sol.png", balance: balances['solana'] },
-                    { mint: "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33", name: "Dope", symbol: "DOPE", logo: "/dope.png", balance: dopeSpl }
+                    { mint: "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33", name: "Dopelganga", symbol: "DOPE", logo: "/logo-192.png", balance: dopeSpl },
+                    { mint: "4R7zJ4JgMz14JCw1JGn81HVrFCAfd2cnCfWvsmqv6xts", name: "Dope Wallet Token", symbol: "DWT", logo: "/logo-192.png", balance: balances['dwt'] ?? 0 }
                   ],
                   eth: [
                     { mint: "eth", name: "Ethereum", symbol: "ETH", logo: "/eth.png", balance: 0 }
@@ -460,7 +472,8 @@ export default function Home() {
           {showManageModal && (
             <ManageTokensModal
               tokens={[{ mint: "So11111111111111111111111111111111111111112", name: "Solana", symbol: "SOL", logo: "/logo-192.png" },
-                       { mint: "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33", name: "Dope", symbol: "DOPE", logo: "/logo-192.png" },
+                       { mint: "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33", name: "Dopelganga", symbol: "DOPE", logo: "/logo-192.png" },
+                       { mint: "4R7zJ4JgMz14JCw1JGn81HVrFCAfd2cnCfWvsmqv6xts", name: "Dope Wallet Token", symbol: "DWT", logo: "/logo-192.png" },
                        { mint: "btc", name: "Bitcoin", symbol: "BTC", logo: "/logo-192.png" },
                        { mint: "eth", name: "Ethereum", symbol: "ETH", logo: "/logo-192.png" },
                        { mint: "bnb", name: "BNB", symbol: "BNB", logo: "/bnb.jpg" },
