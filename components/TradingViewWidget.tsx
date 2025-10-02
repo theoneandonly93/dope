@@ -2,10 +2,11 @@ import React, { useEffect, useRef } from "react";
 
 export default function TradingViewWidget({ symbol = "COINBASE:SOLUSD", height = 400 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  // Unique container id for each widget instance
+  const containerId = useRef(`tradingview-widget-container-${Math.random().toString(36).slice(2)}`);
 
   useEffect(() => {
     if (!containerRef.current) return;
-    // Remove previous widget if any
     containerRef.current.innerHTML = "";
     const script = document.createElement("script");
     script.src = "https://s3.tradingview.com/tv.js";
@@ -25,7 +26,7 @@ export default function TradingViewWidget({ symbol = "COINBASE:SOLUSD", height =
           toolbar_bg: "#222",
           enable_publishing: false,
           allow_symbol_change: true,
-          container_id: containerRef.current.id,
+          container_id: containerId.current,
         });
       }
     };
@@ -37,7 +38,7 @@ export default function TradingViewWidget({ symbol = "COINBASE:SOLUSD", height =
   return (
     <div
       ref={containerRef}
-      id="tradingview-widget-container"
+      id={containerId.current}
       style={{ width: "100%", height }}
     />
   );
