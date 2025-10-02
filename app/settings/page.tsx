@@ -61,7 +61,6 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 pb-24">
       <h1 className="text-xl font-semibold">Settings</h1>
-
       <div className="glass rounded-2xl p-5 border border-white/10 space-y-3">
         <div className="text-xs text-white/60">Display Name</div>
         <input
@@ -77,8 +76,7 @@ export default function SettingsPage() {
           <button className="btn" onClick={()=>router.back()}>Back</button>
         </div>
       </div>
-
-      <div className="glass rounded-2xl p-5 border border-white/10 space-y-3">
+      <div className="glass rounded-2xl p-5 border border-white/10 space-y-3 mt-8">
         <div className="text-sm font-semibold">Sensitive Info</div>
         <div className="text-xs text-white/70">Reveal your seed phrase and private key only in a secure environment. Never share with anyone.</div>
         {scheme === "password" && (
@@ -107,6 +105,10 @@ export default function SettingsPage() {
             <button className="text-xs underline mt-1 text-white/70" onClick={()=>copy(skB64)}>Copy secret key</button>
           </div>
         )}
+      </div>
+      {/* Admin Support Chat Portal */}
+      <div className="mt-8">
+        {React.createElement(require('../../components/AdminSupportChat').default)}
       </div>
     </div>
   );
