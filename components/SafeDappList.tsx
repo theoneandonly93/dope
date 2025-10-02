@@ -25,6 +25,11 @@ const DAPP_LIST = [
     name: "BasedGunda.com",
     url: "https://basedgunda.com",
     logo: "/gunda.jpg"
+  },
+  {
+    name: "Ruglip.io",
+    url: "https://ruglip.io",
+    logo: "/rugflip.jpg"
   }
 ];
 

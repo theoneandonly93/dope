@@ -187,32 +187,13 @@ export default function Home() {
         {showRpcError && fatalError && (
           <div className="fixed top-0 left-0 w-full z-50 flex justify-center">
             <div className="bg-yellow-900 text-yellow-200 border border-yellow-400 rounded-xl px-4 py-3 mt-4 shadow-lg max-w-md w-full flex items-center justify-between">
-              <span>
-                ⚠️ Rate limit or RPC error: Balances may not be visible right now, but your funds are safe and will appear shortly.
-              </span>
+              ⚠️ Rate limit or RPC error: Balances may not be visible right now, but your funds are safe and will appear shortly.
               <button className="ml-4 text-yellow-300 hover:text-yellow-100" onClick={() => setShowRpcError(false)}>Dismiss</button>
             </div>
           </div>
         )}
-        {/* Chain switch bar with dropdown menu */}
-        <div className="flex items-center justify-center mb-4">
-          <div className="bg-black/30 border border-white/10 rounded-full px-4 py-2 flex items-center gap-2">
-            <span className="text-sm text-white/60 font-semibold">Chain:</span>
-            <select
-              value={activeChain}
-              onChange={e => setActiveChain(e.target.value as any)}
-              className="bg-transparent text-white font-semibold px-2 py-1 rounded outline-none"
-              style={{ minWidth: 80 }}
-            >
-              <option value="solana">Solana</option>
-              <option value="eth">Ethereum</option>
-              <option value="btc">Bitcoin</option>
-              <option value="ape">Ape Chain</option>
-              <option value="bnb">BNB Chain</option>
-              <option value="sei">Sei Network</option>
-            </select>
-          </div>
-        </div>
+
+        {/* Chain-specific token rendering setup is now only in the token rendering block below */}
         <div className="glass rounded-2xl p-4 sm:p-5 border border-white/5 w-full">
           <div className="text-xs text-white/60">Address</div>
           <div className="font-mono break-all text-sm">{address || "No address set"}</div>
@@ -352,6 +333,9 @@ export default function Home() {
                 eth: [
                   { mint: "eth", name: "Ethereum", symbol: "ETH", logo: "/eth.png", balance: 0 }
                 ],
+                base: [
+                  { mint: "base", name: "Base", symbol: "BASE", logo: "/base.jpg", balance: 0 }
+                ],
                 btc: [
                   { mint: "btc", name: "Bitcoin", symbol: "BTC", logo: "/btc.png", balance: 0 }
                 ],
@@ -359,10 +343,10 @@ export default function Home() {
                   { mint: "ape", name: "Ape Chain", symbol: "APE", logo: "/ape.png", balance: 0 }
                 ],
                 bnb: [
-                  { mint: "bnb", name: "BNB", symbol: "BNB", logo: "/bnb.png", balance: 0 }
+                  { mint: "bnb", name: "BNB", symbol: "BNB", logo: "/bnb.jpg", balance: 0 }
                 ],
                 sei: [
-                  { mint: "sei", name: "Sei Network", symbol: "SEI", logo: "/sei.png", balance: 0 }
+                  { mint: "sei", name: "Sei Network", symbol: "SEI", logo: "/sei.jpg", balance: 0 }
                 ]
               };
               const shown = chainTokens[activeChain] || [];
@@ -423,7 +407,9 @@ export default function Home() {
                      { mint: "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33", name: "Dope", symbol: "DOPE", logo: "/logo-192.png" },
                      { mint: "btc", name: "Bitcoin", symbol: "BTC", logo: "/logo-192.png" },
                      { mint: "eth", name: "Ethereum", symbol: "ETH", logo: "/logo-192.png" },
-                     { mint: "bnb", name: "BNB", symbol: "BNB", logo: "/logo-192.png" },
+                     { mint: "bnb", name: "BNB", symbol: "BNB", logo: "/bnb.jpg" },
+                     { mint: "base", name: "Base", symbol: "BASE", logo: "/base.jpg" },
+                     { mint: "sei", name: "Sei Network", symbol: "SEI", logo: "/sei.jpg" },
                      ...tokenList]}
             shownTokens={shownTokens}
             onToggle={mint => setShownTokens(shownTokens => shownTokens.includes(mint) ? shownTokens.filter(m => m !== mint) : [...shownTokens, mint])}
@@ -431,11 +417,9 @@ export default function Home() {
             onClose={() => setShowManageModal(false)}
           />
         )}
-      </div>
-
-  <TxList address={address || undefined} key={address} />
+      <TxList address={address || undefined} key={address} />
     </div>
-    </ErrorBoundary>
+  </ErrorBoundary>
   );
 }
 
