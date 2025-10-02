@@ -180,17 +180,22 @@ export default function Home() {
   return (
     <ErrorBoundary>
       <div className="pb-24 space-y-6 w-full max-w-md mx-auto px-2 sm:px-0">
-        {/* Chain switch tab header */}
-        <div className="flex gap-2 justify-center mb-4">
-          {['solana','eth','btc','ape'].map(chain => (
-            <button
-              key={chain}
-              className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border border-white/10 shadow-sm ${activeChain === chain ? 'bg-white/10 text-white' : 'bg-black/30 text-white/60'}`}
-              onClick={() => setActiveChain(chain as any)}
+        {/* Chain switch bar with dropdown menu */}
+        <div className="flex items-center justify-center mb-4">
+          <div className="bg-black/30 border border-white/10 rounded-full px-4 py-2 flex items-center gap-2">
+            <span className="text-sm text-white/60 font-semibold">Chain:</span>
+            <select
+              value={activeChain}
+              onChange={e => setActiveChain(e.target.value as any)}
+              className="bg-transparent text-white font-semibold px-2 py-1 rounded outline-none"
+              style={{ minWidth: 80 }}
             >
-              {chain.toUpperCase()}
-            </button>
-          ))}
+              <option value="solana">Solana</option>
+              <option value="eth">Ethereum</option>
+              <option value="btc">Bitcoin</option>
+              <option value="ape">Ape Chain</option>
+            </select>
+          </div>
         </div>
       <div className="glass rounded-2xl p-4 sm:p-5 border border-white/5 w-full">
         <div className="text-xs text-white/60">Address</div>
@@ -320,22 +325,25 @@ export default function Home() {
         {activeTab === 'tokens' && (
           <>
             {(() => {
-              // ...existing token rendering code...
-              const alwaysTokens = [
-                { mint: "So11111111111111111111111111111111111111112", name: "Solana", symbol: "SOL", logo: "/sol.png" },
-                { mint: "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33", name: "Dope", symbol: "DOPE", logo: "/dope.png" },
-                { mint: "btc", name: "Bitcoin", symbol: "BTC", logo: "/btc.png" },
-                { mint: "eth", name: "Ethereum", symbol: "ETH", logo: "/eth.png" }
-              ];
-              const extraTokens = tokenList.filter(t => !alwaysTokens.some(at => at.mint === t.mint));
-              const allTokens = [...alwaysTokens, ...extraTokens];
-              const shown = allTokens.filter(token => shownTokens.includes(token.mint));
+              // Chain-specific token rendering
+              const chainTokens: {[key:string]: any[]} = {
+                solana: [
+                  { mint: "So11111111111111111111111111111111111111112", name: "Solana", symbol: "SOL", logo: "/sol.png", balance: balance },
+                  { mint: "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33", name: "Dope", symbol: "DOPE", logo: "/dope.png", balance: dopeSpl }
+                ],
+                eth: [
+                  { mint: "eth", name: "Ethereum", symbol: "ETH", logo: "/eth.png", balance: 0 }
+                ],
+                btc: [
+                  { mint: "btc", name: "Bitcoin", symbol: "BTC", logo: "/btc.png", balance: 0 }
+                ],
+                ape: [
+                  { mint: "ape", name: "Ape Chain", symbol: "APE", logo: "/ape.png", balance: 0 }
+                ]
+              };
+              const shown = chainTokens[activeChain] || [];
               return shown.map((token, idx) => {
-                let tokenBalance = null;
-                if (token.mint === "So11111111111111111111111111111111111111112") tokenBalance = balance;
-                else if (token.mint === "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33") tokenBalance = dopeSpl;
-                else if (["btc", "eth"].includes(token.mint)) tokenBalance = 0;
-                const usdValue = (tokenBalance !== null && tokenPrices[token.mint]) ? (tokenBalance * tokenPrices[token.mint]) : null;
+                const usdValue = (token.balance !== null && tokenPrices[token.mint]) ? (token.balance * tokenPrices[token.mint]) : null;
                 let logoSize = "w-9 h-9";
                 let logoSrc = token.logo || "/logo-192.png";
                 if (token.mint === "So11111111111111111111111111111111111111112") logoSize = "w-7 h-7";
@@ -350,7 +358,7 @@ export default function Home() {
                       <img src={logoSrc} alt={token.symbol} className={`${logoSize} rounded-full`} />
                       <div>
                         <div className="text-sm font-semibold">{token.name} <span className="text-xs text-white/60">{token.symbol}</span></div>
-                        <div className="text-sm font-semibold mt-1">{formatTokenAmount(tokenBalance, token.symbol)}</div>
+                        <div className="text-sm font-semibold mt-1">{formatTokenAmount(token.balance, token.symbol)}</div>
                         <div className="text-xs text-green-400 mt-1">
                           {usdValue !== null ? `$${usdValue.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD` : "—"}
                         </div>
@@ -374,10 +382,11 @@ export default function Home() {
         )}
         {activeTab === 'nfts' && (
           <div className="mt-2">
-            {/* NFT list component */}
-            {address && <React.Suspense fallback={<div className="text-white/60 text-sm">Loading NFTs...</div>}>
+            {/* NFT list component, only for Solana */}
+            {activeChain === 'solana' && address && <React.Suspense fallback={<div className="text-white/60 text-sm">Loading NFTs...</div>}>
               {React.createElement(require('../components/NftList').default, { address })}
             </React.Suspense>}
+            {activeChain !== 'solana' && <div className="text-white/60 text-sm">NFTs only supported on Solana for now.</div>}
           </div>
         )}
         {showManageModal && (
