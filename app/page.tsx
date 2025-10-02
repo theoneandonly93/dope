@@ -283,7 +283,7 @@ export default function Home() {
               name: token.name,
               symbol: token.symbol,
               logo: token.logo,
-              balance: token.mint === "So11111111111111111111111111111111111111112" ? balance ?? 0 : token.mint === "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33" ? dopeSpl ?? 0 : 0
+              balance: token.mint === "So11111111111111111111111111111111111111112" ? balances['solana'] ?? 0 : token.mint === "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33" ? dopeSpl ?? 0 : 0
             }))}
             onSelect={mint => { setSendTokenMint(mint); setShowSendModal(false); }}
             onClose={() => setShowSendModal(false)}
@@ -295,7 +295,7 @@ export default function Home() {
               <h2 className="text-lg font-semibold mb-4">Send Token</h2>
               <SendTokenForm
                 mint={sendTokenMint}
-                balance={sendTokenMint === "So11111111111111111111111111111111111111112" ? balance : sendTokenMint === "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33" ? dopeSpl : 0}
+                balance={sendTokenMint === "So11111111111111111111111111111111111111112" ? balances['solana'] : sendTokenMint === "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33" ? dopeSpl : 0}
                 keypair={keypair}
               />
               <button className="btn w-full mt-4" onClick={() => setSendTokenMint(null)}>Close</button>
@@ -383,7 +383,7 @@ export default function Home() {
                 // Chain-specific token rendering
                 const chainTokens: {[key:string]: any[]} = {
                   solana: [
-                    { mint: "So11111111111111111111111111111111111111112", name: "Solana", symbol: "SOL", logo: "/sol.png", balance: balance },
+                    { mint: "So11111111111111111111111111111111111111112", name: "Solana", symbol: "SOL", logo: "/sol.png", balance: balances['solana'] },
                     { mint: "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33", name: "Dope", symbol: "DOPE", logo: "/dope.png", balance: dopeSpl }
                   ],
                   eth: [
@@ -438,7 +438,7 @@ export default function Home() {
                   name={showTokenInfo.name}
                   address={address}
                   keypair={keypair}
-                  balance={showTokenInfo.mint === "So11111111111111111111111111111111111111112" ? balance : dopeSpl}
+                  balance={showTokenInfo.mint === "So11111111111111111111111111111111111111112" ? balances['solana'] : dopeSpl}
                   onClose={() => setShowTokenInfo(null)}
                 />
               )}
