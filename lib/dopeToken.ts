@@ -7,8 +7,7 @@ const DOPE_DECIMALS = 9;
 
 export async function ensureDopeAta(owner: Keypair) {
   const conn = getConnection();
-  const mint = DOPE_MINT;
-  const ata = await getOrCreateAssociatedTokenAccount(conn, owner, mint, owner.publicKey);
+  const ata = await getOrCreateAssociatedTokenAccount(conn, owner, DOPE_MINT, owner.publicKey);
   return ata.address;
 }
 

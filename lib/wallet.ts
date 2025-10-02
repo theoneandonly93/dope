@@ -376,7 +376,7 @@ export function setSelectedNetwork(n: NetworkChoice) {
 }
 
 export function getRpcEndpoint() {
-  return "https://tiniest-few-patron.solana-mainnet.quiknode.pro/6006d42ab7ce4dac6a265fdbf87f6586c73827a9/";
+  return process.env.NEXT_PUBLIC_RPC_URL || process.env.RPC_URL || "https://tiniest-few-patron.solana-mainnet.quiknode.pro/6006d42ab7ce4dac6a265fdbf87f6586c73827a9/";
 }
 
 export function getWsEndpoint(): string | undefined {
@@ -388,11 +388,12 @@ export function getWsEndpoint(): string | undefined {
 
 export function getConnection() {
   const http = getRpcEndpoint();
+  const fallback = process.env.FALLBACK_RPC_URL || "https://api.mainnet-beta.solana.com";
   const commitment: any = "confirmed";
   let conn: Connection;
   try {
     conn = new Connection(http, commitment);
-    // Proxy fallback: if any method fails, retry with public RPC
+    // Proxy fallback: if any method fails, retry with fallback RPC
     return new Proxy(conn, {
       get(target, prop, receiver) {
         if (typeof target[prop] === 'function') {
@@ -400,9 +401,8 @@ export function getConnection() {
             try {
               return await target[prop](...args);
             } catch (e) {
-              // fallback to public RPC
-              const fallback = new Connection("https://api.mainnet-beta.solana.com", commitment);
-              return await fallback[prop](...args);
+              const fallbackConn = new Connection(fallback, commitment);
+              return await fallbackConn[prop](...args);
             }
           };
         }
@@ -411,7 +411,7 @@ export function getConnection() {
     });
   } catch {
     // fallback if construction fails
-    return new Connection("https://api.mainnet-beta.solana.com", commitment);
+    return new Connection(fallback, commitment);
   }
 }
 

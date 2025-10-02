@@ -4,12 +4,17 @@ const DAPP_LIST = [
   {
     name: "Dopelganga",
     url: "https://dopelganga.com",
-    logo: "/dopelganga-logo.png"
+    logo: "/logo-192.png"
   },
   {
     name: "Dopelgangachat",
     url: "https://dopelgangachat.com",
-    logo: "/dopelgangachat-logo.png"
+    logo: "/logo-192.png"
+  },
+  {
+    name: "Dexsta.fun",
+    url: "https://dexsta.fun",
+    logo: "/dexta.jpg"
   }
 ];
 

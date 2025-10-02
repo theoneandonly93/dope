@@ -26,7 +26,7 @@ function formatTokenAmount(amount: number | null, symbol: string): string {
 import ManageTokensModal from "../components/ManageTokensModal";
 
 export default function Home() {
-  const [activeChain, setActiveChain] = useState<'solana'|'eth'|'btc'|'ape'|'bnb'>('solana');
+  const [activeChain, setActiveChain] = useState<'solana'|'eth'|'btc'|'ape'|'bnb'|'sei'>('solana');
   const [activeTab, setActiveTab] = useState<'tokens'|'nfts'>('tokens');
   const [showSendModal, setShowSendModal] = useState(false);
   const [sendTokenMint, setSendTokenMint] = useState<string|null>(null);
@@ -209,6 +209,7 @@ export default function Home() {
               <option value="btc">Bitcoin</option>
               <option value="ape">Ape Chain</option>
               <option value="bnb">BNB Chain</option>
+              <option value="sei">Sei Network</option>
             </select>
           </div>
         </div>
@@ -359,6 +360,9 @@ export default function Home() {
                 ],
                 bnb: [
                   { mint: "bnb", name: "BNB", symbol: "BNB", logo: "/bnb.png", balance: 0 }
+                ],
+                sei: [
+                  { mint: "sei", name: "Sei Network", symbol: "SEI", logo: "/sei.png", balance: 0 }
                 ]
               };
               const shown = chainTokens[activeChain] || [];
