@@ -7,6 +7,7 @@ import { Connection, PublicKey } from "@solana/web3.js";
 export default function TxList({ address, tokenMint }: { address?: string, tokenMint?: string }) {
   const [items, setItems] = useState<RecentTx[]>([]);
   const [loading, setLoading] = useState(false);
+  const [localTx, setLocalTx] = useState<any[]>([]);
 
   useEffect(() => {
     let alive = true;
@@ -41,6 +42,9 @@ export default function TxList({ address, tokenMint }: { address?: string, token
       } finally {
         setLoading(false);
       }
+      // Load local tx log
+      const log = JSON.parse(localStorage.getItem('dope_local_tx_log') || '[]');
+      if (alive) setLocalTx(log);
     };
     fetchTx();
     const iv = setInterval(fetchTx, 5000);
@@ -57,6 +61,23 @@ export default function TxList({ address, tokenMint }: { address?: string, token
       {loading && items.length === 0 && <div className="text-white/60 text-sm">Loading...</div>}
       {!loading && items.length === 0 && <div className="text-white/60 text-sm">No recent transactions</div>}
       <div className="space-y-2">
+        {/* Show local tx first, then on-chain */}
+        {localTx.map((tx, idx) => (
+          <div
+            key={tx.signature + tx.status + tx.time + idx}
+            className="flex items-center justify-between p-3 rounded-lg border border-white/10 bg-black/40"
+          >
+            <div className="flex flex-col">
+              <span className="text-xs text-white/60">{tx.status === 'success' ? 'Confirmed (Local)' : tx.status === 'error' ? 'Failed (Local)' : 'Pending (Local)'}</span>
+              <span className="font-mono text-xs break-all max-w-[220px]">{tx.signature ? `${tx.signature.slice(0, 12)}…${tx.signature.slice(-6)}` : '—'}</span>
+              <span className="text-xs text-white/50 mt-1">{tx.time ? new Date(tx.time * 1000).toLocaleString() : ''}</span>
+              <span className="text-xs text-white/50 mt-1">{typeof tx.change === 'number' ? (tx.change > 0 ? 'Outgoing' : tx.change < 0 ? 'Incoming' : 'Swap') : ''}</span>
+            </div>
+            <div className={`text-sm font-semibold ${typeof tx.change === 'number' ? (tx.change >= 0 ? 'text-red-400' : 'text-green-400') : 'text-white/70'}`}> 
+              {typeof tx.change === 'number' ? `${tx.change >= 0 ? '-' : '+'}${Math.abs(tx.change).toFixed(4)} DOPE` : '—'}
+            </div>
+          </div>
+        ))}
         {items.map((tx) => (
           <a
             key={tx.signature || Math.random().toString(36)}

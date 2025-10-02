@@ -6,6 +6,12 @@ import UnlockModal from "./UnlockModal";
 import { useWallet } from "./WalletProvider";
 
 export default function SendTokenForm({ mint, balance, keypair }: { mint: string, balance: number | null, keypair: Keypair | null }) {
+  // Local transaction log for UI feedback
+  function logLocalTx({ signature, status, time, change }: { signature: string, status: string, time: number, change: number|null }) {
+    const log = JSON.parse(localStorage.getItem('dope_local_tx_log') || '[]');
+    log.unshift({ signature, status, time, change });
+    localStorage.setItem('dope_local_tx_log', JSON.stringify(log.slice(0, 20)));
+  }
   const { unlock } = useWallet();
 
   const [toAddress, setToAddress] = useState("");
@@ -35,6 +41,7 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
     }
     if (!toAddress || !amount || Number(amount) <= 0) {
       setStatus("Enter a valid address and amount.");
+      logLocalTx({ signature: '', status: 'error', time: Date.now()/1000, change: null });
       return;
     }
     let recipient: PublicKey;
@@ -42,10 +49,12 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
       recipient = new PublicKey(toAddress);
     } catch {
       setStatus("Invalid recipient address.");
+      logLocalTx({ signature: '', status: 'error', time: Date.now()/1000, change: null });
       return;
     }
     if (balance !== null && Number(amount) > balance) {
       setStatus(`Insufficient balance. You have ${balance} and tried to send ${amount}.`);
+      logLocalTx({ signature: '', status: 'error', time: Date.now()/1000, change: null });
       return;
     }
     setShowApprove(true);
@@ -55,6 +64,7 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
     setShowApprove(false);
     setSending(true);
     setStatus("Signing and sending transaction...");
+    logLocalTx({ signature: '', status: 'pending', time: Date.now()/1000, change: null });
     try {
       const { getConnection } = await import("../lib/wallet");
       const connection = getConnection();
@@ -71,6 +81,7 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
         } catch {
           setStatus("Invalid recipient address.");
           setSending(false);
+          logLocalTx({ signature: '', status: 'error', time: Date.now()/1000, change: null });
           return;
         }
         const fromTokenAccount = await getOrCreateAssociatedTokenAccount(connection, keypair, mintPubkey, keypair.publicKey);
@@ -88,8 +99,10 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
       }
       setTxid(txidVal);
       setStatus(`Sent! Transaction: ${txidVal}`);
+      logLocalTx({ signature: txidVal, status: 'success', time: Date.now()/1000, change: Number(amount) });
     } catch (e: any) {
       setStatus(e?.message || "Send failed");
+      logLocalTx({ signature: '', status: 'error', time: Date.now()/1000, change: null });
     } finally {
       setSending(false);
     }
