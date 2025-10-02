@@ -7,9 +7,14 @@ export default function NftList({ address }: { address?: string }) {
   useEffect(() => {
     if (!address) return;
     setLoading(true);
-    fetch(`https://api.helius.xyz/v0/addresses/${address}/nfts?api-key=helius-demo`) // Replace with your API key
+    fetch(`https://api.helius.xyz/v0/addresses/${address}/nfts?api-key=helius-demo`)
       .then(res => res.json())
-      .then(data => setNfts(data))
+      .then(data => {
+        // Ensure data is always an array
+        if (Array.isArray(data)) setNfts(data);
+        else if (data && Array.isArray(data.nfts)) setNfts(data.nfts);
+        else setNfts([]);
+      })
       .catch(() => setNfts([]))
       .finally(() => setLoading(false));
   }, [address]);

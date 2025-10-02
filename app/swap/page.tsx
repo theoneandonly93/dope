@@ -9,8 +9,8 @@ const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 
 export default function SwapPage() {
   const { address, keypair } = useWallet() as any;
-  const [fromMint, setFromMint] = useState<string>(SOL_MINT);
-  const [toMint, setToMint] = useState<string>(USDC_MINT);
+    const [fromMint, setFromMint] = useState<string>(SOL_MINT);
+    const [toMint, setToMint] = useState<string>(USDC_MINT);
   const [amount, setAmount] = useState<string>("");
   const [quote, setQuote] = useState<any>(null);
   const [err, setErr] = useState<string>("");
@@ -42,8 +42,11 @@ export default function SwapPage() {
     if (!keypair || !address) { setErr('Unlock wallet first'); return; }
     const amt = Number(amount);
     if (!(amt > 0)) { setErr('Enter amount'); return; }
+    if (!fromMint || !toMint) { setErr('Enter both mint addresses'); return; }
+    if (fromMint === toMint) { setErr('Select two different tokens to swap.'); return; }
     setErr(""); setSwapping(true); setSig("");
     try {
+      // ...existing swap logic...
       const res = await fetch('/api/swap/prepare', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -74,18 +77,22 @@ export default function SwapPage() {
       <div className="glass rounded-2xl p-3 border border-white/10 space-y-2">
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <div className="text-xs text-white/60 mb-1">From</div>
-            <select value={fromMint} onChange={(e)=>setFromMint(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 outline-none text-sm">
-              <option value={SOL_MINT}>SOL</option>
-              <option value={USDC_MINT}>USDC</option>
-            </select>
+            <div className="text-xs text-white/60 mb-1">From (SPL Mint Address)</div>
+            <input
+              value={fromMint}
+              onChange={e => setFromMint(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 outline-none text-sm font-mono"
+              placeholder="Enter SPL mint address"
+            />
           </div>
           <div>
-            <div className="text-xs text-white/60 mb-1">To</div>
-            <select value={toMint} onChange={(e)=>setToMint(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 outline-none text-sm">
-              <option value={USDC_MINT}>USDC</option>
-              <option value={SOL_MINT}>SOL</option>
-            </select>
+            <div className="text-xs text-white/60 mb-1">To (SPL Mint Address)</div>
+            <input
+              value={toMint}
+              onChange={e => setToMint(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 outline-none text-sm font-mono"
+              placeholder="Enter SPL mint address"
+            />
           </div>
         </div>
         <div>

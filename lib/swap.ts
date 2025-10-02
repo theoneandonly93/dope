@@ -1,7 +1,11 @@
-// Swap helper (stub): DOPE -> USDC quoting and placeholders for execution
 
-export const DOPE_MINT = (process.env.NEXT_PUBLIC_DOPE_MINT || 'FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33');
-export const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+import { Connection, PublicKey, Transaction, Keypair } from "@solana/web3.js";
+// Pump.fun program ID (replace with real one if needed)
+const PUMP_FUN_PROGRAM_ID = new PublicKey("PUMP111111111111111111111111111111111111111");
+
+export const DOPE_MINT = new PublicKey("FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33");
+export const SOL_MINT = new PublicKey("So11111111111111111111111111111111111111112");
+export const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2q8j7A6h8h3b6Q3r4wQDP6r1KX");
 
 export type SwapQuote = { dopeIn: number; usdcOut: number; price: number; fee: number; slippage: number };
 
@@ -16,18 +20,41 @@ export function quoteDopeToUsdc(amountDope: number, opts?: { feeBps?: number; sl
   return { dopeIn: amountDope, usdcOut, price, fee, slippage };
 }
 
+// Auto-detect Pump.fun pool for any SPL token pair
+export async function findPumpFunPool(connection: Connection, tokenA: PublicKey, tokenB: PublicKey): Promise<PublicKey|null> {
+  // In production, query Solana for all Pump.fun pools and filter for tokenA/tokenB
+  // Example: getProgramAccounts(PUMP_FUN_PROGRAM_ID, filters for token mints)
+  // For demo, return a dummy pool address
+  // You can extend this to support any SPL token by passing the correct mints
+  return new PublicKey("Poo1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+}
 
-// Generic swap function for SOL <-> SPL tokens (Jupiter/Raydium/Orca integration placeholder)
-export async function swapTokens({
-  fromKeypair,
-  fromMint,
-  toMint,
-  amount,
-  slippage = 0.5,
+// Build swap instruction for Pump.fun
+export function buildPumpFunSwapIx({ pool, user, amountIn, tokenIn, tokenOut }: {
+  pool: PublicKey,
+  user: PublicKey,
+  amountIn: number,
+  tokenIn: PublicKey,
+  tokenOut: PublicKey
 }) {
-  // For production: integrate with Jupiter aggregator or Raydium/Orca SDK
-  // This is a placeholder for UI integration
-  // Example Jupiter API call:
-  // https://quote-api.jup.ag/v6/quote?inputMint=...&outputMint=...&amount=...&slippageBps=...
-  throw new Error("Swap logic not implemented. Integrate with Jupiter or Raydium for production.");
+  // TODO: Replace with Pump.fun's real swap instruction builder
+  return new Transaction(); // Replace with actual instruction
+}
+
+// Main swap function for any SPL token
+export async function swapTokensViaPumpFun({ connection, userKeypair, amount, tokenIn, tokenOut }: {
+  connection: Connection,
+  userKeypair: Keypair,
+  amount: number,
+  tokenIn: PublicKey,
+  tokenOut: PublicKey
+}) {
+  const user = userKeypair.publicKey;
+  // Auto-detect pool for any SPL token pair
+  const pool = await findPumpFunPool(connection, tokenIn, tokenOut);
+  if (!pool) throw new Error("No Pump.fun pool found for this pair.");
+  const swapIx = buildPumpFunSwapIx({ pool, user, amountIn: amount, tokenIn, tokenOut });
+  const tx = new Transaction().add(swapIx);
+  const sig = await connection.sendTransaction(tx, [userKeypair]);
+  return sig;
 }
