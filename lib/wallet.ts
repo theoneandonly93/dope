@@ -376,7 +376,7 @@ export function setSelectedNetwork(n: NetworkChoice) {
 }
 
 export function getRpcEndpoint() {
-  return process.env.NEXT_PUBLIC_RPC_URL || process.env.RPC_URL || "https://tiniest-few-patron.solana-mainnet.quiknode.pro/6006d42ab7ce4dac6a265fdbf87f6586c73827a9/";
+  return process.env.NEXT_PUBLIC_RPC_URL || process.env.RPC_URL || "https://tiniest-few-patron.solana-mainnet.quiknode.pro/6006d42ab7ce4dac6a265fdbf87f6586c73827a9";
 }
 
 export function getWsEndpoint(): string | undefined {
@@ -423,18 +423,39 @@ export function lamportsToDope(lamports: number) {
 
 // Read DOPE SPL token balance (using parsed token accounts)
 export async function getDopeTokenBalance(ownerAddress: string): Promise<number> {
+  const conn = getConnection();
+  const owner = new PublicKey(ownerAddress);
+  let decimals = 6;
+  // Get decimals from mint info
   try {
-    const conn = getConnection();
-    const owner = new PublicKey(ownerAddress);
-    const mint = new PublicKey(DOPE_MINT);
-    const parsed = await conn.getParsedTokenAccountsByOwner(owner, { mint });
-    if (!parsed || parsed.value.length === 0) return 0;
-    const acc: any = parsed.value[0].account.data;
-    const ui = acc?.parsed?.info?.tokenAmount?.uiAmount;
-    return typeof ui === 'number' ? ui : 0;
-  } catch {
-    return 0;
-  }
+    const mintInfo = await conn.getParsedAccountInfo(DOPE_MINT);
+    decimals = (mintInfo.value?.data as any)?.parsed?.info?.decimals ?? 6;
+  } catch {}
+
+  // Get ATA for DOPE
+  try {
+    const { getAssociatedTokenAddress } = await import("@solana/spl-token");
+    const ata = await getAssociatedTokenAddress(DOPE_MINT, owner);
+    const ataInfo = await conn.getParsedAccountInfo(ata);
+    if (ataInfo.value && (ataInfo.value.data as any)?.parsed?.info?.tokenAmount) {
+      const info = (ataInfo.value.data as any).parsed.info;
+      const uiAmount = parseFloat(info.tokenAmount.uiAmountString);
+      if (!isNaN(uiAmount) && uiAmount > 0) return uiAmount;
+    }
+  } catch {}
+
+  // Fallback: sum all token accounts for DOPE mint
+  try {
+    const parsed = await conn.getParsedTokenAccountsByOwner(owner, { mint: DOPE_MINT });
+    let total = 0;
+    for (const acct of parsed.value) {
+      const acc: any = acct.account.data;
+      const raw = acc?.parsed?.info?.tokenAmount?.amount;
+      if (raw) total += Number(raw);
+    }
+    return total / Math.pow(10, decimals);
+  } catch {}
+  return 0;
 }
 
 export async function getSolBalance(pubkey: string) {

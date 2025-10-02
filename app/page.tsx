@@ -49,6 +49,8 @@ export default function Home() {
   const [dopePrice, setDopePrice] = useState<number | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState("");
+  // Debug state for Solscan API response
+  const [solscanDebug, setSolscanDebug] = useState<any>(null);
 
   // Top-level fallback UI for runtime errors
   const [fatalError, setFatalError] = useState<string>("");
@@ -98,7 +100,32 @@ export default function Home() {
       const newBalances: {[chain: string]: number | null} = { solana: null, eth: null, btc: null, ape: null, bnb: null, sei: null, base: null };
       // Solana
       try {
-        newBalances.solana = await getSolBalance(address);
+        let solBalance = await getSolBalance(address);
+        let solscanApiResponse = null;
+        // If RPC returns 0, try Solscan API as fallback
+        if (solBalance === 0) {
+          try {
+            const solscanRes = await fetch(`https://public-api.solscan.io/account/${address}`);
+            const solscanJson = await solscanRes.json();
+            solscanApiResponse = solscanJson;
+            if (solscanJson?.lamports !== undefined) {
+              solBalance = solscanJson.lamports / 1_000_000_000;
+            }
+            // If still 0, try scraping Solscan HTML
+            if (solBalance === 0) {
+              const htmlRes = await fetch(`https://solscan.io/account/${address}`);
+              const htmlText = await htmlRes.text();
+              const match = htmlText.match(/Balance\s*([\d,.]+)\s*SOL/);
+              if (match && match[1]) {
+                const scraped = parseFloat(match[1].replace(/,/g, ''));
+                if (!isNaN(scraped)) solBalance = scraped;
+              }
+            }
+          } catch {}
+        }
+        newBalances.solana = solBalance;
+        // Store Solscan API response for debug
+        setSolscanDebug(solscanApiResponse);
       } catch (e: any) {
         newBalances.solana = null;
         setFatalError("Failed to fetch SOL balance. " + (e?.message || ""));
@@ -106,11 +133,18 @@ export default function Home() {
       }
       // DOPE SPL
       try {
-        setDopeSpl(await getDopeTokenBalance(address));
+        const dope = await getDopeTokenBalance(address);
+        setDopeSpl(dope);
+        // Extra debug info for DOPE SPL
+  (window as any).__DOPE_DEBUG__ = (window as any).__DOPE_DEBUG__ || {};
+  (window as any).__DOPE_DEBUG__.lastDopeBalance = dope;
+  (window as any).__DOPE_DEBUG__.address = address;
       } catch (e: any) {
         setDopeSpl(null);
         setFatalError("Failed to fetch DOPE token balance. " + (e?.message || ""));
         setShowRpcError(true);
+  (window as any).__DOPE_DEBUG__ = (window as any).__DOPE_DEBUG__ || {};
+  (window as any).__DOPE_DEBUG__.error = e?.message || e;
       }
       // Dope Wallet Token (DWT)
       try {
@@ -287,6 +321,29 @@ export default function Home() {
         )}
 
         <div className="glass rounded-2xl p-4 sm:p-5 border border-white/5 w-full">
+          {/* Debug Info Section */}
+          <div className="mt-2 p-2 rounded bg-black/40 border border-yellow-400 text-yellow-200 text-xs">
+            <div><b>Debug Info</b></div>
+            <div>Wallet Address: {address}</div>
+            <div>Active Chain: {activeChain}</div>
+            <div>Balance Raw: {JSON.stringify(balances[activeChain])}</div>
+            <div>DOPE SPL Raw: {JSON.stringify(dopeSpl)}</div>
+            <div>DWT Raw: {JSON.stringify(balances['dwt'])}</div>
+            {fatalError && <div>Error: {fatalError}</div>}
+            {activeChain === 'solana' && solscanDebug && (
+              <div>Solscan API Response: <pre style={{whiteSpace:'pre-wrap'}}>{JSON.stringify(solscanDebug, null, 2)}</pre></div>
+            )}
+          </div>
+          {/* Debug Info Section */}
+          <div className="mt-2 p-2 rounded bg-black/40 border border-yellow-400 text-yellow-200 text-xs">
+            <div><b>Debug Info</b></div>
+            <div>Wallet Address: {address}</div>
+            <div>Active Chain: {activeChain}</div>
+            <div>Balance Raw: {JSON.stringify(balances[activeChain])}</div>
+            <div>DOPE SPL Raw: {JSON.stringify(dopeSpl)}</div>
+            <div>DWT Raw: {JSON.stringify(balances['dwt'])}</div>
+            {fatalError && <div>Error: {fatalError}</div>}
+          </div>
           <div className="text-xs text-white/60">Address</div>
           <div className="font-mono break-all text-sm">{address || "No address set"}</div>
           <div className="mt-4 text-xs text-white/60">Balance</div>
