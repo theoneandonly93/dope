@@ -376,13 +376,7 @@ export function setSelectedNetwork(n: NetworkChoice) {
 }
 
 export function getRpcEndpoint() {
-  if (typeof window === "undefined") {
-    return process.env.RPC_URL || process.env.NEXT_PUBLIC_RPC_URL || "https://api.mainnet-beta.solana.com";
-  }
-  const net = getSelectedNetwork();
-  // web3.js Connection requires an absolute http/https URL in the browser
-  const origin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
-  return `${origin}/api/rpc?net=${net}`; // proxy through Next API with selected network
+  return "https://api.mainnet-beta.solana.com";
 }
 
 export function getWsEndpoint(): string | undefined {

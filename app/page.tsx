@@ -21,6 +21,8 @@ function formatTokenAmount(amount: number | null, symbol: string): string {
 }
 
 export default function Home() {
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [sendTokenMint, setSendTokenMint] = useState<string|null>(null);
   const router = useRouter();
   const { address, unlocked, hasWallet, keypair, ready } = useWallet() as any;
   const [balance, setBalance] = useState<number | null>(null);
@@ -170,8 +172,8 @@ export default function Home() {
   }
   return (
     <ErrorBoundary>
-      <div className="pb-24 space-y-6">
-      <div className="glass rounded-2xl p-5 border border-white/5">
+      <div className="pb-24 space-y-6 w-full max-w-md mx-auto px-2 sm:px-0">
+      <div className="glass rounded-2xl p-4 sm:p-5 border border-white/5 w-full">
         <div className="text-xs text-white/60">Address</div>
         <div className="font-mono break-all text-sm">{address}</div>
         <div className="mt-4 text-xs text-white/60">Balance</div>
@@ -181,11 +183,38 @@ export default function Home() {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Link href="/wallet/send" className="btn text-center">Send</Link>
-        <Link href="/wallet/receive" className="btn text-center">Receive</Link>
-        <button className="btn text-center" onClick={() => setShowSwap(true)}>Swap</button>
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 w-full">
+        <button className="btn text-center px-2 py-2 text-xs sm:text-base" onClick={() => setShowSendModal(true)}>Send</button>
+        <Link href="/wallet/receive" className="btn text-center px-2 py-2 text-xs sm:text-base">Receive</Link>
+        <button className="btn text-center px-2 py-2 text-xs sm:text-base" onClick={() => setShowSwap(true)}>Swap</button>
       </div>
+      {showSendModal && (
+        <SelectTokenModal
+          tokens={tokenList.map(token => ({
+            mint: token.mint,
+            name: token.name,
+            symbol: token.symbol,
+            logo: token.logo,
+            balance: token.mint === "So11111111111111111111111111111111111111112" ? balance ?? 0 : token.mint === "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33" ? dopeSpl ?? 0 : 0
+          }))}
+          onSelect={mint => { setSendTokenMint(mint); setShowSendModal(false); }}
+          onClose={() => setShowSendModal(false)}
+        />
+      )}
+      {sendTokenMint && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="rounded-2xl p-6 w-full max-w-md border border-white/10 bg-black text-white">
+            <h2 className="text-lg font-semibold mb-4">Send Token</h2>
+            <SendTokenForm
+              mint={sendTokenMint}
+              balance={sendTokenMint === "So11111111111111111111111111111111111111112" ? balance : sendTokenMint === "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33" ? dopeSpl : 0}
+              keypair={keypair}
+            />
+            <button className="btn w-full mt-4" onClick={() => setSendTokenMint(null)}>Close</button>
+          </div>
+        </div>
+      )}
+import SelectTokenModal from "../components/SelectTokenModal";
 
       {showSwap && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90">
