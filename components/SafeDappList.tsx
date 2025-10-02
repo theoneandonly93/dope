@@ -15,6 +15,16 @@ const DAPP_LIST = [
     name: "Dexsta.fun",
     url: "https://dexsta.fun",
     logo: "/dexta.jpg"
+  },
+  {
+    name: "Base Chain",
+    url: "https://base.org",
+    logo: "/logo-192.png"
+  },
+  {
+    name: "BasedGunda.com",
+    url: "https://basedgunda.com",
+    logo: "/gunda.jpg"
   }
 ];
 
