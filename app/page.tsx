@@ -199,21 +199,23 @@ export default function Home() {
             </select>
           </div>
         </div>
-      <div className="glass rounded-2xl p-4 sm:p-5 border border-white/5 w-full">
-        <div className="text-xs text-white/60">Address</div>
-        <div className="font-mono break-all text-sm">{address || "No address set"}</div>
-        <div className="mt-4 text-xs text-white/60">Balance</div>
-        <div className="text-3xl font-bold">{balance === null ? "—" : balance.toFixed(4)} <span className="text-base font-medium text-white/60">SOL</span></div>
-        {solPrice && balance !== null && (
-          <div className="text-lg text-green-400 mt-2">${(balance * solPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</div>
-        )}
-        {fatalError && (
-          <div className="text-xs text-red-400 mt-2">Error: {fatalError}</div>
-        )}
-        {balance === null && !fatalError && (
-          <div className="text-xs text-yellow-400 mt-2">Balance not available. Please check your network, RPC, or wallet address.</div>
-        )}
-      </div>
+        <div className="glass rounded-2xl p-4 sm:p-5 border border-white/5 w-full">
+          <div className="text-xs text-white/60">Address</div>
+          <div className="font-mono break-all text-sm">{address || "No address set"}</div>
+          <div className="mt-4 text-xs text-white/60">Balance</div>
+          <div className="text-3xl font-bold">{balance === null ? "—" : balance.toFixed(4)} <span className="text-base font-medium text-white/60">SOL</span></div>
+          {solPrice && balance !== null && (
+            <div className="text-lg text-green-400 mt-2">${(balance * solPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</div>
+          )}
+          {fatalError && (
+            <div className="text-xs text-red-400 mt-2">Error: {fatalError}</div>
+          )}
+          {balance === null && !fatalError && (
+            <div className="text-xs text-yellow-400 mt-2">Balance not available. Please check your network, RPC, or wallet address.</div>
+          )}
+        </div>
+        {/* Support Chat Card Holder */}
+        {React.createElement(require('../components/SupportChatCard').default)}
 
       <div className="grid grid-cols-2 gap-2 sm:gap-3 w-full">
         <button className="btn text-center px-2 py-2 text-xs sm:text-base" onClick={() => setShowSendModal(true)}>Send</button>

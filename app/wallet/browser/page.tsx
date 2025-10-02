@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import DopeWalletProvider from "../../../components/DopeWalletProvider";
 
 export default function BrowserPage() {
   const [url, setUrl] = useState("");
@@ -14,6 +15,7 @@ export default function BrowserPage() {
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen pt-8 px-4">
+      <DopeWalletProvider />
       <h1 className="text-xl font-bold mb-4">Dapp Browser</h1>
       <form onSubmit={handleSearch} className="w-full max-w-md flex gap-2 mb-4">
         <input

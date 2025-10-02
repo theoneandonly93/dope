@@ -51,10 +51,21 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
       // Accept as string if not valid PublicKey
       recipient = toAddress;
     }
-    if (balance !== null && Number(amount) > balance) {
-      setStatus(`Insufficient balance. You have ${balance} and tried to send ${amount}.`);
-      logLocalTx({ signature: '', status: 'error', time: Date.now()/1000, change: null });
-      return;
+    if (balance !== null) {
+      let decimals = 9;
+      if (mint !== "So11111111111111111111111111111111111111112") {
+        try {
+          const { getConnection } = await import("../lib/wallet");
+          const connection = getConnection();
+          decimals = await getTokenDecimals(connection, mint);
+        } catch {}
+      }
+      const baseAmount = Number(amount) * Math.pow(10, decimals);
+      if (baseAmount > balance) {
+        setStatus(`Insufficient balance. You have ${(balance / Math.pow(10, decimals)).toLocaleString()} and tried to send ${amount}.`);
+        logLocalTx({ signature: '', status: 'error', time: Date.now()/1000, change: null });
+        return;
+      }
     }
     setShowApprove(true);
   };
