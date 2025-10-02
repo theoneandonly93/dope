@@ -14,7 +14,8 @@ export default function TxList({ address, tokenMint }: { address?: string, token
       if (!address) return;
       try {
         setLoading(true);
-        const connection = new Connection(process.env.NEXT_PUBLIC_RPC_URL || "https://api.mainnet-beta.solana.com");
+        const { getConnection } = await import("../lib/wallet");
+        const connection = getConnection();
         const pubkey = new PublicKey(address);
         const signatures = await connection.getSignaturesForAddress(pubkey, { limit: 20 });
         const txs = await Promise.all(

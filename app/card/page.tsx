@@ -78,20 +78,9 @@ export default function CardPage() {
            }}>
         <div className="flex items-center justify-between">
           <img src="/dopelganga.svg" alt="dopelganga" className="h-5 w-auto opacity-90" />
-          <div className={`text-xs px-2 py-1 rounded-full ${frozen ? 'bg-red-500/20 text-red-300' : 'bg-white/10 text-white/80'}`}>{frozen ? 'Frozen' : 'Active'}</div>
         </div>
         <div className="mt-6 font-mono text-lg tracking-widest select-all">
-          {showDetails && address ? address : maskedAddr || '—'}
-        </div>
-        <div className="mt-6 flex items-center justify-between">
-          <div className="text-white/80">
-            <div className="text-[11px] uppercase opacity-70">Cardholder</div>
-            <div className="font-semibold">{holder}</div>
-          </div>
-          <div className="text-white/80 text-right">
-            <div className="text-[11px] uppercase opacity-70">Network</div>
-            <div className="font-semibold">DOPE</div>
-          </div>
+          {maskedAddr || '—'}
         </div>
       </div>
 
@@ -100,49 +89,10 @@ export default function CardPage() {
         <div className="text-2xl font-bold">{loadingBal ? '…' : cardBal.toFixed(2)} <span className="text-sm text-white/60">USDC</span></div>
         <div className="mt-2 flex gap-2">
           <Link href="/wallet/card/topup" className="btn">Top Up</Link>
-          <Link href="/wallet/card" className="btn">View Activity</Link>
         </div>
       </div>
 
-      <div className="glass rounded-2xl p-4 border border-white/10 space-y-3">
-        <div className="flex gap-2">
-          <button className="btn" onClick={() => setShowDetails(s => !s)}>{showDetails ? 'Hide Details' : 'Show Details'}</button>
-          <button className="btn" onClick={() => setFrozen(f => !f)}>{frozen ? 'Unfreeze' : 'Freeze'}</button>
-        </div>
-        <div className="text-xs text-white/60">This is a virtual display linked to your wallet address for easy sharing and receiving. Never share your seed phrase or secret key.</div>
-        <div className="flex gap-2">
-          <Link href="/wallet/receive" className="btn">Receive</Link>
-          <Link href="/wallet/send" className="btn">Send</Link>
-          <Link href="/wallet/card/topup" className="btn">Top Up</Link>
-          <Link href="/wallet/card" className="btn">Card</Link>
-        </div>
-        {address && (
-          <div className="pt-3">
-            <div className="text-sm font-semibold mb-2">Quick Receive</div>
-            <div className="flex items-start gap-4">
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}x${qrSize}&data=${encodeURIComponent(address)}`}
-                alt="Wallet QR"
-                width={qrSize}
-                height={qrSize}
-                className="rounded bg-white p-2"
-              />
-              <div className="text-xs text-white/70 leading-5">
-                Scan to receive to your address. You can also share the address directly.
-                <div className="mt-2 flex items-center gap-2">
-                  <label className="opacity-80">Size</label>
-                  <select className="bg-white/5 border border-white/10 rounded px-2 py-1" value={qrSize} onChange={(e)=>setQrSize(parseInt(e.target.value)||180)}>
-                    <option value={160}>160</option>
-                    <option value={180}>180</option>
-                    <option value={200}>200</option>
-                    <option value={240}>240</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Card management features removed for now. */}
 
       {/* Manage Card */}
       <div className="glass rounded-2xl p-4 border border-white/10 space-y-4">

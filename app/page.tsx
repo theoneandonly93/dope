@@ -129,7 +129,8 @@ export default function Home() {
       return;
     }
     try {
-      const connection = new Connection(process.env.NEXT_PUBLIC_RPC_URL || "https://api.mainnet-beta.solana.com");
+      const { getConnection } = await import("../lib/wallet");
+      const connection = getConnection();
       // Use lamports for SOL, token decimals for SPL
       const amount = swapAmount;
       const quote = await getQuote(tokenA, tokenB, amount);
@@ -282,8 +283,19 @@ export default function Home() {
           <div className="text-sm font-semibold">Tokens</div>
           <button className="btn text-xs" style={{marginLeft: 'auto'}} onClick={() => setShowManageModal(true)}>Manage Token</button>
         </div>
-        {tokenList.filter(token => shownTokens.includes(token.mint)).map((token, idx) => {
-          const tokenBalance = token.mint === "So11111111111111111111111111111111111111112" ? balance : token.mint === "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33" ? dopeSpl : null;
+        {[{ mint: "So11111111111111111111111111111111111111112", name: "Solana", symbol: "SOL", logo: "/sol.png" },
+          { mint: "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33", name: "Dope", symbol: "DOPE", logo: "/dope.png" },
+          { mint: "btc", name: "Bitcoin", symbol: "BTC", logo: "/btc.png" },
+          { mint: "eth", name: "Ethereum", symbol: "ETH", logo: "/eth.png" },
+          { mint: "bnb", name: "BNB", symbol: "BNB", logo: "/bnb.png" },
+          ...tokenList]
+        .filter(token => shownTokens.includes(token.mint))
+        .map((token, idx) => {
+          let tokenBalance = null;
+          if (token.mint === "So11111111111111111111111111111111111111112") tokenBalance = balance;
+          else if (token.mint === "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33") tokenBalance = dopeSpl;
+          // For BTC, ETH, BNB, etc., show 0 or placeholder until backend support
+          else if (["btc", "eth", "bnb"].includes(token.mint)) tokenBalance = 0;
           return (
             <div
               key={token.mint}

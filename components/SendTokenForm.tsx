@@ -56,7 +56,8 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
     setSending(true);
     setStatus("Signing and sending transaction...");
     try {
-      const connection = new Connection(process.env.NEXT_PUBLIC_RPC_URL || "https://api.mainnet-beta.solana.com");
+      const { getConnection } = await import("../lib/wallet");
+      const connection = getConnection();
       let txidVal = "";
       if (mint === "So11111111111111111111111111111111111111112") {
         txidVal = await sendSol(keypair, toAddress, Number(amount));
