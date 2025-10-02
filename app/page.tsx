@@ -29,7 +29,14 @@ export default function Home() {
   const [showSendModal, setShowSendModal] = useState(false);
   const [sendTokenMint, setSendTokenMint] = useState<string|null>(null);
   const [showManageModal, setShowManageModal] = useState(false);
-  const [shownTokens, setShownTokens] = useState<string[]>(["So11111111111111111111111111111111111111112", "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33"]);
+  // Always show SOL, DOPE, BTC, ETH by default unless user turns off
+  const defaultTokens = [
+    "So11111111111111111111111111111111111111112", // SOL
+    "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33", // DOPE
+    "btc", // BTC
+    "eth" // ETH
+  ];
+  const [shownTokens, setShownTokens] = useState<string[]>(defaultTokens);
   const router = useRouter();
   const { address, unlocked, hasWallet, keypair, ready } = useWallet() as any;
   const [balance, setBalance] = useState<number | null>(null);
@@ -283,38 +290,45 @@ export default function Home() {
           <div className="text-sm font-semibold">Tokens</div>
           <button className="btn text-xs" style={{marginLeft: 'auto'}} onClick={() => setShowManageModal(true)}>Manage Token</button>
         </div>
-        {[{ mint: "So11111111111111111111111111111111111111112", name: "Solana", symbol: "SOL", logo: "/sol.png" },
-          { mint: "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33", name: "Dope", symbol: "DOPE", logo: "/dope.png" },
-          { mint: "btc", name: "Bitcoin", symbol: "BTC", logo: "/btc.png" },
-          { mint: "eth", name: "Ethereum", symbol: "ETH", logo: "/eth.png" },
-          { mint: "bnb", name: "BNB", symbol: "BNB", logo: "/bnb.png" },
-          ...tokenList]
-        .filter(token => shownTokens.includes(token.mint))
-        .map((token, idx) => {
-          let tokenBalance = null;
-          if (token.mint === "So11111111111111111111111111111111111111112") tokenBalance = balance;
-          else if (token.mint === "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33") tokenBalance = dopeSpl;
-          // For BTC, ETH, BNB, etc., show 0 or placeholder until backend support
-          else if (["btc", "eth", "bnb"].includes(token.mint)) tokenBalance = 0;
-          return (
-            <div
-              key={token.mint}
-              className={`flex items-center justify-between py-2${idx > 0 ? " border-t border-white/10 mt-2 pt-2" : ""} cursor-pointer`}
-              onClick={() => setShowTokenInfo({ mint: token.mint, name: `${token.name} (${token.symbol})` })}
-            >
-              <div className="flex items-center gap-3">
-                <img src={token.logo || "/logo-192.png"} alt={token.symbol} className="w-9 h-9 rounded-full" />
-                <div>
-                  <div className="text-sm font-semibold">{token.name} <span className="text-xs text-white/60">{token.symbol}</span></div>
-                  <div className="text-sm font-semibold mt-1">{formatTokenAmount(tokenBalance, token.symbol)}</div>
-                  <div className="text-xs text-green-400 mt-1">
-                    {tokenBalance !== null && tokenPrices[token.mint] ? `$${(tokenBalance * tokenPrices[token.mint]).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD` : "—"}
+        {(() => {
+          // Always show SOL, DOPE, BTC, ETH first, then any other tokens user enabled
+          const alwaysTokens = [
+            { mint: "So11111111111111111111111111111111111111112", name: "Solana", symbol: "SOL", logo: "/sol.png" },
+            { mint: "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33", name: "Dope", symbol: "DOPE", logo: "/dope.png" },
+            { mint: "btc", name: "Bitcoin", symbol: "BTC", logo: "/btc.png" },
+            { mint: "eth", name: "Ethereum", symbol: "ETH", logo: "/eth.png" }
+          ];
+          // Filter out duplicates from tokenList
+          const extraTokens = tokenList.filter(t => !alwaysTokens.some(at => at.mint === t.mint));
+          const allTokens = [...alwaysTokens, ...extraTokens];
+          // Only show tokens that are enabled
+          const shown = allTokens.filter(token => shownTokens.includes(token.mint));
+          return shown.map((token, idx) => {
+            let tokenBalance = null;
+            if (token.mint === "So11111111111111111111111111111111111111112") tokenBalance = balance;
+            else if (token.mint === "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33") tokenBalance = dopeSpl;
+            else if (["btc", "eth"].includes(token.mint)) tokenBalance = 0;
+            const usdValue = (tokenBalance !== null && tokenPrices[token.mint]) ? (tokenBalance * tokenPrices[token.mint]) : null;
+            return (
+              <div
+                key={token.mint}
+                className={`flex items-center justify-between py-2${idx > 0 ? " border-t border-white/10 mt-2 pt-2" : ""} cursor-pointer`}
+                onClick={() => setShowTokenInfo({ mint: token.mint, name: `${token.name} (${token.symbol})` })}
+              >
+                <div className="flex items-center gap-3">
+                  <img src={token.logo || "/logo-192.png"} alt={token.symbol} className="w-9 h-9 rounded-full" />
+                  <div>
+                    <div className="text-sm font-semibold">{token.name} <span className="text-xs text-white/60">{token.symbol}</span></div>
+                    <div className="text-sm font-semibold mt-1">{formatTokenAmount(tokenBalance, token.symbol)}</div>
+                    <div className="text-xs text-green-400 mt-1">
+                      {usdValue !== null ? `$${usdValue.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD` : "—"}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          });
+        })()}
         {showTokenInfo && (
           <TokenDetailModal
             mint={showTokenInfo.mint}
