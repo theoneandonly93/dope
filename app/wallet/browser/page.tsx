@@ -25,8 +25,6 @@ export default function BrowserPage() {
         <img src="/logo-192.png" alt="Dope Browser" className="w-7 h-7 rounded-full" />
         Dope Browser
       </h1>
-      {/* Safe Dapp List */}
-      {React.createElement(require('../../../components/SafeDappList').default, { onSelect: handleSafeDappSelect })}
       <form onSubmit={handleSearch} className="w-full max-w-md flex gap-2 mb-4">
         <input
           type="text"
@@ -37,15 +35,26 @@ export default function BrowserPage() {
         />
         <button className="btn" type="submit">Go</button>
       </form>
+      {/* Safe Dapp List below search, hidden when dapp is open */}
+      {!iframeUrl && (
+        <>
+          {React.createElement(require('../../../components/SafeDappList').default, { onSelect: handleSafeDappSelect })}
+          <div className="mt-6 text-xs text-white/60 text-center">
+            Search and connect to dapps safely.<br />
+            Recommended dapps are listed below!
+          </div>
+        </>
+      )}
       {iframeUrl && (
-        <div className="w-full max-w-md h-[600px] border border-white/10 rounded-lg overflow-hidden">
+        <div className="w-full max-w-md h-[600px] border border-white/10 rounded-lg overflow-hidden relative">
+          <button
+            className="absolute top-2 right-2 z-10 bg-black/70 text-white rounded-full px-3 py-1 text-lg font-bold hover:bg-black/90"
+            onClick={() => { setIframeUrl(""); setUrl(""); }}
+            title="Close dapp"
+          >✕</button>
           <iframe src={iframeUrl} title="Dope Browser" className="w-full h-full bg-black" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" />
         </div>
       )}
-      <div className="mt-6 text-xs text-white/60 text-center">
-        Search and connect to dapps safely.<br />
-        Recommended dapps are listed above!
-      </div>
     </div>
   );
 }
