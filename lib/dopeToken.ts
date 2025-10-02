@@ -7,14 +7,14 @@ const DOPE_DECIMALS = 9;
 
 export async function ensureDopeAta(owner: Keypair) {
   const conn = getConnection();
-  const mint = new PublicKey(DOPE_MINT as string);
+  const mint = DOPE_MINT;
   const ata = await getOrCreateAssociatedTokenAccount(conn, owner, mint, owner.publicKey);
   return ata.address;
 }
 
 export async function discoverDopeTokenAccounts(ownerPubkey: PublicKey) {
   const conn = getConnection();
-  const mint = new PublicKey(DOPE_MINT as string);
+  const mint = DOPE_MINT;
   const parsed = await conn.getParsedTokenAccountsByOwner(ownerPubkey, { mint });
   return parsed.value.map((v) => ({
     address: v.pubkey,
@@ -25,7 +25,7 @@ export async function discoverDopeTokenAccounts(ownerPubkey: PublicKey) {
 export async function syncDopeTokenAccounts(owner: Keypair) {
   const conn = getConnection();
   const ownerPk = owner.publicKey;
-  const mint = new PublicKey(DOPE_MINT as string);
+  const mint = DOPE_MINT;
   const ata = await ensureDopeAta(owner);
 
   const accounts = await discoverDopeTokenAccounts(ownerPk);
