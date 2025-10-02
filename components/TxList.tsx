@@ -71,10 +71,10 @@ export default function TxList({ address, tokenMint }: { address?: string, token
               <span className="text-xs text-white/60">{tx.status === 'success' ? 'Confirmed (Local)' : tx.status === 'error' ? 'Failed (Local)' : 'Pending (Local)'}</span>
               <span className="font-mono text-xs break-all max-w-[220px]">{tx.signature ? `${tx.signature.slice(0, 12)}…${tx.signature.slice(-6)}` : '—'}</span>
               <span className="text-xs text-white/50 mt-1">{tx.time ? new Date(tx.time * 1000).toLocaleString() : ''}</span>
-              <span className="text-xs text-white/50 mt-1">{typeof tx.change === 'number' ? (tx.change > 0 ? 'Outgoing' : tx.change < 0 ? 'Incoming' : 'Swap') : ''}</span>
+              <span className="text-xs text-white/50 mt-1">{typeof tx.change === 'number' ? (tx.change < 0 ? 'Outgoing' : tx.change > 0 ? 'Incoming' : 'Swap') : ''}</span>
             </div>
-            <div className={`text-sm font-semibold ${typeof tx.change === 'number' ? (tx.change >= 0 ? 'text-red-400' : 'text-green-400') : 'text-white/70'}`}> 
-              {typeof tx.change === 'number' ? `${tx.change >= 0 ? '-' : '+'}${Math.abs(tx.change).toFixed(4)} DOPE` : '—'}
+            <div className={`text-sm font-semibold ${typeof tx.change === 'number' ? (tx.change < 0 ? 'text-red-400' : 'text-green-400') : 'text-white/70'}`}> 
+              {typeof tx.change === 'number' ? `${tx.change < 0 ? '-' : '+'}${Math.abs(tx.change).toFixed(4)} DOPE` : '—'}
             </div>
           </div>
         ))}
@@ -90,10 +90,10 @@ export default function TxList({ address, tokenMint }: { address?: string, token
               <span className="text-xs text-white/60">{tx.status === 'success' ? 'Confirmed' : tx.status === 'error' ? 'Failed' : 'Pending'}</span>
               <span className="font-mono text-xs break-all max-w-[220px]">{tx.signature ? `${tx.signature.slice(0, 12)}…${tx.signature.slice(-6)}` : '—'}</span>
               <span className="text-xs text-white/50 mt-1">{tx.time ? new Date(tx.time * 1000).toLocaleString() : ''}</span>
-              <span className="text-xs text-white/50 mt-1">{typeof tx.change === 'number' ? (tx.change > 0 ? 'Incoming' : tx.change < 0 ? 'Outgoing' : 'Swap') : ''}</span>
+              <span className="text-xs text-white/50 mt-1">{typeof tx.change === 'number' ? (tx.change < 0 ? 'Outgoing' : tx.change > 0 ? 'Incoming' : 'Swap') : ''}</span>
             </div>
-            <div className={`text-sm font-semibold ${typeof tx.change === 'number' ? (tx.change >= 0 ? 'text-green-400' : 'text-red-400') : 'text-white/70'}`}> 
-              {typeof tx.change === 'number' ? `${tx.change >= 0 ? '+' : ''}${tx.change.toFixed(4)} DOPE` : '—'}
+            <div className={`text-sm font-semibold ${typeof tx.change === 'number' ? (tx.change < 0 ? 'text-red-400' : 'text-green-400') : 'text-white/70'}`}> 
+              {typeof tx.change === 'number' ? `${tx.change < 0 ? '-' : '+'}${Math.abs(tx.change).toFixed(4)} DOPE` : '—'}
             </div>
           </a>
         ))}

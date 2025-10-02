@@ -12,6 +12,7 @@ export default function TransactionsPage() {
   const [status, setStatus] = useState<"all" | "success" | "error" | "pending">("all");
   const [from, setFrom] = useState<string>(""); // yyyy-mm-dd
   const [to, setTo] = useState<string>("");
+  const [localTx, setLocalTx] = useState<any[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -24,6 +25,9 @@ export default function TransactionsPage() {
       } finally {
         if (!cancelled) setLoading(false);
       }
+      // Load local tx log
+      const log = JSON.parse(localStorage.getItem('dope_local_tx_log') || '[]');
+      if (!cancelled) setLocalTx(log);
     };
     run();
     const iv = setInterval(run, 15000);
@@ -78,16 +82,31 @@ export default function TransactionsPage() {
 
       <div className="glass rounded-2xl p-4 border border-white/10">
         {loading && items.length === 0 && <div className="text-white/70 text-sm">Loading...</div>}
-        {!loading && filtered.length === 0 && <div className="text-white/70 text-sm">No results</div>}
+        {!loading && filtered.length === 0 && localTx.length === 0 && <div className="text-white/70 text-sm">No results</div>}
         <div className="divide-y divide-white/10">
+          {/* Show local tx first, then on-chain */}
+          {localTx.map((tx, idx) => (
+            <div
+              key={tx.signature + tx.status + tx.time + idx}
+              className="flex items-center justify-between py-3 bg-black/40"
+            >
+              <div className="flex flex-col">
+                <span className="text-xs text-white/60">{tx.status === 'success' ? 'Confirmed (Local)' : tx.status === 'error' ? 'Failed (Local)' : 'Pending (Local)'}</span>
+                <span className="font-mono text-xs break-all max-w-[240px]">{tx.signature}</span>
+              </div>
+              <div className={`text-sm font-semibold ${typeof tx.change === 'number' ? (tx.change < 0 ? 'text-red-400' : 'text-green-400') : 'text-white/70'}`}>
+                {typeof tx.change === 'number' ? `${tx.change < 0 ? '-' : '+'}${Math.abs(tx.change).toFixed(4)} DOPE` : '—'}
+              </div>
+            </div>
+          ))}
           {filtered.map((tx) => (
             <a key={tx.signature} href={`https://explorer.solana.com/tx/${tx.signature}?cluster=custom`} target="_blank" rel="noreferrer" className="flex items-center justify-between py-3">
               <div className="flex flex-col">
                 <span className="text-xs text-white/60">{tx.status === 'success' ? 'Confirmed' : tx.status === 'error' ? 'Failed' : 'Pending'}</span>
                 <span className="font-mono text-xs break-all max-w-[240px]">{tx.signature}</span>
               </div>
-              <div className={`text-sm font-semibold ${typeof tx.change === 'number' ? (tx.change >= 0 ? 'text-green-400' : 'text-red-400') : 'text-white/70'}`}>
-                {typeof tx.change === 'number' ? `${tx.change >= 0 ? '+' : ''}${tx.change.toFixed(4)} DOPE` : '—'}
+              <div className={`text-sm font-semibold ${typeof tx.change === 'number' ? (tx.change < 0 ? 'text-red-400' : 'text-green-400') : 'text-white/70'}`}>
+                {typeof tx.change === 'number' ? `${tx.change < 0 ? '-' : '+'}${Math.abs(tx.change).toFixed(4)} DOPE` : '—'}
               </div>
             </a>
           ))}

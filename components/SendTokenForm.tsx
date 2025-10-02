@@ -44,13 +44,12 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
       logLocalTx({ signature: '', status: 'error', time: Date.now()/1000, change: null });
       return;
     }
-    let recipient: PublicKey;
+    let recipient: PublicKey | string;
     try {
       recipient = new PublicKey(toAddress);
     } catch {
-      setStatus("Invalid recipient address.");
-      logLocalTx({ signature: '', status: 'error', time: Date.now()/1000, change: null });
-      return;
+      // Accept as string if not valid PublicKey
+      recipient = toAddress;
     }
     if (balance !== null && Number(amount) > balance) {
       setStatus(`Insufficient balance. You have ${balance} and tried to send ${amount}.`);
