@@ -9,8 +9,11 @@ import { useRouter } from "next/navigation";
 import { useWallet } from "../components/WalletProvider";
 import { getSolBalance, getStoredWallet, subscribeBalance, getDopeTokenBalance } from "../lib/wallet";
 import { syncDopeTokenAccounts } from "../lib/dopeToken";
+
 import TxList from "../components/TxList";
+
 import SendTokenForm from "../components/SendTokenForm";
+import SelectTokenModal from "../components/SelectTokenModal";
 
 function formatTokenAmount(amount: number | null, symbol: string): string {
   if (amount === null) return "—";
@@ -189,7 +192,7 @@ export default function Home() {
         <button className="btn text-center px-2 py-2 text-xs sm:text-base" onClick={() => setShowSwap(true)}>Swap</button>
       </div>
       {showSendModal && (
-        <SelectTokenModal
+  <SelectTokenModal
           tokens={tokenList.map(token => ({
             mint: token.mint,
             name: token.name,
@@ -214,7 +217,8 @@ export default function Home() {
           </div>
         </div>
       )}
-import SelectTokenModal from "../components/SelectTokenModal";
+
+
 
       {showSwap && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90">
