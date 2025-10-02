@@ -390,10 +390,35 @@ export function getConnection() {
   const http = getRpcEndpoint();
   const ws = getWsEndpoint();
   const commitment: any = "confirmed";
-  if (ws) {
-    return new Connection(http, { commitment, wsEndpoint: ws } as any);
+  let conn: Connection;
+  try {
+    if (ws) {
+      conn = new Connection(http, { commitment, wsEndpoint: ws } as any);
+    } else {
+      conn = new Connection(http, commitment);
+    }
+    // Test connection quickly (getEpochInfo is lightweight)
+    // If it fails, fallback to public RPC
+    return new Proxy(conn, {
+      get(target, prop, receiver) {
+        if (typeof target[prop] === 'function') {
+          return async function(...args) {
+            try {
+              return await target[prop](...args);
+            } catch (e) {
+              // fallback to public RPC
+              const fallback = new Connection("https://api.mainnet-beta.solana.com", commitment);
+              return await fallback[prop](...args);
+            }
+          };
+        }
+        return Reflect.get(target, prop, receiver);
+      }
+    });
+  } catch {
+    // fallback if construction fails
+    return new Connection("https://api.mainnet-beta.solana.com", commitment);
   }
-  return new Connection(http, commitment);
 }
 
 export const LAMPORTS_PER_DOPE = 1_000_000_000; // align with Solana-style precision

@@ -51,6 +51,7 @@ export default function Home() {
 
   // Top-level fallback UI for runtime errors
   const [fatalError, setFatalError] = useState<string>("");
+  const [showRpcError, setShowRpcError] = useState(true);
 
   // Move swap UI state hooks to top level
   const [showSwap, setShowSwap] = useState(false);
@@ -100,6 +101,7 @@ export default function Home() {
       } catch (e: any) {
         setBalance(null);
         setFatalError("Failed to fetch SOL balance. Please check your network or RPC endpoint. " + (e?.message || ""));
+        setShowRpcError(true);
       }
       try {
         const spl = await getDopeTokenBalance(address);
@@ -107,6 +109,7 @@ export default function Home() {
       } catch (e: any) {
         setDopeSpl(null);
         setFatalError("Failed to fetch DOPE token balance. Please check your network or RPC endpoint. " + (e?.message || ""));
+        setShowRpcError(true);
       }
     };
     refresh();
@@ -181,6 +184,16 @@ export default function Home() {
   return (
     <ErrorBoundary>
       <div className="pb-24 space-y-6 w-full max-w-md mx-auto px-2 sm:px-0">
+        {showRpcError && fatalError && (
+          <div className="fixed top-0 left-0 w-full z-50 flex justify-center">
+            <div className="bg-yellow-900 text-yellow-200 border border-yellow-400 rounded-xl px-4 py-3 mt-4 shadow-lg max-w-md w-full flex items-center justify-between">
+              <span>
+                ⚠️ Rate limit or RPC error: Balances may not be visible right now, but your funds are safe and will appear shortly.
+              </span>
+              <button className="ml-4 text-yellow-300 hover:text-yellow-100" onClick={() => setShowRpcError(false)}>Dismiss</button>
+            </div>
+          </div>
+        )}
         {/* Chain switch bar with dropdown menu */}
         <div className="flex items-center justify-center mb-4">
           <div className="bg-black/30 border border-white/10 rounded-full px-4 py-2 flex items-center gap-2">
