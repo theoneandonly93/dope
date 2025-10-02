@@ -45,7 +45,7 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
       return;
     }
     if (balance !== null && Number(amount) > balance) {
-      setStatus("Insufficient balance.");
+      setStatus(`Insufficient balance. You have ${balance} and tried to send ${amount}.`);
       return;
     }
     setShowApprove(true);
@@ -140,7 +140,9 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
       {txid && (
         <div className="mt-2 text-green-400 text-xs">Transaction sent! <a href={`https://explorer.solana.com/tx/${txid}?cluster=mainnet-beta`} target="_blank" rel="noreferrer" className="underline">View on Solana Explorer</a></div>
       )}
-      {status && <div className="text-xs text-white/70 mt-2">{status}</div>}
+      {status && (
+        <div className={`text-xs mt-2 ${status.toLowerCase().includes('fail') || status.toLowerCase().includes('error') ? 'text-red-400' : 'text-white/70'}`}>{status}</div>
+      )}
     </div>
   );
 }
