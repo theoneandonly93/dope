@@ -26,17 +26,18 @@ function formatTokenAmount(amount: number | null, symbol: string): string {
 import ManageTokensModal from "../components/ManageTokensModal";
 
 export default function Home() {
-  const [activeChain, setActiveChain] = useState<'solana'|'eth'|'btc'|'ape'>('solana');
+  const [activeChain, setActiveChain] = useState<'solana'|'eth'|'btc'|'ape'|'bnb'>('solana');
   const [activeTab, setActiveTab] = useState<'tokens'|'nfts'>('tokens');
   const [showSendModal, setShowSendModal] = useState(false);
   const [sendTokenMint, setSendTokenMint] = useState<string|null>(null);
   const [showManageModal, setShowManageModal] = useState(false);
-  // Always show SOL, DOPE, BTC, ETH by default unless user turns off
+  // Always show SOL, DOPE, BTC, ETH, BNB by default unless user turns off
   const defaultTokens = [
     "So11111111111111111111111111111111111111112", // SOL
     "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33", // DOPE
     "btc", // BTC
-    "eth" // ETH
+    "eth", // ETH
+    "bnb" // BNB
   ];
   const [shownTokens, setShownTokens] = useState<string[]>(defaultTokens);
   const router = useRouter();
@@ -194,6 +195,7 @@ export default function Home() {
               <option value="eth">Ethereum</option>
               <option value="btc">Bitcoin</option>
               <option value="ape">Ape Chain</option>
+              <option value="bnb">BNB Chain</option>
             </select>
           </div>
         </div>
@@ -339,6 +341,9 @@ export default function Home() {
                 ],
                 ape: [
                   { mint: "ape", name: "Ape Chain", symbol: "APE", logo: "/ape.png", balance: 0 }
+                ],
+                bnb: [
+                  { mint: "bnb", name: "BNB", symbol: "BNB", logo: "/bnb.png", balance: 0 }
                 ]
               };
               const shown = chainTokens[activeChain] || [];

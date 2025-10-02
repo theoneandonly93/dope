@@ -13,6 +13,7 @@ import {
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 import TxList from "../components/TxList";
 import SendTokenForm from "../components/SendTokenForm";
+import BridgeInstantUI from "./BridgeInstantUI";
 
 export default function TokenDetailModal({ mint, name, address, keypair, balance, onClose }: {
   mint: string;
@@ -78,15 +79,27 @@ export default function TokenDetailModal({ mint, name, address, keypair, balance
             <button className="btn px-3 py-1 flex items-center gap-2 text-xs rounded-lg bg-white/10 hover:bg-white/20 transition" onClick={() => setShowSwapBridge("bridge")}>🌉 Bridge</button>
           </div>
         </div>
-        {showSwapBridge && (
+        {showSwapBridge === "bridge" && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 transition-all duration-300">
             <div className="rounded-2xl p-6 w-full max-w-sm border border-white/10 bg-black text-white animate-fadeIn">
-              <h2 className="text-lg font-semibold mb-4">{showSwapBridge === "swap" ? "Swap" : "Bridge"} {name}</h2>
-              <div className="mb-4 text-xs text-white/70">{showSwapBridge === "swap" ? "Swap this token for another. (Coming soon)" : "Bridge this token to another chain. (Coming soon)"}</div>
+              <h2 className="text-lg font-semibold mb-4">Bridge {name} (Wormhole)</h2>
+              <BridgeInstantUI mint={mint} name={name} balance={balance} onClose={() => setShowSwapBridge(null)} />
+            </div>
+          </div>
+        )}
+        {showSwapBridge === "swap" && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 transition-all duration-300">
+            <div className="rounded-2xl p-6 w-full max-w-sm border border-white/10 bg-black text-white animate-fadeIn">
+              <h2 className="text-lg font-semibold mb-4">Swap {name}</h2>
+              <div className="mb-4 text-xs text-white/70">Swap this token for another. (Coming soon)</div>
               <button className="btn w-full" onClick={() => setShowSwapBridge(null)}>Close</button>
             </div>
           </div>
         )}
+
+
+
+
         <div className="px-6 pb-6 overflow-y-auto" style={{maxHeight: '60vh'}}>
           {chartLoading && <div className="text-white/60 text-xs mb-2">Loading chart...</div>}
           {chartData && <Line data={chartData} options={{ plugins: { legend: { display: false } } }} />}
@@ -116,4 +129,7 @@ function getTokenLogo(mint: string) {
   if (mint === "bnb") return "/bnb.png";
   return "/logo-192.png";
 }
+
+
+
 }
