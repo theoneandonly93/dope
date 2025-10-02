@@ -184,6 +184,18 @@ export default function Home() {
   return (
     <ErrorBoundary>
       <div className="pb-24 space-y-6 w-full max-w-md mx-auto px-2 sm:px-0">
+        {/* Chain Switcher Bar */}
+        <div className="flex justify-center gap-2 py-2">
+          {['solana','eth','btc','ape','bnb','sei','base'].map(chain => (
+            <button
+              key={chain}
+              className={`px-3 py-1 rounded-full text-xs font-semibold border border-white/10 transition-colors ${activeChain === chain ? 'bg-white/20 text-white' : 'bg-black/30 text-white/60'}`}
+              onClick={() => setActiveChain(chain as any)}
+            >
+              {chain.charAt(0).toUpperCase() + chain.slice(1)}
+            </button>
+          ))}
+        </div>
         {showRpcError && fatalError && (
           <div className="fixed top-0 left-0 w-full z-50 flex justify-center">
             <div className="bg-yellow-900 text-yellow-200 border border-yellow-400 rounded-xl px-4 py-3 mt-4 shadow-lg max-w-md w-full flex items-center justify-between">
