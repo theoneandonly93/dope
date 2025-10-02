@@ -26,6 +26,7 @@ function formatTokenAmount(amount: number | null, symbol: string): string {
 import ManageTokensModal from "../components/ManageTokensModal";
 
 export default function Home() {
+  const [activeChain, setActiveChain] = useState<'solana'|'eth'|'btc'|'ape'>('solana');
   const [activeTab, setActiveTab] = useState<'tokens'|'nfts'>('tokens');
   const [showSendModal, setShowSendModal] = useState(false);
   const [sendTokenMint, setSendTokenMint] = useState<string|null>(null);
@@ -179,6 +180,18 @@ export default function Home() {
   return (
     <ErrorBoundary>
       <div className="pb-24 space-y-6 w-full max-w-md mx-auto px-2 sm:px-0">
+        {/* Chain switch tab header */}
+        <div className="flex gap-2 justify-center mb-4">
+          {['solana','eth','btc','ape'].map(chain => (
+            <button
+              key={chain}
+              className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border border-white/10 shadow-sm ${activeChain === chain ? 'bg-white/10 text-white' : 'bg-black/30 text-white/60'}`}
+              onClick={() => setActiveChain(chain as any)}
+            >
+              {chain.toUpperCase()}
+            </button>
+          ))}
+        </div>
       <div className="glass rounded-2xl p-4 sm:p-5 border border-white/5 w-full">
         <div className="text-xs text-white/60">Address</div>
         <div className="font-mono break-all text-sm">{address || "No address set"}</div>
