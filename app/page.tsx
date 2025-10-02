@@ -112,6 +112,22 @@ export default function Home() {
         setFatalError("Failed to fetch DOPE token balance. " + (e?.message || ""));
         setShowRpcError(true);
       }
+      // Dope Wallet Token (DWT)
+      try {
+        const conn = (await import("../lib/wallet")).getConnection();
+        const owner = new (await import("@solana/web3.js")).PublicKey(address);
+        const mint = new (await import("@solana/web3.js")).PublicKey("4R7zJ4JgMz14JCw1JGn81HVrFCAfd2cnCfWvsmqv6xts");
+        const parsed = await conn.getParsedTokenAccountsByOwner(owner, { mint });
+        let dwt = 0;
+        if (parsed && parsed.value.length > 0) {
+          const acc = parsed.value[0].account.data;
+          const ui = acc?.parsed?.info?.tokenAmount?.uiAmount;
+          dwt = typeof ui === 'number' ? ui : 0;
+        }
+        newBalances.dwt = dwt;
+      } catch (e: any) {
+        newBalances.dwt = 0;
+      }
       // ETH
       try {
         const ethRes = await fetch(`https://api.blockchair.com/ethereum/dashboards/address/${address}`);
@@ -239,8 +255,9 @@ export default function Home() {
   return (
     <ErrorBoundary>
       <div className="pb-24 space-y-6 w-full max-w-md mx-auto px-2 sm:px-0">
-        {/* Chain Switcher Dropdown */}
-        <div className="flex justify-center py-2">
+        {/* Chain Switcher Dropdown with label and status light */}
+        <div className="flex items-center justify-center py-2 gap-3">
+          <span className="text-white/70 text-sm font-semibold">Chains</span>
           <select
             className="bg-black/80 border border-white/10 rounded-lg px-4 py-2 text-white text-sm font-semibold"
             value={activeChain}
@@ -254,6 +271,11 @@ export default function Home() {
             <option value="sei">Sei Network</option>
             <option value="base">Base</option>
           </select>
+          {/* Connection status light */}
+          <span
+            className={`ml-2 w-3 h-3 rounded-full border border-white/20 ${balances[activeChain] !== null ? 'bg-green-500' : 'bg-red-500'}`}
+            title={balances[activeChain] !== null ? 'Connected' : 'Not Connected'}
+          />
         </div>
         {showRpcError && fatalError && (
           <div className="fixed top-0 left-0 w-full z-50 flex justify-center">
@@ -272,6 +294,16 @@ export default function Home() {
             {balances[activeChain] === null ? "—" : balances[activeChain]?.toFixed(4)}
             <span className="text-base font-medium text-white/60"> {activeChain.toUpperCase()}</span>
           </div>
+          {/* USD Value for Solana, DOPE, DWT */}
+          {activeChain === 'solana' && balances['solana'] !== null && solPrice && (
+            <div className="text-lg text-green-400 mt-2">${(balances['solana'] * solPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</div>
+          )}
+          {activeChain === 'solana' && dopeSpl !== null && dopePrice && (
+            <div className="text-lg text-green-400 mt-2">DOPE: ${(dopeSpl * dopePrice).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</div>
+          )}
+          {activeChain === 'solana' && balances['dwt'] !== undefined && dopePrice && (
+            <div className="text-lg text-green-400 mt-2">DWT: {(balances['dwt'] * dopePrice).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</div>
+          )}
           {fatalError && (
             <div className="text-xs text-red-400 mt-2">Error: {fatalError}</div>
           )}
