@@ -42,7 +42,8 @@ export default function Home() {
   const [shownTokens, setShownTokens] = useState<string[]>(defaultTokens);
   const router = useRouter();
   const { address, unlocked, hasWallet, keypair, ready } = useWallet() as any;
-  const [balance, setBalance] = useState<number | null>(null);
+  // Multi-chain balances
+  const [balances, setBalances] = useState<{[chain: string]: number | null}>({ solana: null, eth: null, btc: null, ape: null, bnb: null, sei: null, base: null });
   const [solPrice, setSolPrice] = useState<number | null>(null);
   const [dopeSpl, setDopeSpl] = useState<number | null>(null);
   const [dopePrice, setDopePrice] = useState<number | null>(null);
@@ -92,28 +93,71 @@ export default function Home() {
   // Debug output for address and errors
   useEffect(() => {
     if (!address) return;
-    let unsub: null | (() => void) = null;
     let iv: any = null;
-    const refresh = async () => {
+    const fetchBalances = async () => {
+      const newBalances: {[chain: string]: number | null} = { solana: null, eth: null, btc: null, ape: null, bnb: null, sei: null, base: null };
+      // Solana
       try {
-        const bal = await getSolBalance(address);
-        setBalance(bal);
+        newBalances.solana = await getSolBalance(address);
       } catch (e: any) {
-        setBalance(null);
-        setFatalError("Failed to fetch SOL balance. Please check your network or RPC endpoint. " + (e?.message || ""));
+        newBalances.solana = null;
+        setFatalError("Failed to fetch SOL balance. " + (e?.message || ""));
         setShowRpcError(true);
       }
+      // DOPE SPL
       try {
-        const spl = await getDopeTokenBalance(address);
-        setDopeSpl(spl);
+        setDopeSpl(await getDopeTokenBalance(address));
       } catch (e: any) {
         setDopeSpl(null);
-        setFatalError("Failed to fetch DOPE token balance. Please check your network or RPC endpoint. " + (e?.message || ""));
+        setFatalError("Failed to fetch DOPE token balance. " + (e?.message || ""));
         setShowRpcError(true);
       }
+      // ETH
+      try {
+        const ethRes = await fetch(`https://api.blockchair.com/ethereum/dashboards/address/${address}`);
+        const ethJson = await ethRes.json();
+        newBalances.eth = ethJson?.data?.[address]?.address?.balance ? Number(ethJson.data[address].address.balance) / 1e18 : 0;
+      } catch (e: any) {
+        newBalances.eth = null;
+      }
+      // BTC
+      try {
+        const btcRes = await fetch(`https://api.blockchair.com/bitcoin/dashboards/address/${address}`);
+        const btcJson = await btcRes.json();
+        newBalances.btc = btcJson?.data?.[address]?.address?.balance ? Number(btcJson.data[address].address.balance) / 1e8 : 0;
+      } catch (e: any) {
+        newBalances.btc = null;
+      }
+      // BNB
+      try {
+        const bnbRes = await fetch(`https://api.bscscan.com/api?module=account&action=balance&address=${address}&apikey=YourApiKeyToken`);
+        const bnbJson = await bnbRes.json();
+        newBalances.bnb = bnbJson?.result ? Number(bnbJson.result) / 1e18 : 0;
+      } catch (e: any) {
+        newBalances.bnb = null;
+      }
+      // Sei (placeholder, replace with real API)
+      try {
+        newBalances.sei = 0; // TODO: Add Sei API logic
+      } catch (e: any) {
+        newBalances.sei = null;
+      }
+      // Base (placeholder, replace with real API)
+      try {
+        newBalances.base = 0; // TODO: Add Base API logic
+      } catch (e: any) {
+        newBalances.base = null;
+      }
+      // Ape (placeholder, replace with real API)
+      try {
+        newBalances.ape = 0; // TODO: Add Ape API logic
+      } catch (e: any) {
+        newBalances.ape = null;
+      }
+      setBalances(newBalances);
     };
-    refresh();
-    iv = setInterval(refresh, 1000); // poll every second for real-time updates
+    fetchBalances();
+    iv = setInterval(fetchBalances, 10000); // poll every 10s
     return () => { if (iv) clearInterval(iv); };
   }, [address]);
 
@@ -184,17 +228,21 @@ export default function Home() {
   return (
     <ErrorBoundary>
       <div className="pb-24 space-y-6 w-full max-w-md mx-auto px-2 sm:px-0">
-        {/* Chain Switcher Bar */}
-        <div className="flex justify-center gap-2 py-2">
-          {['solana','eth','btc','ape','bnb','sei','base'].map(chain => (
-            <button
-              key={chain}
-              className={`px-3 py-1 rounded-full text-xs font-semibold border border-white/10 transition-colors ${activeChain === chain ? 'bg-white/20 text-white' : 'bg-black/30 text-white/60'}`}
-              onClick={() => setActiveChain(chain as any)}
-            >
-              {chain.charAt(0).toUpperCase() + chain.slice(1)}
-            </button>
-          ))}
+        {/* Chain Switcher Dropdown */}
+        <div className="flex justify-center py-2">
+          <select
+            className="bg-black/80 border border-white/10 rounded-lg px-4 py-2 text-white text-sm font-semibold"
+            value={activeChain}
+            onChange={e => setActiveChain(e.target.value as any)}
+          >
+            <option value="solana">Solana</option>
+            <option value="eth">Ethereum</option>
+            <option value="btc">Bitcoin</option>
+            <option value="ape">Ape Chain</option>
+            <option value="bnb">BNB</option>
+            <option value="sei">Sei Network</option>
+            <option value="base">Base</option>
+          </select>
         </div>
         {showRpcError && fatalError && (
           <div className="fixed top-0 left-0 w-full z-50 flex justify-center">
@@ -209,14 +257,14 @@ export default function Home() {
           <div className="text-xs text-white/60">Address</div>
           <div className="font-mono break-all text-sm">{address || "No address set"}</div>
           <div className="mt-4 text-xs text-white/60">Balance</div>
-          <div className="text-3xl font-bold">{balance === null ? "—" : balance.toFixed(4)} <span className="text-base font-medium text-white/60">SOL</span></div>
-          {solPrice && balance !== null && (
-            <div className="text-lg text-green-400 mt-2">{(balance * solPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</div>
-          )}
+          <div className="text-3xl font-bold">
+            {balances[activeChain] === null ? "—" : balances[activeChain]?.toFixed(4)}
+            <span className="text-base font-medium text-white/60"> {activeChain.toUpperCase()}</span>
+          </div>
           {fatalError && (
             <div className="text-xs text-red-400 mt-2">Error: {fatalError}</div>
           )}
-          {balance === null && !fatalError && (
+          {balances[activeChain] === null && !fatalError && (
             <div className="text-xs text-yellow-400 mt-2">Balance not available. Please check your network, RPC, or wallet address.</div>
           )}
         </div>
