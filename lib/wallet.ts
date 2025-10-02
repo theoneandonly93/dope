@@ -376,7 +376,7 @@ export function setSelectedNetwork(n: NetworkChoice) {
 }
 
 export function getRpcEndpoint() {
-  return "https://api.mainnet-beta.solana.com";
+  return "https://tiniest-few-patron.solana-mainnet.quiknode.pro/6006d42ab7ce4dac6a265fdbf87f6586c73827a9/";
 }
 
 export function getWsEndpoint(): string | undefined {
