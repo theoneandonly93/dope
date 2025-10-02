@@ -4,6 +4,13 @@ import { useWallet } from "../../components/WalletProvider";
 import { getRecentTransactions, type RecentTx } from "../../lib/wallet";
 
 export default function TransactionsPage() {
+  const statusTabs = [
+    { key: "all", label: "All" },
+    { key: "success", label: "Success" },
+    { key: "error", label: "Failed" },
+    { key: "pending", label: "Pending" },
+  ];
+  const [expandedIdx, setExpandedIdx] = useState<number|null>(null);
   const { address } = useWallet();
   const [items, setItems] = useState<RecentTx[]>([]);
   const [loading, setLoading] = useState(false);
@@ -62,11 +69,18 @@ export default function TransactionsPage() {
           placeholder="Search by signature"
           className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 outline-none"
         />
-        <div className="flex items-center gap-2 text-sm">
-          <label className="flex items-center gap-2"><input type="radio" checked={status==='all'} onChange={()=>setStatus('all')} /> All</label>
-          <label className="flex items-center gap-2"><input type="radio" checked={status==='success'} onChange={()=>setStatus('success')} /> Success</label>
-          <label className="flex items-center gap-2"><input type="radio" checked={status==='error'} onChange={()=>setStatus('error')} /> Failed</label>
-          <label className="flex items-center gap-2"><input type="radio" checked={status==='pending'} onChange={()=>setStatus('pending')} /> Pending</label>
+        <div className="w-full pb-2 mb-2 overflow-x-auto">
+          <div className="flex gap-2 min-w-[320px]">
+            {statusTabs.map(tab => (
+              <button
+                key={tab.key}
+                className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors border border-white/10 shadow-sm ${status === tab.key ? 'bg-white/10 text-white' : 'bg-black/30 text-white/60'}`}
+                onClick={() => setStatus(tab.key as any)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div>
@@ -85,23 +99,37 @@ export default function TransactionsPage() {
         {!loading && filtered.length === 0 && localTx.length === 0 && <div className="text-white/70 text-sm text-center py-8">No results</div>}
         <div className="flex flex-col gap-2">
           {/* Show local tx first, then on-chain */}
-          {localTx.map((tx, idx) => (
-            <div
-              key={tx.signature + tx.status + tx.time + idx}
-              className="rounded-xl bg-gradient-to-r from-black/60 to-black/30 px-3 py-2 flex items-center justify-between shadow-sm"
-            >
-              <div className="flex flex-col min-w-0">
-                <span className={`text-[11px] font-semibold ${tx.status === 'success' ? 'text-green-400' : tx.status === 'error' ? 'text-red-400' : 'text-yellow-400'}`}>{tx.status === 'success' ? 'Confirmed' : tx.status === 'error' ? 'Failed' : 'Pending'}</span>
-                <span className="font-mono text-[11px] break-all max-w-[140px] text-white/70">{tx.signature}</span>
-                <span className="text-[10px] text-white/40 mt-1">Local</span>
+          {localTx.map((tx, idx) => {
+            const isExpanded = expandedIdx === idx;
+            return (
+              <div
+                key={tx.signature + tx.status + tx.time + idx}
+                className="rounded-xl bg-gradient-to-r from-black/60 to-black/30 px-3 py-2 flex flex-col shadow-sm cursor-pointer"
+                onClick={() => setExpandedIdx(isExpanded ? null : idx)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col min-w-0">
+                    <span className={`text-[11px] font-semibold ${tx.status === 'success' ? 'text-green-400' : tx.status === 'error' ? 'text-red-400' : 'text-yellow-400'}`}>{tx.status === 'success' ? 'Confirmed' : tx.status === 'error' ? 'Failed' : 'Pending'}</span>
+                    <span className="font-mono text-[11px] break-all max-w-[140px] text-white/70">{tx.signature}</span>
+                    <span className="text-[10px] text-white/40 mt-1">Local</span>
+                  </div>
+                  <div className={`text-base font-bold ${typeof tx.change === 'number' ? (tx.change < 0 ? 'text-red-400' : 'text-green-400') : 'text-white/70'}`}
+                    style={{minWidth:'70px',textAlign:'right'}}>
+                    {typeof tx.change === 'number' ? `${tx.change < 0 ? '-' : '+'}${Math.abs(tx.change).toFixed(4)} DOPE` : '—'}
+                  </div>
+                </div>
+                {isExpanded && (
+                  <div className="mt-2 p-2 rounded bg-black/60 text-xs text-white/80">
+                    <div><span className="font-bold">Error:</span> {tx.error || 'No error details available.'}</div>
+                    <div className="mt-1"><span className="font-bold">Timestamp:</span> {tx.time ? new Date(tx.time).toLocaleString() : '—'}</div>
+                    <div className="mt-1"><span className="font-bold">Recipient:</span> {tx.to || '—'}</div>
+                    <div className="mt-1"><span className="font-bold">Amount:</span> {typeof tx.change === 'number' ? Math.abs(tx.change).toFixed(4) + ' DOPE' : '—'}</div>
+                  </div>
+                )}
               </div>
-              <div className={`text-base font-bold ${typeof tx.change === 'number' ? (tx.change < 0 ? 'text-red-400' : 'text-green-400') : 'text-white/70'}`}
-                style={{minWidth:'70px',textAlign:'right'}}>
-                {typeof tx.change === 'number' ? `${tx.change < 0 ? '-' : '+'}${Math.abs(tx.change).toFixed(4)} DOPE` : '—'}
-              </div>
-            </div>
-          ))}
-          {filtered.map((tx) => (
+            );
+          })}
+          {filtered.map((tx, idx) => (
             <a key={tx.signature} href={`https://explorer.solana.com/tx/${tx.signature}?cluster=custom`} target="_blank" rel="noreferrer" className="rounded-xl bg-gradient-to-r from-black/50 to-black/20 px-3 py-2 flex items-center justify-between shadow-sm active:scale-[0.98] transition-transform">
               <div className="flex flex-col min-w-0">
                 <span className={`text-[11px] font-semibold ${tx.status === 'success' ? 'text-green-400' : tx.status === 'error' ? 'text-red-400' : 'text-yellow-400'}`}>{tx.status === 'success' ? 'Confirmed' : tx.status === 'error' ? 'Failed' : 'Pending'}</span>

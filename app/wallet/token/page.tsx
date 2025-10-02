@@ -16,6 +16,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useWallet } from "../../../components/WalletProvider";
 import TxList from "../../../components/TxList";
 import SendTokenForm from "../../../components/SendTokenForm";
+import TradingViewWidget from "../../../components/TradingViewWidget";
 
 export default function TokenDetailPage() {
   const router = useRouter();
@@ -28,6 +29,12 @@ export default function TokenDetailPage() {
   const [chartData, setChartData] = useState<any>(null);
   const [chartLoading, setChartLoading] = useState(false);
   const [tokenInfo, setTokenInfo] = useState<any>(null);
+  // Map mint to TradingView symbol
+  let tradingViewSymbol = "";
+  if (mint === "So11111111111111111111111111111111111111112") tradingViewSymbol = "COINBASE:SOLUSD";
+  if (mint === "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33") tradingViewSymbol = "GATEIO:DOPEUSDT";
+  if (mint === "BTC_MINT_PLACEHOLDER") tradingViewSymbol = "COINBASE:BTCUSD";
+  if (mint === "ETH_MINT_PLACEHOLDER") tradingViewSymbol = "COINBASE:ETHUSD";
 
   useEffect(() => {
     if (!address || !mint) return;
@@ -82,16 +89,12 @@ export default function TokenDetailPage() {
         <div className="text-xs text-white/60">Balance</div>
         <div className="text-3xl font-bold">{loading ? "Loading…" : balance === null ? "—" : balance.toLocaleString(undefined, { maximumFractionDigits: 6 })}</div>
         <div className="mt-6">
-          <div className="text-xs text-white/60 mb-2">Real-Time Price Chart (24h)</div>
-          {chartLoading && <div className="text-white/60 text-xs">Loading chart…</div>}
-          {chartData && (
-            <Line data={chartData} options={{
-              responsive: true,
-              plugins: { legend: { display: false } },
-              scales: { x: { ticks: { color: '#fff', font: { size: 10 } } }, y: { ticks: { color: '#22c55e', font: { size: 12 } } } }
-            }} height={120} />
+          <div className="text-xs text-white/60 mb-2">TradingView Chart</div>
+          {tradingViewSymbol ? (
+            <TradingViewWidget symbol={tradingViewSymbol} height={320} />
+          ) : (
+            <div className="text-white/60 text-xs">Chart not available for this token.</div>
           )}
-          {!chartLoading && !chartData && <div className="text-white/60 text-xs">Chart not available for this token.</div>}
         </div>
         {tokenInfo && (
           <div className="mt-6 grid grid-cols-2 gap-4 text-xs text-white/80">
