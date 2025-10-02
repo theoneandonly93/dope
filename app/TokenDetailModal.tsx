@@ -25,11 +25,15 @@ export default function TokenDetailModal({ mint, name, address, keypair, balance
   const [chartData, setChartData] = useState<any>(null);
   const [chartLoading, setChartLoading] = useState(false);
   const [tokenInfo, setTokenInfo] = useState<any>(null);
+  const [showSwapBridge, setShowSwapBridge] = useState<string|null>(null);
 
   useEffect(() => {
     let coingeckoId = "";
     if (mint === "So11111111111111111111111111111111111111112") coingeckoId = "solana";
     if (mint === "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33") coingeckoId = "dope";
+    if (mint === "btc") coingeckoId = "bitcoin";
+    if (mint === "eth") coingeckoId = "ethereum";
+    if (mint === "bnb") coingeckoId = "binancecoin";
     if (!coingeckoId) { setChartData(null); setChartLoading(false); setTokenInfo(null); return; }
     setChartLoading(true);
     Promise.all([
@@ -58,45 +62,58 @@ export default function TokenDetailModal({ mint, name, address, keypair, balance
     }).catch(() => { setChartData(null); setTokenInfo(null); })
       .finally(() => setChartLoading(false));
   }, [mint]);
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90">
-      <div className="rounded-2xl p-6 w-full max-w-lg border border-white/10 overflow-y-auto max-h-[90vh]" style={{background: '#000'}}>
-        <h2 className="text-lg font-semibold mb-2 text-white">{name} Info</h2>
-        <div className="mb-4">
-          <div className="text-xs text-white/60 mb-1">Mint Address:</div>
-          <div className="font-mono text-xs break-all text-white mb-2">{mint}</div>
-          <div className="mt-4">
-            <div className="text-xs text-white/60 mb-2">Real-Time Price Chart (24h)</div>
-            {chartLoading && <div className="text-white/60 text-xs">Loading chart…</div>}
-            {chartData && (
-              <Line data={chartData} options={{
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: { x: { ticks: { color: '#fff', font: { size: 10 } } }, y: { ticks: { color: '#22c55e', font: { size: 12 } } } }
-              }} height={120} />
-            )}
-            {!chartLoading && !chartData && <div className="text-white/60 text-xs">Chart not available for this token.</div>}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 transition-all duration-300">
+      <div className="rounded-3xl p-0 w-full max-w-md border border-white/10 bg-gradient-to-br from-black via-gray-900 to-black text-white relative shadow-2xl overflow-hidden animate-fadeIn">
+        <button className="absolute top-3 right-3 text-white/60 hover:text-white transition-colors duration-200 text-2xl" onClick={onClose} aria-label="Close">×</button>
+        <div className="flex flex-col items-center pt-8 pb-4 px-6">
+          <div className="w-16 h-16 mb-2 rounded-full bg-white/10 flex items-center justify-center">
+            <img src={getTokenLogo(mint)} alt={name} className="w-12 h-12 rounded-full" />
           </div>
+          <h2 className="text-xl font-bold mb-1 text-center">{name}</h2>
+          <div className="mb-1 text-xs text-white/60 text-center">Mint: <span className="font-mono">{mint}</span></div>
+          <div className="mb-1 text-xs text-white/60 text-center">Balance: <span className="font-bold">{balance ?? "—"}</span></div>
+          <div className="flex gap-3 mt-3 mb-2">
+            <button className="btn px-3 py-1 flex items-center gap-2 text-xs rounded-lg bg-white/10 hover:bg-white/20 transition" onClick={() => setShowSwapBridge("swap")}>🔄 Swap</button>
+            <button className="btn px-3 py-1 flex items-center gap-2 text-xs rounded-lg bg-white/10 hover:bg-white/20 transition" onClick={() => setShowSwapBridge("bridge")}>🌉 Bridge</button>
+          </div>
+        </div>
+        {showSwapBridge && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 transition-all duration-300">
+            <div className="rounded-2xl p-6 w-full max-w-sm border border-white/10 bg-black text-white animate-fadeIn">
+              <h2 className="text-lg font-semibold mb-4">{showSwapBridge === "swap" ? "Swap" : "Bridge"} {name}</h2>
+              <div className="mb-4 text-xs text-white/70">{showSwapBridge === "swap" ? "Swap this token for another. (Coming soon)" : "Bridge this token to another chain. (Coming soon)"}</div>
+              <button className="btn w-full" onClick={() => setShowSwapBridge(null)}>Close</button>
+            </div>
+          </div>
+        )}
+        <div className="px-6 pb-6 overflow-y-auto" style={{maxHeight: '60vh'}}>
+          {chartLoading && <div className="text-white/60 text-xs mb-2">Loading chart...</div>}
+          {chartData && <Line data={chartData} options={{ plugins: { legend: { display: false } } }} />}
           {tokenInfo && (
-            <div className="mt-6 grid grid-cols-2 gap-4 text-xs text-white/80">
-              <div><span className="font-semibold">Market Cap:</span> {tokenInfo.marketCap ? `$${tokenInfo.marketCap.toLocaleString()}` : "—"}</div>
-              <div><span className="font-semibold">Volume (24h):</span> {tokenInfo.volume ? `$${tokenInfo.volume.toLocaleString()}` : "—"}</div>
-              <div><span className="font-semibold">Holders:</span> {tokenInfo.holders ?? "—"}</div>
-              <div><span className="font-semibold">Created:</span> {tokenInfo.created ?? "—"}</div>
+            <div className="mt-2 text-xs text-white/70 space-y-1">
+              <div>Market Cap: {tokenInfo.marketCap ? `$${tokenInfo.marketCap.toLocaleString()}` : "—"}</div>
+              <div>Volume: {tokenInfo.volume ? `$${tokenInfo.volume.toLocaleString()}` : "—"}</div>
+              <div>Created: {tokenInfo.created || "—"}</div>
             </div>
           )}
+          <div className="mt-4">
+            <SendTokenForm mint={mint} balance={balance} keypair={keypair} />
+          </div>
+          <div className="mt-4">
+            <TxList address={address} tokenMint={mint} />
+          </div>
         </div>
-        <div className="mt-4">
-          <div className="text-sm font-semibold mb-2 text-white">Your Transaction History</div>
-          <TxList address={address} tokenMint={mint} />
-        </div>
-        <div className="mt-4">
-          <h3 className="text-sm font-semibold mb-2 text-white">Send {name}</h3>
-          <SendTokenForm mint={mint} balance={balance} keypair={keypair} />
-        </div>
-        <button className="btn w-full mt-4" onClick={onClose}>Close</button>
       </div>
     </div>
   );
+// Helper to get logo for known tokens
+function getTokenLogo(mint: string) {
+  if (mint === "So11111111111111111111111111111111111111112") return "/sol.png";
+  if (mint === "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33") return "/dope.png";
+  if (mint === "btc") return "/btc.png";
+  if (mint === "eth") return "/eth.png";
+  if (mint === "bnb") return "/bnb.png";
+  return "/logo-192.png";
+}
 }

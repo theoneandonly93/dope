@@ -23,9 +23,13 @@ function formatTokenAmount(amount: number | null, symbol: string): string {
   return `${amount.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${symbol}`;
 }
 
+import ManageTokensModal from "../components/ManageTokensModal";
+
 export default function Home() {
   const [showSendModal, setShowSendModal] = useState(false);
   const [sendTokenMint, setSendTokenMint] = useState<string|null>(null);
+  const [showManageModal, setShowManageModal] = useState(false);
+  const [shownTokens, setShownTokens] = useState<string[]>(["So11111111111111111111111111111111111111112", "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33"]);
   const router = useRouter();
   const { address, unlocked, hasWallet, keypair, ready } = useWallet() as any;
   const [balance, setBalance] = useState<number | null>(null);
@@ -96,17 +100,8 @@ export default function Home() {
       }
     };
     refresh();
-    try {
-      unsub = subscribeBalance(address, (b) => {
-        setBalance(b);
-      });
-    } catch (e: any) {
-      // ignore
-    }
-    if (!unsub) {
-      iv = setInterval(refresh, 1000); // poll every second for real-time updates
-    }
-    return () => { unsub?.(); if (iv) clearInterval(iv); };
+    iv = setInterval(refresh, 1000); // poll every second for real-time updates
+    return () => { if (iv) clearInterval(iv); };
   }, [address]);
 
   const onSyncDope = async () => {
@@ -285,12 +280,10 @@ export default function Home() {
       <div className="glass rounded-2xl p-5 border border-white/5">
         <div className="flex items-center justify-between mb-2">
           <div className="text-sm font-semibold">Tokens</div>
-          <button className="btn text-xs" style={{marginLeft: 'auto'}} onClick={() => alert('Manage tokens coming soon!')}>Manage Token</button>
+          <button className="btn text-xs" style={{marginLeft: 'auto'}} onClick={() => setShowManageModal(true)}>Manage Token</button>
         </div>
-        {tokenList.map((token, idx) => {
-          const isSol = token.mint === "So11111111111111111111111111111111111111112";
-          const isDope = token.mint === "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33";
-          const tokenBalance = isSol ? balance : isDope ? dopeSpl : null;
+        {tokenList.filter(token => shownTokens.includes(token.mint)).map((token, idx) => {
+          const tokenBalance = token.mint === "So11111111111111111111111111111111111111112" ? balance : token.mint === "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33" ? dopeSpl : null;
           return (
             <div
               key={token.mint}
@@ -305,11 +298,7 @@ export default function Home() {
                   <div className="text-xs text-green-400 mt-1">
                     {tokenBalance !== null && tokenPrices[token.mint] ? `$${(tokenBalance * tokenPrices[token.mint]).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD` : "—"}
                   </div>
-                  {/* ...no debug info... */}
                 </div>
-              </div>
-              <div className="flex items-center gap-3 max-w-[60px] truncate text-right">
-                {/* Unlock link removed; unlock modal will appear only when needed */}
               </div>
             </div>
           );
@@ -322,6 +311,20 @@ export default function Home() {
             keypair={keypair}
             balance={showTokenInfo.mint === "So11111111111111111111111111111111111111112" ? balance : dopeSpl}
             onClose={() => setShowTokenInfo(null)}
+          />
+        )}
+        {showManageModal && (
+          <ManageTokensModal
+            tokens={[{ mint: "So11111111111111111111111111111111111111112", name: "Solana", symbol: "SOL", logo: "/logo-192.png" },
+                     { mint: "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33", name: "Dope", symbol: "DOPE", logo: "/logo-192.png" },
+                     { mint: "btc", name: "Bitcoin", symbol: "BTC", logo: "/logo-192.png" },
+                     { mint: "eth", name: "Ethereum", symbol: "ETH", logo: "/logo-192.png" },
+                     { mint: "bnb", name: "BNB", symbol: "BNB", logo: "/logo-192.png" },
+                     ...tokenList]} // add more tokens here
+            shownTokens={shownTokens}
+            onToggle={mint => setShownTokens(shownTokens => shownTokens.includes(mint) ? shownTokens.filter(m => m !== mint) : [...shownTokens, mint])}
+            onAdd={mint => setShownTokens(shownTokens => shownTokens.includes(mint) ? shownTokens : [...shownTokens, mint])}
+            onClose={() => setShowManageModal(false)}
           />
         )}
       </div>
