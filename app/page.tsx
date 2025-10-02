@@ -309,6 +309,11 @@ export default function Home() {
             else if (token.mint === "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33") tokenBalance = dopeSpl;
             else if (["btc", "eth"].includes(token.mint)) tokenBalance = 0;
             const usdValue = (tokenBalance !== null && tokenPrices[token.mint]) ? (tokenBalance * tokenPrices[token.mint]) : null;
+            // Use consistent logo size for all tokens, and correct logo for DOPE and SOL
+            let logoSize = "w-9 h-9";
+            let logoSrc = token.logo || "/logo-192.png";
+            if (token.mint === "So11111111111111111111111111111111111111112") logoSize = "w-7 h-7";
+            if (token.mint === "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33") logoSrc = "/logo-192.png";
             return (
               <div
                 key={token.mint}
@@ -316,7 +321,7 @@ export default function Home() {
                 onClick={() => setShowTokenInfo({ mint: token.mint, name: `${token.name} (${token.symbol})` })}
               >
                 <div className="flex items-center gap-3">
-                  <img src={token.logo || "/logo-192.png"} alt={token.symbol} className="w-9 h-9 rounded-full" />
+                  <img src={logoSrc} alt={token.symbol} className={`${logoSize} rounded-full`} />
                   <div>
                     <div className="text-sm font-semibold">{token.name} <span className="text-xs text-white/60">{token.symbol}</span></div>
                     <div className="text-sm font-semibold mt-1">{formatTokenAmount(tokenBalance, token.symbol)}</div>
