@@ -80,39 +80,43 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      <div className="glass rounded-2xl p-4 border border-white/10">
-        {loading && items.length === 0 && <div className="text-white/70 text-sm">Loading...</div>}
-        {!loading && filtered.length === 0 && localTx.length === 0 && <div className="text-white/70 text-sm">No results</div>}
-        <div className="divide-y divide-white/10">
+      <div className="glass rounded-2xl p-2 border border-white/10 max-w-md mx-auto shadow-lg">
+        {loading && items.length === 0 && <div className="text-white/70 text-sm text-center py-8">Loading...</div>}
+        {!loading && filtered.length === 0 && localTx.length === 0 && <div className="text-white/70 text-sm text-center py-8">No results</div>}
+        <div className="flex flex-col gap-2">
           {/* Show local tx first, then on-chain */}
           {localTx.map((tx, idx) => (
             <div
               key={tx.signature + tx.status + tx.time + idx}
-              className="flex items-center justify-between py-3 bg-black/40"
+              className="rounded-xl bg-gradient-to-r from-black/60 to-black/30 px-3 py-2 flex items-center justify-between shadow-sm"
             >
-              <div className="flex flex-col">
-                <span className="text-xs text-white/60">{tx.status === 'success' ? 'Confirmed (Local)' : tx.status === 'error' ? 'Failed (Local)' : 'Pending (Local)'}</span>
-                <span className="font-mono text-xs break-all max-w-[240px]">{tx.signature}</span>
+              <div className="flex flex-col min-w-0">
+                <span className={`text-[11px] font-semibold ${tx.status === 'success' ? 'text-green-400' : tx.status === 'error' ? 'text-red-400' : 'text-yellow-400'}`}>{tx.status === 'success' ? 'Confirmed' : tx.status === 'error' ? 'Failed' : 'Pending'}</span>
+                <span className="font-mono text-[11px] break-all max-w-[140px] text-white/70">{tx.signature}</span>
+                <span className="text-[10px] text-white/40 mt-1">Local</span>
               </div>
-              <div className={`text-sm font-semibold ${typeof tx.change === 'number' ? (tx.change < 0 ? 'text-red-400' : 'text-green-400') : 'text-white/70'}`}>
+              <div className={`text-base font-bold ${typeof tx.change === 'number' ? (tx.change < 0 ? 'text-red-400' : 'text-green-400') : 'text-white/70'}`}
+                style={{minWidth:'70px',textAlign:'right'}}>
                 {typeof tx.change === 'number' ? `${tx.change < 0 ? '-' : '+'}${Math.abs(tx.change).toFixed(4)} DOPE` : '—'}
               </div>
             </div>
           ))}
           {filtered.map((tx) => (
-            <a key={tx.signature} href={`https://explorer.solana.com/tx/${tx.signature}?cluster=custom`} target="_blank" rel="noreferrer" className="flex items-center justify-between py-3">
-              <div className="flex flex-col">
-                <span className="text-xs text-white/60">{tx.status === 'success' ? 'Confirmed' : tx.status === 'error' ? 'Failed' : 'Pending'}</span>
-                <span className="font-mono text-xs break-all max-w-[240px]">{tx.signature}</span>
+            <a key={tx.signature} href={`https://explorer.solana.com/tx/${tx.signature}?cluster=custom`} target="_blank" rel="noreferrer" className="rounded-xl bg-gradient-to-r from-black/50 to-black/20 px-3 py-2 flex items-center justify-between shadow-sm active:scale-[0.98] transition-transform">
+              <div className="flex flex-col min-w-0">
+                <span className={`text-[11px] font-semibold ${tx.status === 'success' ? 'text-green-400' : tx.status === 'error' ? 'text-red-400' : 'text-yellow-400'}`}>{tx.status === 'success' ? 'Confirmed' : tx.status === 'error' ? 'Failed' : 'Pending'}</span>
+                <span className="font-mono text-[11px] break-all max-w-[140px] text-white/70">{tx.signature}</span>
+                <span className="text-[10px] text-white/40 mt-1">On-chain</span>
               </div>
-              <div className={`text-sm font-semibold ${typeof tx.change === 'number' ? (tx.change < 0 ? 'text-red-400' : 'text-green-400') : 'text-white/70'}`}>
+              <div className={`text-base font-bold ${typeof tx.change === 'number' ? (tx.change < 0 ? 'text-red-400' : 'text-green-400') : 'text-white/70'}`}
+                style={{minWidth:'70px',textAlign:'right'}}>
                 {typeof tx.change === 'number' ? `${tx.change < 0 ? '-' : '+'}${Math.abs(tx.change).toFixed(4)} DOPE` : '—'}
               </div>
             </a>
           ))}
         </div>
-        <div className="pt-3">
-          <button className="btn" onClick={()=>setLimit(l => l + 20)} disabled={loading}>Load more</button>
+        <div className="pt-4 flex justify-center">
+          <button className="btn px-6 py-2 rounded-full text-base" onClick={()=>setLimit(l => l + 20)} disabled={loading}>Load more</button>
         </div>
       </div>
 
