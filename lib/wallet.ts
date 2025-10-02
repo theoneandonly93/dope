@@ -388,17 +388,11 @@ export function getWsEndpoint(): string | undefined {
 
 export function getConnection() {
   const http = getRpcEndpoint();
-  const ws = getWsEndpoint();
   const commitment: any = "confirmed";
   let conn: Connection;
   try {
-    if (ws) {
-      conn = new Connection(http, { commitment, wsEndpoint: ws } as any);
-    } else {
-      conn = new Connection(http, commitment);
-    }
-    // Test connection quickly (getEpochInfo is lightweight)
-    // If it fails, fallback to public RPC
+    conn = new Connection(http, commitment);
+    // Proxy fallback: if any method fails, retry with public RPC
     return new Proxy(conn, {
       get(target, prop, receiver) {
         if (typeof target[prop] === 'function') {
