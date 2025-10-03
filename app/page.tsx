@@ -67,6 +67,12 @@ export default function Home() {
   const [slippage, setSlippage] = useState(0.5); // default 0.5%
   const [tokenList, setTokenList] = useState<any[]>([]);
   const [tokenPrices, setTokenPrices] = useState<{[mint: string]: number}>({});
+  const [swapLoading, setSwapLoading] = useState(false);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [latestQuote, setLatestQuote] = useState<any|null>(null);
+  const [showSwapConfirm, setShowSwapConfirm] = useState(false);
+  const [quoteOutUi, setQuoteOutUi] = useState<string>("");
+  const [quotePriceImpact, setQuotePriceImpact] = useState<number|null>(null);
 
   useEffect(() => {
     fetch("/tokenlist.json")
@@ -229,23 +235,70 @@ export default function Home() {
     }
   };
 
-  const handleSwap = async () => {
+  async function fetchTokenDecimals(mint: string, connection: any): Promise<number> {
+    if (mint === 'So11111111111111111111111111111111111111112') return 9; // SOL wrap
+    try {
+      const pk = new (await import('@solana/web3.js')).PublicKey(mint);
+      const info = await connection.getParsedAccountInfo(pk);
+      // @ts-ignore
+      return info?.value?.data?.parsed?.info?.decimals ?? 9;
+    } catch { return 9; }
+  }
+
+  const handleGetQuote = async () => {
     setSwapError("");
     setSwapResult("");
+    setLatestQuote(null);
+    setQuoteOutUi("");
+    setQuotePriceImpact(null);
     if (!keypair || swapAmount <= 0 || !tokenA || !tokenB) {
       setSwapError("Unlock wallet, enter valid amount and token addresses.");
       return;
     }
     try {
+      setQuoteLoading(true);
       const { getConnection } = await import("../lib/wallet");
       const connection = getConnection();
-      // Use lamports for SOL, token decimals for SPL
-      const amount = swapAmount;
-      const quote = await getQuote(tokenA, tokenB, amount);
-      const txid = await swap({ connection, ownerKeypair: keypair, quote });
+      const decIn = await fetchTokenDecimals(tokenA, connection);
+      // Convert UI swapAmount into base units (floor for safety)
+      const rawIn = Math.floor(swapAmount * Math.pow(10, decIn));
+      if (rawIn <= 0) { setSwapError('Amount too small.'); setQuoteLoading(false); return; }
+      const slippageBps = Math.max(0, Math.min(500, Math.round(slippage * 100))); // cap 5%
+      const quote = await getQuote(tokenA, tokenB, rawIn, slippageBps);
+      // Output tokens decimals for formatting
+      const decOut = await fetchTokenDecimals(tokenB, connection);
+      const outUi = quote.outAmount / Math.pow(10, decOut);
+      setLatestQuote(quote);
+      setQuoteOutUi(outUi.toLocaleString(undefined, { maximumFractionDigits: 6 }));
+      setQuotePriceImpact(quote.priceImpactPct ?? null);
+      setShowSwapConfirm(true);
+    } catch (e:any) {
+      setSwapError(e?.message || 'Failed to fetch quote');
+    } finally {
+      setQuoteLoading(false);
+    }
+  };
+
+  const handleExecuteSwap = async () => {
+    if (!latestQuote || !keypair) return;
+    setSwapError("");
+    setSwapResult("");
+    try {
+      setSwapLoading(true);
+      const { getConnection } = await import("../lib/wallet");
+      const connection = getConnection();
+      const txid = await swap({ connection, ownerKeypair: keypair, quote: latestQuote });
       setSwapResult(`Swap successful! Transaction: ${txid}`);
-    } catch (e: any) {
-      setSwapError(e?.message || "Swap failed");
+      setShowSwapConfirm(false);
+      // Refresh balances post swap
+      if (address) {
+        getSolBalance(address).then(v => setBalances(b => ({ ...b, solana: v }))).catch(()=>{});
+        getDopeTokenBalance(address).then(setDopeSpl).catch(()=>{});
+      }
+    } catch (e:any) {
+      setSwapError(e?.message || 'Swap failed');
+    } finally {
+      setSwapLoading(false);
     }
   };
 
@@ -426,9 +479,24 @@ export default function Home() {
                   <span className="text-white/60">%</span>
                 </div>
               </div>
-              <button className="btn w-full mb-2" onClick={handleSwap}>Swap</button>
-              {swapResult && <div className="text-green-400 text-sm mb-2">{swapResult}</div>}
-              {swapError && <div className="text-red-400 text-sm mb-2">{swapError}</div>}
+              <div className="flex flex-col gap-2 mt-2">
+                <button className="btn w-full" onClick={handleGetQuote} disabled={quoteLoading || swapLoading}>
+                  {quoteLoading ? 'Fetching quote…' : 'Get Quote'}
+                </button>
+                {showSwapConfirm && latestQuote && (
+                  <div className="rounded-lg border border-white/10 bg-black/40 p-3 text-xs space-y-2">
+                    <div className="flex justify-between"><span>Output</span><span>{quoteOutUi}</span></div>
+                    {quotePriceImpact !== null && <div className="flex justify-between"><span>Price Impact</span><span>{(quotePriceImpact*100).toFixed(2)}%</span></div>}
+                    <div className="flex justify-between"><span>Slippage</span><span>{slippage}%</span></div>
+                    <div className="flex gap-2 mt-1">
+                      <button className="btn flex-1" onClick={handleExecuteSwap} disabled={swapLoading}>{swapLoading ? 'Swapping…' : 'Confirm Swap'}</button>
+                      <button className="btn flex-1" onClick={() => { setShowSwapConfirm(false); setLatestQuote(null); }}>Cancel</button>
+                    </div>
+                  </div>
+                )}
+                {swapResult && <div className="text-green-400 text-sm">{swapResult}</div>}
+                {swapError && <div className="text-red-400 text-sm">{swapError}</div>}
+              </div>
               <button className="btn w-full" onClick={() => setShowSwap(false)}>Close</button>
             </div>
           </div>
