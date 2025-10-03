@@ -96,6 +96,18 @@ export default function Home() {
       });
   }, []);
 
+  // Listen for swap-complete events to trigger immediate balance refresh
+  useEffect(() => {
+    const handler = (e: any) => {
+      if (!address) return;
+      // Re-query SOL & DOPE balances quickly
+      getSolBalance(address).then(v => setBalances(b => ({ ...b, solana: v }))).catch(()=>{});
+      getDopeTokenBalance(address).then(setDopeSpl).catch(()=>{});
+    };
+    window.addEventListener('swap-complete', handler as any);
+    return () => window.removeEventListener('swap-complete', handler as any);
+  }, [address]);
+
   // Do not auto-redirect to /unlock to avoid flicker; surface contextual Unlock links instead
   // Debug output for address and errors
   useEffect(() => {

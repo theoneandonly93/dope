@@ -1,8 +1,14 @@
 export const dynamic = "force-dynamic";
 
+import { rateLimit } from '../../../../lib/rateLimit';
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
+    const ip = (req.headers as any).get?.('x-forwarded-for') || 'anon';
+    if (!rateLimit(`swapq:${ip}`, { capacity: 50, refillPerSec: 1 })) {
+      return Response.json({ error: 'rate limit' }, { status: 429 });
+    }
     const inputMint = searchParams.get('in');
     const outputMint = searchParams.get('out');
     const amountStr = searchParams.get('amount') || '0';

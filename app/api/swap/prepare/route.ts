@@ -18,8 +18,14 @@ function getDecimals(mint: string) {
   return DECIMALS[mint] ?? 9; // default to 9 if unknown
 }
 
+import { rateLimit } from '../../../../lib/rateLimit';
+
 export async function POST(req: Request) {
   try {
+    const ip = (req.headers as any).get?.('x-forwarded-for') || 'anon';
+    if (!rateLimit(`swapp:${ip}`, { capacity: 20, refillPerSec: 0.5 })) {
+      return Response.json({ error: 'rate limit' }, { status: 429 });
+    }
     const b: Body = await req.json();
     const { inputMint, outputMint, amount, userPublicKey } = b;
     const slippageBps = typeof b.slippageBps === 'number' ? b.slippageBps : 50;

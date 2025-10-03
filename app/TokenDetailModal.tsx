@@ -14,6 +14,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 import TxList from "../components/TxList";
 import SendTokenForm from "../components/SendTokenForm";
 import BridgeInstantUI from "./BridgeInstantUI";
+import SwapModal from "../components/SwapModal";
 
 export default function TokenDetailModal({ mint, name, address, keypair, balance, onClose }: {
   mint: string;
@@ -91,8 +92,7 @@ export default function TokenDetailModal({ mint, name, address, keypair, balance
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 transition-all duration-300">
             <div className="rounded-2xl p-6 w-full max-w-sm border border-white/10 bg-black text-white animate-fadeIn">
               <h2 className="text-lg font-semibold mb-4">Swap {name}</h2>
-              <div className="mb-4 text-xs text-white/70">Swap this token for another. (Coming soon)</div>
-              <button className="btn w-full" onClick={() => setShowSwapBridge(null)}>Close</button>
+              <SwapModal inputMint={mint} inputSymbol={name} balance={balance} onClose={() => setShowSwapBridge(null)} onSwapped={() => { /* TODO: trigger parent balance refresh if needed */ }} />
             </div>
           </div>
         )}
