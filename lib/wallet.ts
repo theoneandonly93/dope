@@ -387,30 +387,111 @@ export function getWsEndpoint(): string | undefined {
 }
 
 export function getConnection() {
-  const http = getRpcEndpoint();
+  const primary = getRpcEndpoint();
   const fallback = process.env.FALLBACK_RPC_URL || "https://api.mainnet-beta.solana.com";
   const commitment: any = "confirmed";
-  let conn: Connection;
-  try {
-    conn = new Connection(http, commitment);
-    // Proxy fallback: if any method fails, retry with fallback RPC
-    return new Proxy(conn, {
-      get(target, prop, receiver) {
-        if (typeof target[prop] === 'function') {
-          return async function(...args) {
+  // simple singleton cache so health logic is shared
+  // @ts-ignore
+  if (typeof window !== 'undefined') {
+    // @ts-ignore
+    if (!window.__DOPE_CONN_STATE__) {
+      // @ts-ignore
+      window.__DOPE_CONN_STATE__ = {
+        activeUrl: primary,
+        primary,
+        fallback,
+        consecutiveFailures: 0,
+        lastSwitch: 0,
+        conn: null as Connection | null,
+      };
+    }
+    // @ts-ignore
+    const state = window.__DOPE_CONN_STATE__;
+    if (!state.conn) {
+      state.conn = new Connection(state.activeUrl, commitment);
+      try { window.dispatchEvent(new CustomEvent('dope:rpc', { detail: { status: 'init', url: state.activeUrl } })); } catch {}
+    }
+    const baseConn = state.conn;
+
+    const healthCheck = async () => {
+      try {
+        const slot = await baseConn.getSlot();
+        if (typeof slot === 'number') {
+          if (state.activeUrl !== primary && state.primary && Date.now() - state.lastSwitch > 60_000) {
+            // try revert to primary after cooldown
             try {
-              return await target[prop](...args);
+              const test = new Connection(primary, commitment);
+              await test.getSlot();
+              state.activeUrl = primary;
+              state.conn = test;
+              state.consecutiveFailures = 0;
+              state.lastSwitch = Date.now();
+              try { window.dispatchEvent(new CustomEvent('dope:rpc', { detail: { status: 'recovered', url: state.activeUrl } })); } catch {}
+            } catch {}
+          } else {
+            state.consecutiveFailures = 0;
+          }
+          return;
+        }
+        throw new Error('slot not number');
+      } catch (e) {
+        state.consecutiveFailures++;
+        if (state.consecutiveFailures >= 3 && state.activeUrl !== fallback) {
+          try { window.dispatchEvent(new CustomEvent('dope:rpc', { detail: { status: 'degraded', url: state.activeUrl, error: (e as any)?.message } })); } catch {}
+          // switch to fallback
+          state.activeUrl = fallback;
+          state.conn = new Connection(fallback, commitment);
+          state.lastSwitch = Date.now();
+          state.consecutiveFailures = 0;
+          try { window.dispatchEvent(new CustomEvent('dope:rpc', { detail: { status: 'failover', url: state.activeUrl } })); } catch {}
+        }
+      }
+  };
+    // Schedule background health check (cheap)
+    // @ts-ignore
+    if (!state.healthTimer) {
+      // @ts-ignore
+      state.healthTimer = setInterval(healthCheck, 15000);
+      // run once immediately async
+      setTimeout(healthCheck, 10);
+    }
+
+    return new Proxy(baseConn, {
+      get(target, prop, receiver) {
+        const orig = (target as any)[prop];
+        if (typeof orig === 'function') {
+          return async (...args: any[]) => {
+            try {
+              return await orig.apply(target, args);
             } catch (e) {
-              const fallbackConn = new Connection(fallback, commitment);
-              return await fallbackConn[prop](...args);
+              // escalate failure count and maybe trigger switch earlier
+              state.consecutiveFailures++;
+              if (state.consecutiveFailures >= 2 && state.activeUrl !== fallback) {
+                state.activeUrl = fallback;
+                state.conn = new Connection(fallback, commitment);
+                state.lastSwitch = Date.now();
+                state.consecutiveFailures = 0;
+                try { window.dispatchEvent(new CustomEvent('dope:rpc', { detail: { status: 'failover', url: state.activeUrl } })); } catch {}
+                return (state.conn as any)[prop](...args);
+              }
+              // final fallback attempt
+              try {
+                const fbConn = new Connection(fallback, commitment);
+                return await (fbConn as any)[prop](...args);
+              } catch {
+                throw e;
+              }
             }
           };
         }
         return Reflect.get(target, prop, receiver);
       }
     });
+  }
+  // SSR / node path (no window) simple connection
+  try {
+    return new Connection(primary, commitment);
   } catch {
-    // fallback if construction fails
     return new Connection(fallback, commitment);
   }
 }

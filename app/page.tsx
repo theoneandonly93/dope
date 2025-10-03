@@ -54,6 +54,7 @@ export default function Home() {
   // Top-level fallback UI for runtime errors
   const [fatalError, setFatalError] = useState<string>("");
   const [showRpcError, setShowRpcError] = useState(true);
+  const [rpcStatus, setRpcStatus] = useState<{status:string,url:string,error?:string}|null>(null);
 
   // Move swap UI state hooks to top level
   const [showSwap, setShowSwap] = useState(false);
@@ -217,6 +218,17 @@ export default function Home() {
     return () => { if (iv) clearInterval(iv); };
   }, [address]);
 
+  // Listen for connection status events (failover / recovery)
+  useEffect(() => {
+    const handler = (e: any) => {
+      setRpcStatus(e.detail);
+      // auto clear after 6s
+      setTimeout(() => setRpcStatus(rs => rs === e.detail ? null : rs), 6000);
+    };
+    window.addEventListener('dope:rpc', handler as any);
+    return () => window.removeEventListener('dope:rpc', handler as any);
+  }, []);
+
   const onSyncDope = async () => {
     setSyncMsg("");
     setSyncing(true);
@@ -358,6 +370,13 @@ export default function Home() {
             <div className="bg-yellow-900 text-yellow-200 border border-yellow-400 rounded-xl px-4 py-3 mt-4 shadow-lg max-w-md w-full flex items-center justify-between">
               ⚠️ Rate limit or RPC error: Balances may not be visible right now, but your funds are safe and will appear shortly.
               <button className="ml-4 text-yellow-300 hover:text-yellow-100" onClick={() => setShowRpcError(false)}>Dismiss</button>
+            </div>
+          </div>
+        )}
+        {rpcStatus && !fatalError && (
+          <div className="fixed top-0 left-0 w-full z-50 flex justify-center pointer-events-none">
+            <div className={`pointer-events-auto rounded-xl px-4 py-2 mt-2 shadow-md text-xs font-medium border ${rpcStatus.status==='failover' ? 'bg-orange-900/80 text-orange-200 border-orange-500' : rpcStatus.status==='recovered' ? 'bg-green-900/80 text-green-200 border-green-500' : 'bg-blue-900/80 text-blue-200 border-blue-500'}`}> 
+              RPC {rpcStatus.status} → {rpcStatus.url.replace(/^https?:\/\//,'')} {rpcStatus.error ? `(${rpcStatus.error.slice(0,60)})` : ''}
             </div>
           </div>
         )}
@@ -612,8 +631,9 @@ export default function Home() {
               onClose={() => setShowManageModal(false)}
             />
           )}
-          <TxList address={address || undefined} key={address} limit={4} showSeeMore />
         </div>
+        {/* Standalone Recent Activity card */}
+        <TxList address={address || undefined} key={address + '-recent'} limit={4} showSeeMore />
       </div>
     </ErrorBoundary>
   );
