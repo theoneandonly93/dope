@@ -82,42 +82,55 @@ export default function TokenDetailPage() {
 
   return (
     <div className="space-y-6 pb-24">
-      <h1 className="text-xl font-semibold">{name} Details</h1>
-      <div className="glass rounded-2xl p-5 border border-white/10">
-        <div className="text-xs text-white/60">Token Mint</div>
-        <div className="font-mono text-xs break-all mb-2">{mint}</div>
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center ring-1 ring-white/10">
+          {/* lightweight logo mapping similar to modal */}
+          <img src={mint === 'So11111111111111111111111111111111111111112' ? '/sol.png' : mint === 'FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33' ? '/dope.png' : '/logo-192.png'} alt={name} className="w-8 h-8 rounded-full" />
+        </div>
+        <div className="min-w-0">
+          <h1 className="text-lg sm:text-xl font-semibold truncate">{name}</h1>
+          <div className="text-[10px] sm:text-xs text-white/60 truncate font-mono">{mint}</div>
+        </div>
+      </div>
+
+      {/* Overview card */}
+      <div className="rounded-2xl p-5 border border-white/10 bg-gradient-to-br from-black via-neutral-900 to-black">
         <div className="text-xs text-white/60">Balance</div>
-        <div className="text-3xl font-bold">{loading ? "Loading…" : balance === null ? "—" : balance.toLocaleString(undefined, { maximumFractionDigits: 6 })}</div>
-        <div className="mt-6">
-          <div className="text-xs text-white/60 mb-2">TradingView Chart</div>
+        <div className="text-3xl font-bold">{loading ? 'Loading…' : balance === null ? '—' : balance.toLocaleString(undefined, { maximumFractionDigits: 6 })}</div>
+        <div className="mt-5">
+          <div className="text-xs text-white/60 mb-2">Chart</div>
           {tradingViewSymbol ? (
-            <TradingViewWidget symbol={tradingViewSymbol} height={320} />
+            <div className="h-56 sm:h-72">
+              <TradingViewWidget symbol={tradingViewSymbol} height={320} />
+            </div>
           ) : (
             <div className="text-white/60 text-xs">Chart not available for this token.</div>
           )}
         </div>
         {tokenInfo && (
-          <div className="mt-6 grid grid-cols-2 gap-4 text-xs text-white/80">
-            <div><span className="font-semibold">Market Cap:</span> {tokenInfo.marketCap ? `$${tokenInfo.marketCap.toLocaleString()}` : "—"}</div>
-            <div><span className="font-semibold">Volume (24h):</span> {tokenInfo.volume ? `$${tokenInfo.volume.toLocaleString()}` : "—"}</div>
-            <div><span className="font-semibold">Holders:</span> {tokenInfo.holders ?? "—"}</div>
-            <div><span className="font-semibold">Created:</span> {tokenInfo.created ?? "—"}</div>
+          <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px] text-white/80">
+            <div className="rounded-lg bg-white/5 border border-white/10 p-2"><div className="text-white/50">Mkt Cap</div><div className="font-semibold truncate">{tokenInfo.marketCap ? `$${tokenInfo.marketCap.toLocaleString()}` : '—'}</div></div>
+            <div className="rounded-lg bg-white/5 border border-white/10 p-2"><div className="text-white/50">Volume 24h</div><div className="font-semibold truncate">{tokenInfo.volume ? `$${tokenInfo.volume.toLocaleString()}` : '—'}</div></div>
+            <div className="rounded-lg bg-white/5 border border-white/10 p-2"><div className="text-white/50">Holders</div><div className="font-semibold truncate">{tokenInfo.holders ?? '—'}</div></div>
+            <div className="rounded-lg bg-white/5 border border-white/10 p-2"><div className="text-white/50">Created</div><div className="font-semibold truncate">{tokenInfo.created ?? '—'}</div></div>
           </div>
         )}
-        <div className="mt-8">
-          {/* Transaction history for this token */}
-          <TxList address={address} tokenMint={mint} />
-        </div>
       </div>
+
+      {/* Recent Activity */}
       <div className="glass rounded-2xl p-5 border border-white/10">
-        <div className="text-sm font-semibold mb-2">Your Transaction History</div>
+        <div className="text-sm font-semibold mb-2">Recent Activity</div>
         <TxList address={address} tokenMint={mint} />
       </div>
+
+      {/* Send */}
       <div className="glass rounded-2xl p-5 border border-white/10">
         <h3 className="text-sm font-semibold mb-2">Send {name}</h3>
-  <SendTokenForm mint={mint} balance={balance} keypair={keypair} requireUnlock={true} />
+        <SendTokenForm mint={mint} balance={balance} keypair={keypair} requireUnlock={true} />
       </div>
-      <button className="btn w-full mt-4" onClick={() => router.back()}>Close</button>
+
+      <button className="btn w-full" onClick={() => router.back()}>Close</button>
     </div>
   );
 }

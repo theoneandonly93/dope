@@ -7,6 +7,15 @@ type Body = {
   amountAtomic?: number; // direct atomic units
   slippageBps?: number;
   userPublicKey: string;
+  swapMode?: 'ExactIn' | 'ExactOut';
+  wrapAndUnwrapSol?: boolean;
+  // Advanced routing params
+  onlyDirectRoutes?: boolean | string;
+  maxAccounts?: number | string;
+  restrictDexes?: string; // comma-separated
+  // Platform fee
+  platformFeeBps?: number;
+  feeAccount?: string;
 };
 
 const DECIMALS: Record<string, number> = {
@@ -30,15 +39,32 @@ export async function POST(req: Request) {
     const b: Body = await req.json();
   const { inputMint, outputMint, amount, amountAtomic, userPublicKey } = b;
     const slippageBps = typeof b.slippageBps === 'number' ? b.slippageBps : 50;
+    const swapMode = (b.swapMode || 'ExactIn') as 'ExactIn' | 'ExactOut';
+    const wrapAndUnwrapSol = b.wrapAndUnwrapSol !== false; // default true
     if (!inputMint || !outputMint || !userPublicKey) return Response.json({ error: 'inputMint/outputMint/userPublicKey required' }, { status: 400 });
   if (!(amountAtomic > 0) && !(amount && amount > 0)) return Response.json({ error: 'amount or amountAtomic required' }, { status: 400 });
 
     const inDec = getDecimals(inputMint);
-  const ui = amountAtomic ? (amountAtomic / Math.pow(10, inDec)) : Math.max(0, amount || 0);
-  const atomic = amountAtomic ? Math.floor(amountAtomic) : Math.floor(ui * Math.pow(10, inDec));
+    const outDec = getDecimals(outputMint);
+  const ui = amountAtomic
+      ? (swapMode === 'ExactOut' ? (amountAtomic / Math.pow(10, outDec)) : (amountAtomic / Math.pow(10, inDec)))
+      : Math.max(0, amount || 0);
+  const atomic = amountAtomic
+      ? Math.floor(amountAtomic)
+      : Math.floor(ui * Math.pow(10, swapMode === 'ExactOut' ? outDec : inDec));
 
     // 1) Quote
-    const qUrl = `https://quote-api.jup.ag/v6/quote?inputMint=${encodeURIComponent(inputMint)}&outputMint=${encodeURIComponent(outputMint)}&amount=${atomic}&slippageBps=${slippageBps}`;
+    const qParams = new URLSearchParams({
+      inputMint,
+      outputMint,
+      amount: String(atomic),
+      slippageBps: String(slippageBps),
+      swapMode,
+    });
+    if (b.onlyDirectRoutes != null) qParams.set('onlyDirectRoutes', String(b.onlyDirectRoutes));
+    if (b.maxAccounts != null) qParams.set('maxAccounts', String(b.maxAccounts));
+    if (b.restrictDexes != null) qParams.set('restrictDexes', String(b.restrictDexes));
+    const qUrl = `https://quote-api.jup.ag/v6/quote?${qParams.toString()}`;
     const qr = await fetch(qUrl, { cache: 'no-store' });
     const quote = await qr.json();
     if (!qr.ok || !quote?.data || !Array.isArray(quote.data) || quote.data.length === 0) {
@@ -53,9 +79,11 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         quoteResponse: route,
         userPublicKey,
-        wrapAndUnwrapSol: true,
+        wrapAndUnwrapSol,
+        slippageBps,
         dynamicComputeUnitLimit: true,
         prioritizationFeeLamports: 0,
+        ...(b.platformFeeBps && b.feeAccount ? { platformFeeBps: b.platformFeeBps, feeAccount: b.feeAccount } : {}),
       }),
     });
     const swap = await sr.json();

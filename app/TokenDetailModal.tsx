@@ -84,34 +84,40 @@ export default function TokenDetailModal({ mint, name, address, keypair, balance
       .finally(() => setChartLoading(false));
   }, [mint]);
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 transition-all duration-300">
-      <div className="rounded-3xl p-0 w-full max-w-md border border-white/10 bg-gradient-to-br from-black via-gray-900 to-black text-white relative shadow-2xl overflow-hidden animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 transition-all duration-300" role="dialog" aria-modal="true" aria-labelledby="token-detail-title">
+      <div className="w-[92vw] sm:w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-0 border border-white/10 bg-gradient-to-br from-black via-neutral-900 to-black text-white relative shadow-2xl overflow-hidden animate-fadeIn">
         <button className="absolute top-3 right-3 text-white/60 hover:text-white transition-colors duration-200 text-2xl" onClick={onClose} aria-label="Close">×</button>
-        <div className="flex flex-col items-center pt-8 pb-4 px-6">
-          <div className="w-16 h-16 mb-2 rounded-full bg-white/10 flex items-center justify-center">
-            <img src={getTokenLogo(mint)} alt={name} className="w-12 h-12 rounded-full" />
+        {/* Header */}
+        <div className="flex items-center gap-3 pt-6 pb-3 px-5 sm:px-6">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/10 flex items-center justify-center ring-1 ring-white/10">
+            <img src={getTokenLogo(mint)} alt={name} className="w-10 h-10 sm:w-12 sm:h-12 rounded-full" />
           </div>
-          <h2 className="text-xl font-bold mb-1 text-center">{name}</h2>
-          <div className="mb-1 text-xs text-white/60 text-center">Mint: <span className="font-mono">{mint}</span></div>
-          <div className="mb-1 text-xs text-white/60 text-center">Balance: <span className="font-bold">{balance ?? "—"}</span></div>
-          <div className="flex flex-wrap gap-2 mt-3 mb-2 justify-center">
-            <button className="btn px-3 py-1 text-xs rounded-lg bg-white/10 hover:bg-white/20" onClick={() => { setSwapMode('buy'); setShowSwapBridge('swap'); }}>🟢 Buy</button>
-            <button className="btn px-3 py-1 text-xs rounded-lg bg-white/10 hover:bg-white/20 disabled:opacity-40" disabled={(balance||0)===0} onClick={() => { if ((balance||0)===0) return; setSwapMode('sell'); setShowSwapBridge('swap'); }}>🔴 Sell</button>
-            <button className="btn px-3 py-1 text-xs rounded-lg bg-white/10 hover:bg-white/20" onClick={() => { setSwapMode('direct'); setShowSwapBridge('swap'); }}>🔄 Swap</button>
-            <button className="btn px-3 py-1 text-xs rounded-lg bg-white/10 hover:bg-white/20" onClick={() => setShowSwapBridge('bridge')}>🌉 Bridge</button>
+          <div className="min-w-0">
+            <h2 id="token-detail-title" className="text-lg sm:text-xl font-bold truncate">{name}</h2>
+            <div className="text-[10px] sm:text-xs text-white/60 truncate">Mint: <span className="font-mono">{mint}</span></div>
+            <div className="text-[10px] sm:text-xs text-white/60">Balance: <span className="font-bold">{balance ?? "—"}</span></div>
+          </div>
+        </div>
+        {/* Actions */}
+        <div className="px-5 sm:px-6 pb-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <button className="btn px-3 py-2 text-xs rounded-lg bg-white/10 hover:bg-white/20" onClick={() => { setSwapMode('buy'); setShowSwapBridge('swap'); }}>🟢 Buy</button>
+            <button className="btn px-3 py-2 text-xs rounded-lg bg-white/10 hover:bg-white/20 disabled:opacity-40" disabled={(balance||0)===0} onClick={() => { if ((balance||0)===0) return; setSwapMode('sell'); setShowSwapBridge('swap'); }}>🔴 Sell</button>
+            <button className="btn px-3 py-2 text-xs rounded-lg bg-white/10 hover:bg-white/20" onClick={() => { setSwapMode('direct'); setShowSwapBridge('swap'); }}>🔄 Swap</button>
+            <button className="btn px-3 py-2 text-xs rounded-lg bg-white/10 hover:bg-white/20" onClick={() => setShowSwapBridge('bridge')}>🌉 Bridge</button>
           </div>
         </div>
         {showSwapBridge === "bridge" && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 transition-all duration-300">
-            <div className="rounded-2xl p-6 w-full max-w-sm border border-white/10 bg-black text-white animate-fadeIn">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 transition-all duration-300">
+            <div className="rounded-2xl p-6 w-[92vw] max-w-sm border border-white/10 bg-black text-white animate-fadeIn">
               <h2 className="text-lg font-semibold mb-4">Bridge {name} (Wormhole)</h2>
               <BridgeInstantUI mint={mint} name={name} balance={balance} onClose={() => setShowSwapBridge(null)} />
             </div>
           </div>
         )}
         {showSwapBridge === "swap" && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 transition-all duration-300">
-            <div className="rounded-2xl p-6 w-full max-w-sm border border-white/10 bg-black text-white animate-fadeIn">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 transition-all duration-300">
+            <div className="rounded-2xl p-6 w-[92vw] max-w-sm border border-white/10 bg-black text-white animate-fadeIn">
               <h2 className="text-lg font-semibold mb-4">
                 {swapMode==='buy' && <>Buy {name} (Pay SOL)</>}
                 {swapMode==='sell' && <>Sell {name} (Receive SOL)</>}
@@ -146,21 +152,32 @@ export default function TokenDetailModal({ mint, name, address, keypair, balance
 
 
 
-        <div className="px-6 pb-6 overflow-y-auto" style={{maxHeight: '60vh'}}>
+        {/* Content scroll area */}
+        <div className="px-5 sm:px-6 pb-6 overflow-y-auto" style={{ maxHeight: '70vh' }}>
           {chartLoading && <div className="text-white/60 text-xs mb-2">Loading chart...</div>}
-          {chartData && <Line data={chartData} options={{ plugins: { legend: { display: false } } }} />}
+          {chartData && (
+            <div className="h-40 sm:h-56">
+              <Line data={chartData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9CA3AF', maxTicksLimit: 6 } }, y: { ticks: { color: '#9CA3AF' }, grid: { color: 'rgba(255,255,255,0.05)' } } } }} />
+            </div>
+          )}
           {tokenInfo && (
-            <div className="mt-2 text-xs text-white/70 space-y-1">
-              <div>Market Cap: {tokenInfo.marketCap ? `$${tokenInfo.marketCap.toLocaleString()}` : "—"}</div>
-              <div>Volume: {tokenInfo.volume ? `$${tokenInfo.volume.toLocaleString()}` : "—"}</div>
-              <div>Created: {tokenInfo.created || "—"}</div>
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] text-white/80">
+              <div className="rounded-lg bg-white/5 border border-white/10 p-2"><div className="text-white/50">Market Cap</div><div className="font-semibold truncate">{tokenInfo.marketCap ? `$${tokenInfo.marketCap.toLocaleString()}` : '—'}</div></div>
+              <div className="rounded-lg bg-white/5 border border-white/10 p-2"><div className="text-white/50">Volume</div><div className="font-semibold truncate">{tokenInfo.volume ? `$${tokenInfo.volume.toLocaleString()}` : '—'}</div></div>
+              <div className="rounded-lg bg-white/5 border border-white/10 p-2 col-span-2 sm:col-span-1"><div className="text-white/50">Created</div><div className="font-semibold truncate">{tokenInfo.created || '—'}</div></div>
             </div>
           )}
           <div className="mt-4">
-            <SendTokenForm mint={mint} balance={balance} keypair={keypair} />
+            <div className="glass rounded-2xl p-4 border border-white/10">
+              <div className="text-sm font-semibold mb-2">Send {name}</div>
+              <SendTokenForm mint={mint} balance={balance} keypair={keypair} />
+            </div>
           </div>
           <div className="mt-4">
-            <TxList address={address} tokenMint={mint} />
+            <div className="glass rounded-2xl p-4 border border-white/10">
+              <div className="text-sm font-semibold mb-2">Recent Activity</div>
+              <TxList address={address} tokenMint={mint} />
+            </div>
           </div>
         </div>
       </div>

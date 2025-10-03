@@ -38,7 +38,13 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
   const [txSig, setTxSig] = useState('');
   const [slippageBps, setSlippageBps] = useState(50);
   const [showRoute, setShowRoute] = useState(false);
-  const [exactOutMode, setExactOutMode] = useState(false); // placeholder (not wired to backend yet)
+  const [exactOutMode, setExactOutMode] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [onlyDirectRoutes, setOnlyDirectRoutes] = useState(false);
+  const [maxAccounts, setMaxAccounts] = useState<number | ''>('');
+  const [restrictDexes, setRestrictDexes] = useState('');
+  const platformFeeBps = Number(process.env.NEXT_PUBLIC_JUPITER_PLATFORM_FEE_BPS || 0);
+  const feeAccount = process.env.NEXT_PUBLIC_JUPITER_FEE_ACCOUNT as string | undefined;
   const [editInputToken, setEditInputToken] = useState(false);
 
   useEffect(() => {
@@ -71,6 +77,7 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
   const fetchDecimals = (mint: string) => getTokenDecimals(mint);
 
   const [minOut, setMinOut] = useState<string>('');
+  const [feeApprox, setFeeApprox] = useState<string>('');
 
   const doQuote = async () => {
     const amt = Number(amountIn);
@@ -82,18 +89,50 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
     setStatus('Fetching quote…');
     try {
   const inDec = await fetchDecimals(activeInputMint);
-  const scaled = Math.floor(amt * Math.pow(10, inDec));
-  const r = await fetch(`/api/swap/quote?in=${encodeURIComponent(activeInputMint)}&out=${encodeURIComponent(outputMint)}&amountAtomic=${encodeURIComponent(String(scaled))}`);
+  const outDec = await fetchDecimals(outputMint);
+  const scaled = exactOutMode
+    ? Math.floor(amt * Math.pow(10, outDec))
+    : Math.floor(amt * Math.pow(10, inDec));
+  const params = new URLSearchParams({
+    in: activeInputMint,
+    out: outputMint,
+    amountAtomic: String(scaled),
+    swapMode: exactOutMode ? 'ExactOut' : 'ExactIn',
+  });
+  if (onlyDirectRoutes) params.set('onlyDirectRoutes', 'true');
+  if (maxAccounts !== '' && Number(maxAccounts) > 0) params.set('maxAccounts', String(maxAccounts));
+  if (restrictDexes) params.set('restrictDexes', restrictDexes);
+  const r = await fetch(`/api/swap/quote?${params.toString()}`);
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || 'quote failed');
-      setQuote(j);
+  setQuote(j);
       setPhase('ready');
-  // Estimate min receive (apply  slippage bps over route outAmount if available)
+  // Auto-slippage suggestion: base on price impact when buying small caps
+  if (j?.priceImpactPct != null) {
+    const imp = Number(j.priceImpactPct) * 100; // percent
+    // suggest slippage: clamp between 50 bps and 300 bps; add headroom for exact-out
+    const suggested = Math.min(300, Math.max(50, Math.round((imp * 4) + (exactOutMode ? 30 : 0))));
+    if (suggested > slippageBps) setSlippageBps(suggested);
+  }
+  // Estimate min receive or max spend depending on mode
   const outAmtRaw = j?.outAmount || 0;
-  const outDec = await fetchDecimals(outputMint);
   const slipFactor = 1 - (slippageBps / 10_000);
-  const min = (outAmtRaw / Math.pow(10, outDec)) * slipFactor;
-  setMinOut(min.toLocaleString(undefined, { maximumFractionDigits: 6 }));
+  if (!exactOutMode) {
+    const min = (outAmtRaw / Math.pow(10, outDec)) * slipFactor;
+    setMinOut(min.toLocaleString(undefined, { maximumFractionDigits: 6 }));
+  } else {
+    // In Exact-Out, show target out and estimated max in after slippage
+    const inEstRaw = j?.inAmount || 0;
+    const maxIn = (inEstRaw / Math.pow(10, inDec)) / slipFactor;
+    setMinOut(`Target out: ${amt.toLocaleString()} | Max spend ≈ ${maxIn.toLocaleString(undefined,{ maximumFractionDigits: 6 })}`);
+  }
+  // Platform fee estimate (assumes fee taken from output token)
+  if (platformFeeBps > 0 && feeAccount && outAmtRaw > 0) {
+    const feeOut = (outAmtRaw / Math.pow(10, outDec)) * (platformFeeBps / 10_000);
+    setFeeApprox(`${feeOut.toLocaleString(undefined,{ maximumFractionDigits: 6 })} (${platformFeeBps} bps)`);
+  } else {
+    setFeeApprox('');
+  }
   setStatus('Quote ready. Review then Swap.');
     } catch (e:any) {
       setPhase('error');
@@ -112,8 +151,22 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
     setStatus('Preparing swap transaction…');
     try {
   const inDec = await fetchDecimals(activeInputMint);
-  const atomic = Math.floor(amt * Math.pow(10, inDec));
-  const body = { inputMint: activeInputMint, outputMint, amountAtomic: atomic, slippageBps, userPublicKey: keypair.publicKey.toString() };
+  const outDec = await fetchDecimals(outputMint);
+  const atomic = exactOutMode
+    ? Math.floor(amt * Math.pow(10, outDec))
+    : Math.floor(amt * Math.pow(10, inDec));
+  const body: any = {
+    inputMint: activeInputMint,
+    outputMint,
+    amountAtomic: atomic,
+    slippageBps,
+    userPublicKey: keypair.publicKey.toString(),
+    swapMode: exactOutMode ? 'ExactOut' : 'ExactIn',
+  };
+  if (onlyDirectRoutes) body.onlyDirectRoutes = true;
+  if (maxAccounts !== '' && Number(maxAccounts) > 0) body.maxAccounts = Number(maxAccounts);
+  if (restrictDexes) body.restrictDexes = restrictDexes;
+  if (platformFeeBps > 0 && feeAccount) { body.platformFeeBps = platformFeeBps; body.feeAccount = feeAccount; }
       const r = await fetch('/api/swap/prepare', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || 'prepare failed');
@@ -256,17 +309,44 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
           <label className="text-xs text-white/60">Slippage (bps)</label>
           <input type="number" min={1} max={1000} value={slippageBps} onChange={e => setSlippageBps(Number(e.target.value))} className="w-24 px-2 py-1 rounded bg-black/40 border border-white/10 text-white text-xs" />
           <label className="flex items-center gap-1 text-[10px] text-white/60 ml-2">
-            <input type="checkbox" checked={exactOutMode} onChange={e => setExactOutMode(e.target.checked)} /> Exact-Out (soon)
+            <input type="checkbox" checked={exactOutMode} onChange={e => setExactOutMode(e.target.checked)} /> Exact-Out
           </label>
+          <button type="button" className="text-[10px] underline ml-auto" onClick={()=>setAdvancedOpen(v=>!v)}>{advancedOpen ? 'Hide' : 'Advanced'}</button>
         </div>
+        {advancedOpen && (
+          <div className="mt-2 p-2 rounded border border-white/10 bg-black/20 space-y-2 text-[11px]">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={onlyDirectRoutes} onChange={e=>setOnlyDirectRoutes(e.target.checked)} /> Only direct routes
+            </label>
+            <div className="flex items-center gap-2">
+              <span>Max accounts</span>
+              <input type="number" min={1} value={maxAccounts} onChange={e=>setMaxAccounts(e.target.value===''? '' : Number(e.target.value))} className="w-24 px-2 py-1 rounded bg-black/40 border border-white/10 text-white" />
+            </div>
+            <div className="flex items-center gap-2">
+              <span>Restrict DEXes</span>
+              <input type="text" placeholder="e.g. Orca,Raydium" value={restrictDexes} onChange={e=>setRestrictDexes(e.target.value)} className="flex-1 px-2 py-1 rounded bg-black/40 border border-white/10 text-white" />
+            </div>
+            {(platformFeeBps > 0 && feeAccount) && (
+              <div className="text-white/60">Platform fee: {platformFeeBps} bps → fee account {feeAccount.slice(0,4)}…</div>
+            )}
+          </div>
+        )}
       </div>
       {!quote && <button type="button" className="btn" onClick={doQuote} disabled={phase==='quoting'}>{phase==='quoting' ? 'Quoting…' : 'Get Quote'}</button>}
       {quote && phase !== 'success' && (
         <div className="p-2 rounded bg-black/30 border border-white/10 text-[11px] text-white/70 space-y-1">
           <div>Route: {quote?.marketInfos?.length || 1} hop(s)</div>
-          <div>Estimated Out: {(quote?.outAmount || 0) / 10 ** 6}</div>
+          <div>{exactOutMode ? 'Estimated In' : 'Estimated Out'}: {(() => {
+            const raw = exactOutMode ? (quote?.inAmount || 0) : (quote?.outAmount || 0);
+            const decs = exactOutMode ? undefined : 6; // display friendly default; precise shown in minOut line
+            const val = raw / 10 ** (decs || 6);
+            return val;
+          })()}</div>
           {minOut && <div>Min Receive (~): {minOut}</div>}
           <div>Price Impact: {((quote?.priceImpactPct || 0) * 100).toFixed(2)}%</div>
+          {(platformFeeBps > 0 && feeAccount && feeApprox) && (
+            <div>Platform Fee (est.): {feeApprox}</div>
+          )}
           <button type="button" className="text-[10px] underline" onClick={() => setShowRoute(r => !r)}>{showRoute ? 'Hide' : 'Show'} Route Details</button>
           {showRoute && (
             <div className="mt-1 space-y-1 max-h-32 overflow-auto pr-1">

@@ -14,12 +14,20 @@ export async function GET(req: Request) {
   const amountAtomicStr = searchParams.get('amountAtomic');
   const amountStr = searchParams.get('amount') || '0';
   const amount = Number(amountStr);
+  const swapMode = (searchParams.get('swapMode') || 'ExactIn') as 'ExactIn'|'ExactOut';
+  const onlyDirectRoutes = searchParams.get('onlyDirectRoutes');
+  const maxAccounts = searchParams.get('maxAccounts');
+  const restrictDexes = searchParams.get('restrictDexes');
     if (!inputMint || !outputMint) return Response.json({ error: 'in/out required' }, { status: 400 });
-    // Accept either amountAtomic or amount (UI amount)
+    // Accept either amountAtomic or amount (UI amount). Caller should scale correctly for ExactOut.
     const atomic = amountAtomicStr ? Number(amountAtomicStr) : Math.floor(amount * 10 ** 9);
     if (!(atomic > 0)) return Response.json({ error: 'amount required' }, { status: 400 });
   if (!(atomic > 0)) return Response.json({ error: 'atomic amount invalid' }, { status: 400 });
-  const url = `https://quote-api.jup.ag/v6/quote?inputMint=${encodeURIComponent(inputMint)}&outputMint=${encodeURIComponent(outputMint)}&amount=${encodeURIComponent(String(atomic))}`;
+  const qp = new URLSearchParams({ inputMint, outputMint, amount: String(atomic), swapMode });
+  if (onlyDirectRoutes != null) qp.set('onlyDirectRoutes', onlyDirectRoutes);
+  if (maxAccounts != null) qp.set('maxAccounts', maxAccounts);
+  if (restrictDexes != null) qp.set('restrictDexes', restrictDexes);
+  const url = `https://quote-api.jup.ag/v6/quote?${qp.toString()}`;
     const r = await fetch(url, { cache: 'no-store' });
     const j = await r.json();
     if (!r.ok) return Response.json({ error: j?.error || `HTTP ${r.status}` }, { status: r.status });
