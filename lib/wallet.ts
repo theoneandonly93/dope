@@ -375,8 +375,50 @@ export function setSelectedNetwork(n: NetworkChoice) {
   try { localStorage.setItem(NET_KEY, n); } catch {}
 }
 
+// Returns a prioritized list of RPC endpoints (first = primary). Supports comma-separated env vars.
+// Environment precedence (plural forms allow multiple endpoints):
+//  1. NEXT_PUBLIC_RPC_URLS / RPC_URLS (comma separated)
+//  2. NEXT_PUBLIC_RPC_URL / RPC_URL / SOLANA_RPC_URL (single)
+//  3. Built-in default QuickNode (primary) + api.mainnet-beta fallback.
+export function getRpcEndpoints(): string[] {
+  const listRaw =
+    process.env.NEXT_PUBLIC_RPC_URLS ||
+    process.env.RPC_URLS ||
+    process.env.NEXT_PUBLIC_RPC_URL ||
+    process.env.RPC_URL ||
+    process.env.SOLANA_RPC_URL || "";
+
+  let endpoints: string[] = [];
+  if (listRaw.includes(",")) {
+    endpoints = listRaw.split(",");
+  } else if (listRaw.trim().length > 0) {
+    endpoints = [listRaw];
+  }
+
+  // Always ensure we have at least a stable public endpoint fallback
+  const defaults = [
+    "https://tiniest-few-patron.solana-mainnet.quiknode.pro/6006d42ab7ce4dac6a265fdbf87f6586c73827a9/",
+    "https://api.mainnet-beta.solana.com",
+  ];
+
+  // Merge user provided + defaults (avoid duplicates, keep user priority)
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const e of [...endpoints, ...defaults]) {
+    const trimmed = e.trim();
+    if (!trimmed) continue;
+    const norm = trimmed.replace(/\/{2,}$/,'/'); // collapse excessive trailing slashes
+    if (!seen.has(norm)) {
+      seen.add(norm);
+      out.push(norm);
+    }
+  }
+  return out;
+}
+
+// Backwards compatibility – existing code expects a single primary endpoint
 export function getRpcEndpoint() {
-  return process.env.NEXT_PUBLIC_RPC_URL || process.env.RPC_URL || "https://tiniest-few-patron.solana-mainnet.quiknode.pro/6006d42ab7ce4dac6a265fdbf87f6586c73827a9";
+  return getRpcEndpoints()[0];
 }
 
 export function getWsEndpoint(): string | undefined {
@@ -387,113 +429,145 @@ export function getWsEndpoint(): string | undefined {
 }
 
 export function getConnection() {
-  const primary = getRpcEndpoint();
-  const fallback = process.env.FALLBACK_RPC_URL || "https://api.mainnet-beta.solana.com";
+  const endpoints = getRpcEndpoints();
   const commitment: any = "confirmed";
-  // simple singleton cache so health logic is shared
-  // @ts-ignore
+
   if (typeof window !== 'undefined') {
     // @ts-ignore
-    if (!window.__DOPE_CONN_STATE__) {
+    if (!window.__DOPE_CONN_STATE_V2__) {
       // @ts-ignore
-      window.__DOPE_CONN_STATE__ = {
-        activeUrl: primary,
-        primary,
-        fallback,
-        consecutiveFailures: 0,
-        lastSwitch: 0,
+      window.__DOPE_CONN_STATE_V2__ = {
+        endpoints, // prioritized list
+        activeIndex: 0,
+        statuses: endpoints.map((u: string) => ({ url: u, consecutiveFailures: 0, lastFailure: 0, lastSuccess: 0 })),
         conn: null as Connection | null,
+        lastRotation: 0,
       };
     }
     // @ts-ignore
-    const state = window.__DOPE_CONN_STATE__;
-    if (!state.conn) {
-      state.conn = new Connection(state.activeUrl, commitment);
-      try { window.dispatchEvent(new CustomEvent('dope:rpc', { detail: { status: 'init', url: state.activeUrl } })); } catch {}
+    const state = window.__DOPE_CONN_STATE_V2__;
+    // If env changed (hot reload), merge new endpoints
+    for (const e of endpoints) {
+      if (!state.statuses.find((s: any) => s.url === e)) {
+        state.statuses.push({ url: e, consecutiveFailures: 0, lastFailure: 0, lastSuccess: 0 });
+        state.endpoints.push(e);
+      }
     }
-    const baseConn = state.conn;
+    // Ensure ordering = new endpoints order followed by any legacy
+    state.endpoints = Array.from(new Set([...endpoints, ...state.endpoints]));
+    if (!state.conn) {
+      state.conn = new Connection(state.endpoints[state.activeIndex], commitment);
+      try { window.dispatchEvent(new CustomEvent('dope:rpc', { detail: { status: 'init', url: state.endpoints[state.activeIndex] } })); } catch {}
+    }
+
+    const rotate = (reason: string) => {
+      const prev = state.endpoints[state.activeIndex];
+      for (let i = 1; i <= state.endpoints.length; i++) {
+        const idx = (state.activeIndex + i) % state.endpoints.length;
+        const cand = state.statuses.find((s: any) => s.url === state.endpoints[idx]);
+        if (cand && cand.consecutiveFailures < 2) { // pick first not recently failed endpoint
+          state.activeIndex = idx;
+          state.conn = new Connection(state.endpoints[state.activeIndex], commitment);
+          state.lastRotation = Date.now();
+          try { window.dispatchEvent(new CustomEvent('dope:rpc', { detail: { status: 'rotate', url: state.endpoints[state.activeIndex], previousUrl: prev, reason } })); } catch {}
+          return;
+        }
+      }
+      // If all failed, just stay on current (will keep retrying)
+    };
+
+    const attemptPrimaryRestore = async () => {
+      if (state.activeIndex === 0) return; // already on primary
+      if (Date.now() - state.lastRotation < 60_000) return; // cooldown
+      try {
+        const test = new Connection(state.endpoints[0], commitment);
+        await test.getSlot();
+        const prev = state.endpoints[state.activeIndex];
+        state.activeIndex = 0;
+        state.conn = test;
+        state.statuses[0].consecutiveFailures = 0;
+        try { window.dispatchEvent(new CustomEvent('dope:rpc', { detail: { status: 'restore', url: state.endpoints[0], previousUrl: prev } })); } catch {}
+      } catch {}
+    };
 
     const healthCheck = async () => {
+      const activeUrl = state.endpoints[state.activeIndex];
+      const activeStatus = state.statuses.find((s: any) => s.url === activeUrl)!;
       try {
-        const slot = await baseConn.getSlot();
+        const slot = await state.conn.getSlot();
         if (typeof slot === 'number') {
-          if (state.activeUrl !== primary && state.primary && Date.now() - state.lastSwitch > 60_000) {
-            // try revert to primary after cooldown
-            try {
-              const test = new Connection(primary, commitment);
-              await test.getSlot();
-              state.activeUrl = primary;
-              state.conn = test;
-              state.consecutiveFailures = 0;
-              state.lastSwitch = Date.now();
-              try { window.dispatchEvent(new CustomEvent('dope:rpc', { detail: { status: 'recovered', url: state.activeUrl } })); } catch {}
-            } catch {}
-          } else {
-            state.consecutiveFailures = 0;
-          }
+          activeStatus.consecutiveFailures = 0;
+          activeStatus.lastSuccess = Date.now();
+          // Periodically attempt to restore primary if not on it
+          attemptPrimaryRestore();
           return;
         }
         throw new Error('slot not number');
-      } catch (e) {
-        state.consecutiveFailures++;
-        if (state.consecutiveFailures >= 3 && state.activeUrl !== fallback) {
-          try { window.dispatchEvent(new CustomEvent('dope:rpc', { detail: { status: 'degraded', url: state.activeUrl, error: (e as any)?.message } })); } catch {}
-          // switch to fallback
-          state.activeUrl = fallback;
-          state.conn = new Connection(fallback, commitment);
-          state.lastSwitch = Date.now();
-          state.consecutiveFailures = 0;
-          try { window.dispatchEvent(new CustomEvent('dope:rpc', { detail: { status: 'failover', url: state.activeUrl } })); } catch {}
+      } catch (e: any) {
+        activeStatus.consecutiveFailures++;
+        activeStatus.lastFailure = Date.now();
+        if (activeStatus.consecutiveFailures === 1) {
+          try { window.dispatchEvent(new CustomEvent('dope:rpc', { detail: { status: 'degraded', url: activeUrl, error: e?.message } })); } catch {}
         }
+        if (activeStatus.consecutiveFailures >= 2) rotate('health-fail');
       }
-  };
-    // Schedule background health check (cheap)
+    };
+
+    // Schedule health check once (shared)
     // @ts-ignore
     if (!state.healthTimer) {
       // @ts-ignore
       state.healthTimer = setInterval(healthCheck, 15000);
-      // run once immediately async
       setTimeout(healthCheck, 10);
     }
 
-    return new Proxy(baseConn, {
+    const proxy = new Proxy(state.conn, {
       get(target, prop, receiver) {
         const orig = (target as any)[prop];
         if (typeof orig === 'function') {
           return async (...args: any[]) => {
             try {
               return await orig.apply(target, args);
-            } catch (e) {
-              // escalate failure count and maybe trigger switch earlier
-              state.consecutiveFailures++;
-              if (state.consecutiveFailures >= 2 && state.activeUrl !== fallback) {
-                state.activeUrl = fallback;
-                state.conn = new Connection(fallback, commitment);
-                state.lastSwitch = Date.now();
-                state.consecutiveFailures = 0;
-                try { window.dispatchEvent(new CustomEvent('dope:rpc', { detail: { status: 'failover', url: state.activeUrl } })); } catch {}
+            } catch (e: any) {
+              const activeUrl = state.endpoints[state.activeIndex];
+              const activeStatus = state.statuses.find((s: any) => s.url === activeUrl)!;
+              activeStatus.consecutiveFailures++;
+              activeStatus.lastFailure = Date.now();
+              if (activeStatus.consecutiveFailures >= 2) {
+                rotate('call-fail');
                 return (state.conn as any)[prop](...args);
               }
-              // final fallback attempt
-              try {
-                const fbConn = new Connection(fallback, commitment);
-                return await (fbConn as any)[prop](...args);
-              } catch {
-                throw e;
+              // Try one-shot other endpoint before bubbling
+              for (let i = 0; i < state.endpoints.length; i++) {
+                if (i === state.activeIndex) continue;
+                const ep = state.endpoints[i];
+                const st = state.statuses.find((s: any) => s.url === ep)!;
+                if (st.consecutiveFailures < 2) {
+                  try {
+                    const temp = new Connection(ep, commitment);
+                    return await (temp as any)[prop](...args);
+                  } catch {}
+                }
               }
+              throw e;
             }
           };
         }
         return Reflect.get(target, prop, receiver);
       }
     });
+
+    return proxy;
   }
-  // SSR / node path (no window) simple connection
-  try {
-    return new Connection(primary, commitment);
-  } catch {
-    return new Connection(fallback, commitment);
+
+  // SSR / Node: simple best-effort chain through endpoints until one works
+  for (const url of endpoints) {
+    try {
+      return new Connection(url, commitment);
+    } catch {}
   }
+  // final fallback (public)
+  return new Connection("https://api.mainnet-beta.solana.com", commitment);
 }
 
 export const LAMPORTS_PER_DOPE = 1_000_000_000; // align with Solana-style precision

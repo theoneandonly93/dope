@@ -16,7 +16,15 @@
 
 - Password encrypts the secret phrase using WebCrypto (AES-GCM + PBKDF2).
 - Biometric acts as a quick user-verification gate. It does not replace the password-derived encryption key.
-- RPC URL is read from `NEXT_PUBLIC_RPC_URL`.
+- RPC Endpoints & Failover:
+  - Primary RPC is taken from `NEXT_PUBLIC_RPC_URLS` (comma separated) or `RPC_URLS` if set.
+  - Otherwise falls back to single `NEXT_PUBLIC_RPC_URL` / `RPC_URL` / `SOLANA_RPC_URL`.
+  - If none provided, a bundled QuickNode endpoint + `https://api.mainnet-beta.solana.com` are used.
+  - Runtime health checks every 15s and per-call error interception rotate to the next healthy endpoint after 2 consecutive failures.
+  - Automatic primary restoration is attempted after 60s of stability on a backup.
+  - Window events (`dope:rpc`) are dispatched with statuses: `init`, `rotate`, `restore`, `degraded`.
+  - Trailing slashes are normalized (excessive `////` collapsed to single `/`).
+  - Example: `NEXT_PUBLIC_RPC_URLS="https://rpc1.mainnet.solana.com,https://rpc2.backup.net/"`.
 
 ## Airdrop utility (SPL or devnet SOL)
 
