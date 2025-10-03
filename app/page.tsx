@@ -61,7 +61,17 @@ export default function Home() {
 
   // Move swap UI state hooks to top level
   const [showSwap, setShowSwap] = useState(false);
-  const [showTokenInfo, setShowTokenInfo] = useState<{mint: string, name: string} | null>(null);
+  const [showTokenInfo, setShowTokenInfo] = useState<{mint: string, name: string, intent?: string} | null>(null);
+  // Listen for suggested token events
+  useEffect(() => {
+    const handler = (e: any) => {
+      const d = e.detail || {};
+      if (!d.mint) return;
+      setShowTokenInfo({ mint: d.mint, name: d.name || d.mint, intent: d.intent });
+    };
+    window.addEventListener('dope:token-detail', handler as any);
+    return () => window.removeEventListener('dope:token-detail', handler as any);
+  }, []);
   const [swapAmount, setSwapAmount] = useState(0);
   const [swapResult, setSwapResult] = useState<string>("");
   const [swapError, setSwapError] = useState<string>("");
@@ -630,6 +640,7 @@ export default function Home() {
                   address={address}
                   keypair={keypair}
                   balance={showTokenInfo.mint === "So11111111111111111111111111111111111111112" ? balances['solana'] : dopeSpl}
+                  initialSwapMode={showTokenInfo.intent === 'buy' ? 'buy' : (showTokenInfo.intent === 'sell' ? 'sell' : undefined)}
                   onClose={() => setShowTokenInfo(null)}
                 />
               )}

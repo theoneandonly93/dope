@@ -15,19 +15,38 @@ import TxList from "../components/TxList";
 import SendTokenForm from "../components/SendTokenForm";
 import BridgeInstantUI from "./BridgeInstantUI";
 import SwapModal from "../components/SwapModal";
+import { DEFAULT_BUY_INPUT_MINT, DEFAULT_BUY_INPUT_SYMBOL, DEFAULT_PREFILL_PERCENT } from "../lib/config";
 
-export default function TokenDetailModal({ mint, name, address, keypair, balance, onClose }: {
+export default function TokenDetailModal({ mint, name, address, keypair, balance, onClose, initialSwapMode }: {
   mint: string;
   name: string;
   address: string;
   keypair: any;
   balance: number | null;
   onClose: () => void;
+  initialSwapMode?: 'direct'|'buy'|'sell';
 }) {
   const [chartData, setChartData] = useState<any>(null);
   const [chartLoading, setChartLoading] = useState(false);
   const [tokenInfo, setTokenInfo] = useState<any>(null);
   const [showSwapBridge, setShowSwapBridge] = useState<string|null>(null);
+  const [swapMode, setSwapMode] = useState<'direct'|'buy'|'sell'>(initialSwapMode || 'direct');
+  const persistKey = `dope:lastSwapMode:${mint}`;
+
+  useEffect(() => {
+    // load persisted mode
+    try {
+      const m = localStorage.getItem(persistKey) as 'direct'|'buy'|'sell'|null;
+      if (m) setSwapMode(m);
+      else if (initialSwapMode) setSwapMode(initialSwapMode);
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mint, initialSwapMode]);
+
+  useEffect(() => {
+    // persist mode changes
+    try { localStorage.setItem(persistKey, swapMode); } catch {}
+  }, [swapMode, persistKey]);
 
   useEffect(() => {
     let coingeckoId = "";
@@ -75,9 +94,11 @@ export default function TokenDetailModal({ mint, name, address, keypair, balance
           <h2 className="text-xl font-bold mb-1 text-center">{name}</h2>
           <div className="mb-1 text-xs text-white/60 text-center">Mint: <span className="font-mono">{mint}</span></div>
           <div className="mb-1 text-xs text-white/60 text-center">Balance: <span className="font-bold">{balance ?? "—"}</span></div>
-          <div className="flex gap-3 mt-3 mb-2">
-            <button className="btn px-3 py-1 flex items-center gap-2 text-xs rounded-lg bg-white/10 hover:bg-white/20 transition" onClick={() => setShowSwapBridge("swap")}>🔄 Swap</button>
-            <button className="btn px-3 py-1 flex items-center gap-2 text-xs rounded-lg bg-white/10 hover:bg-white/20 transition" onClick={() => setShowSwapBridge("bridge")}>🌉 Bridge</button>
+          <div className="flex flex-wrap gap-2 mt-3 mb-2 justify-center">
+            <button className="btn px-3 py-1 text-xs rounded-lg bg-white/10 hover:bg-white/20" onClick={() => { setSwapMode('buy'); setShowSwapBridge('swap'); }}>🟢 Buy</button>
+            <button className="btn px-3 py-1 text-xs rounded-lg bg-white/10 hover:bg-white/20 disabled:opacity-40" disabled={(balance||0)===0} onClick={() => { if ((balance||0)===0) return; setSwapMode('sell'); setShowSwapBridge('swap'); }}>🔴 Sell</button>
+            <button className="btn px-3 py-1 text-xs rounded-lg bg-white/10 hover:bg-white/20" onClick={() => { setSwapMode('direct'); setShowSwapBridge('swap'); }}>🔄 Swap</button>
+            <button className="btn px-3 py-1 text-xs rounded-lg bg-white/10 hover:bg-white/20" onClick={() => setShowSwapBridge('bridge')}>🌉 Bridge</button>
           </div>
         </div>
         {showSwapBridge === "bridge" && (
@@ -91,8 +112,33 @@ export default function TokenDetailModal({ mint, name, address, keypair, balance
         {showSwapBridge === "swap" && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 transition-all duration-300">
             <div className="rounded-2xl p-6 w-full max-w-sm border border-white/10 bg-black text-white animate-fadeIn">
-              <h2 className="text-lg font-semibold mb-4">Swap {name}</h2>
-              <SwapModal inputMint={mint} inputSymbol={name} balance={balance} onClose={() => setShowSwapBridge(null)} onSwapped={() => { /* TODO: trigger parent balance refresh if needed */ }} />
+              <h2 className="text-lg font-semibold mb-4">
+                {swapMode==='buy' && <>Buy {name} (Pay SOL)</>}
+                {swapMode==='sell' && <>Sell {name} (Receive SOL)</>}
+                {swapMode==='direct' && <>Swap {name}</>}
+              </h2>
+              <SwapModal
+                inputMint={swapMode==='sell' ? mint : DEFAULT_BUY_INPUT_MINT}
+                inputSymbol={swapMode==='sell' ? name : DEFAULT_BUY_INPUT_SYMBOL}
+                balance={swapMode==='sell' ? balance : null}
+                // If buying, lock output to current token; if selling, lock output to SOL/default buy mint; direct = free output
+                desiredOutputMint={swapMode==='buy' ? mint : (swapMode==='sell' ? DEFAULT_BUY_INPUT_MINT : undefined)}
+                lockOutputMint={swapMode!=='direct'}
+                disableInputTokenChange={swapMode!=='direct'}
+                initialAmountIn={(() => {
+                  if (swapMode==='buy') {
+                    // prefill percent of SOL (unknown here) -> skip (handled by parent maybe) so return undefined
+                    return undefined;
+                  }
+                  if (swapMode==='sell' && balance && balance>0) {
+                    return (balance * (DEFAULT_PREFILL_PERCENT/100));
+                  }
+                  return undefined;
+                })()}
+                autoQuote={false}
+                onClose={() => setShowSwapBridge(null)}
+                onSwapped={() => { /* trigger refresh */ try { window.dispatchEvent(new CustomEvent('swap-complete', { detail: { context: 'token-detail' } })); } catch {} }}
+              />
             </div>
           </div>
         )}

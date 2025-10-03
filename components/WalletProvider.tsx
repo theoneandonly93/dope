@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { Keypair } from "@solana/web3.js";
 import bs58 from "bs58";
+import LegalModal, { hasAcceptedLegal } from "./LegalModal";
 import {
   getStoredWallet,
   isUnlocked,
@@ -44,6 +45,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [bioAvailable, setBioAvailable] = useState(false);
   const [hasWallet, setHasWallet] = useState<boolean>(false);
   const [ready, setReady] = useState<boolean>(false);
+  const [showLegal, setShowLegal] = useState(false);
 
   useEffect(() => {
     const stored = getStoredWallet();
@@ -136,6 +138,10 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     const kp = await unlockWithPassword(password);
     setKeypair(kp);
     setUnlocked(true);
+    // trigger legal modal if not yet accepted
+    if (!hasAcceptedLegal()) {
+      setShowLegal(true);
+    }
   };
 
   const tryBiometricUnlock = async () => {
@@ -168,6 +174,9 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   return (
     <WalletContext.Provider value={{ address, unlocked, keypair, hasWallet, ready, createWallet, importWallet, importKeypair, unlock, tryBiometricUnlock, lock, logout }}>
       {children}
+      {showLegal && (
+        <LegalModal open={showLegal} onClose={() => setShowLegal(false)} />
+      )}
     </WalletContext.Provider>
   );
 }

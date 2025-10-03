@@ -10,17 +10,23 @@ interface SwapModalProps {
   balance: number | null; // initial balance for that mint; may not update when user switches input token
   onClose: () => void;
   onSwapped?: () => void; // callback to refresh balances
+  // New optional UX props
+  initialAmountIn?: number; // prefill amount (human units)
+  autoQuote?: boolean; // if true, automatically fetch quote after mount/prefill
+  desiredOutputMint?: string; // lock the output mint to a specific token (e.g. target asset when buying)
+  lockOutputMint?: boolean; // if true, user cannot change output mint
+  disableInputTokenChange?: boolean; // hide the change token UI
 }
 
 // Dynamic token list will be fetched from /tokenlist.json
 
 type Phase = 'idle' | 'quoting' | 'ready' | 'signing' | 'submitted' | 'success' | 'error';
 
-export default function SwapModal({ inputMint, inputSymbol, balance, onClose, onSwapped }: SwapModalProps) {
+export default function SwapModal({ inputMint, inputSymbol, balance, onClose, onSwapped, initialAmountIn, autoQuote, desiredOutputMint, lockOutputMint, disableInputTokenChange }: SwapModalProps) {
   const { keypair, unlock, tryBiometricUnlock } = useWallet() as any;
   const [tokenList, setTokenList] = useState<any[]>([]);
   const [activeInputMint, setActiveInputMint] = useState<string>(inputMint);
-  const [outputMint, setOutputMint] = useState<string>('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'); // default USDC
+  const [outputMint, setOutputMint] = useState<string>(desiredOutputMint || 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'); // default USDC or locked
   const [filter, setFilter] = useState('');
   const [inputFilter, setInputFilter] = useState('');
   const [amountIn, setAmountIn] = useState('');
@@ -41,6 +47,18 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
       .then(list => setTokenList(list))
       .catch(() => setTokenList([]));
   }, []);
+
+  // Prefill amount & optionally auto-quote when props provided
+  useEffect(() => {
+    if (initialAmountIn && initialAmountIn > 0) {
+      setAmountIn(String(initialAmountIn));
+      if (autoQuote) {
+        // slight defer so token list / state settle
+        setTimeout(() => { try { doQuote(); } catch {} }, 50);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialAmountIn, autoQuote]);
 
   // Allow dynamic addition of a custom output mint (user provided) beyond token list
   const [customMint, setCustomMint] = useState<string>('');
@@ -137,7 +155,9 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
       <div className="flex flex-col gap-2">
         <label className="text-xs text-white/60 flex items-center justify-between">
           <span>You swap</span>
-          <button type="button" className="text-[10px] underline text-white/50 hover:text-white" onClick={()=>setEditInputToken(e=>!e)}>{editInputToken ? 'Done' : 'Change Token'}</button>
+          {!disableInputTokenChange && (
+            <button type="button" className="text-[10px] underline text-white/50 hover:text-white" onClick={()=>setEditInputToken(e=>!e)}>{editInputToken ? 'Done' : 'Change Token'}</button>
+          )}
         </label>
         <div className="flex gap-2 flex-wrap">
           <div className="flex-1 flex flex-col gap-1 min-w-[55%]">
@@ -162,7 +182,7 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
             </div>
           )}
         </div>
-        {editInputToken && (
+        {editInputToken && !disableInputTokenChange && (
           <div className="mt-2 p-2 rounded-lg border border-white/10 bg-black/20 space-y-2">
             <div className="flex flex-col gap-1">
               <input
@@ -204,18 +224,25 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
             onChange={e => setFilter(e.target.value)}
             className="px-3 py-2 rounded-lg border border-white/10 bg-black/30 text-white text-xs outline-none"
           />
-          {!useCustomMint && (
+          {!useCustomMint && !lockOutputMint && (
             <select value={outputMint} onChange={e => setOutputMint(e.target.value)} className="px-3 py-2 rounded-lg border border-white/10 bg-black/30 text-white text-sm max-h-40 overflow-auto">
               {selectableTokens.map(o => <option key={o.mint} value={o.mint}>{o.symbol || o.name || o.mint.slice(0,4)}</option>)}
             </select>
           )}
+          {lockOutputMint && (
+            <div className="px-3 py-2 rounded-lg border border-white/10 bg-black/30 text-white text-xs flex items-center font-mono" title={outputMint}>
+              {tokenList.find(t=>t.mint===outputMint)?.symbol || tokenList.find(t=>t.mint===outputMint)?.name || outputMint.slice(0,6)+'…'} (locked)
+            </div>
+          )}
           <div className="flex items-center gap-2 text-[10px] text-white/60">
-            <label className="flex items-center gap-1">
-              <input type="checkbox" checked={useCustomMint} onChange={e => { setUseCustomMint(e.target.checked); if(!e.target.checked) setCustomMintError(''); }} />
-              Custom SPL Mint
-            </label>
+            {!lockOutputMint && (
+              <label className="flex items-center gap-1">
+                <input type="checkbox" checked={useCustomMint} onChange={e => { setUseCustomMint(e.target.checked); if(!e.target.checked) setCustomMintError(''); }} />
+                Custom SPL Mint
+              </label>
+            )}
           </div>
-          {useCustomMint && (
+          {useCustomMint && !lockOutputMint && (
             <CustomMintInline
               currentInputMint={activeInputMint}
               avoidMint={activeInputMint}
