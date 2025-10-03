@@ -15,9 +15,9 @@ export async function GET(req: Request) {
   const amountStr = searchParams.get('amount') || '0';
   const amount = Number(amountStr);
     if (!inputMint || !outputMint) return Response.json({ error: 'in/out required' }, { status: 400 });
-    if (!(amount > 0)) return Response.json({ error: 'amount required' }, { status: 400 });
-
-  const atomic = amountAtomicStr ? Number(amountAtomicStr) : Math.floor(amount * 10 ** 9);
+    // Accept either amountAtomic or amount (UI amount)
+    const atomic = amountAtomicStr ? Number(amountAtomicStr) : Math.floor(amount * 10 ** 9);
+    if (!(atomic > 0)) return Response.json({ error: 'amount required' }, { status: 400 });
   if (!(atomic > 0)) return Response.json({ error: 'atomic amount invalid' }, { status: 400 });
   const url = `https://quote-api.jup.ag/v6/quote?inputMint=${encodeURIComponent(inputMint)}&outputMint=${encodeURIComponent(outputMint)}&amount=${encodeURIComponent(String(atomic))}`;
     const r = await fetch(url, { cache: 'no-store' });

@@ -399,6 +399,9 @@ export function getRpcEndpoints(): string[] {
   const defaults = [
     "https://tiniest-few-patron.solana-mainnet.quiknode.pro/6006d42ab7ce4dac6a265fdbf87f6586c73827a9/",
     "https://api.mainnet-beta.solana.com",
+    // Extra public endpoints for resilience
+    "https://solana-rpc.publicnode.com",
+    "https://rpc.ankr.com/solana",
   ];
 
   // Merge user provided + defaults (avoid duplicates, keep user priority)
@@ -533,9 +536,12 @@ export function getConnection() {
               const activeStatus = state.statuses.find((s: any) => s.url === activeUrl)!;
               activeStatus.consecutiveFailures++;
               activeStatus.lastFailure = Date.now();
-              if (activeStatus.consecutiveFailures >= 2) {
-                rotate('call-fail');
-                return (state.conn as any)[prop](...args);
+              // If provider returns 403/forbidden, rotate immediately (likely auth/IP restriction)
+              const msg = (e?.message || '').toLowerCase();
+              const isForbidden = msg.includes('403') || msg.includes('forbidden') || msg.includes('access forbidden');
+              if (isForbidden || activeStatus.consecutiveFailures >= 2) {
+                rotate(isForbidden ? '403-forbidden' : 'call-fail');
+                try { return await (state.conn as any)[prop](...args); } catch {}
               }
               // Try one-shot other endpoint before bubbling
               for (let i = 0; i < state.endpoints.length; i++) {
