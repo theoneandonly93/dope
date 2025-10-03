@@ -3,7 +3,8 @@ export const dynamic = "force-dynamic";
 type Body = {
   inputMint: string;
   outputMint: string;
-  amount: number; // UI amount in tokens
+  amount?: number; // UI amount (optional if amountAtomic provided)
+  amountAtomic?: number; // direct atomic units
   slippageBps?: number;
   userPublicKey: string;
 };
@@ -27,14 +28,14 @@ export async function POST(req: Request) {
       return Response.json({ error: 'rate limit' }, { status: 429 });
     }
     const b: Body = await req.json();
-    const { inputMint, outputMint, amount, userPublicKey } = b;
+  const { inputMint, outputMint, amount, amountAtomic, userPublicKey } = b;
     const slippageBps = typeof b.slippageBps === 'number' ? b.slippageBps : 50;
     if (!inputMint || !outputMint || !userPublicKey) return Response.json({ error: 'inputMint/outputMint/userPublicKey required' }, { status: 400 });
-    if (!(amount > 0)) return Response.json({ error: 'amount required' }, { status: 400 });
+  if (!(amountAtomic > 0) && !(amount && amount > 0)) return Response.json({ error: 'amount or amountAtomic required' }, { status: 400 });
 
     const inDec = getDecimals(inputMint);
-    const ui = Math.max(0, amount);
-    const atomic = Math.floor(ui * Math.pow(10, inDec));
+  const ui = amountAtomic ? (amountAtomic / Math.pow(10, inDec)) : Math.max(0, amount || 0);
+  const atomic = amountAtomic ? Math.floor(amountAtomic) : Math.floor(ui * Math.pow(10, inDec));
 
     // 1) Quote
     const qUrl = `https://quote-api.jup.ag/v6/quote?inputMint=${encodeURIComponent(inputMint)}&outputMint=${encodeURIComponent(outputMint)}&amount=${atomic}&slippageBps=${slippageBps}`;

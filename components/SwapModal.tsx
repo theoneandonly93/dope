@@ -12,18 +12,15 @@ interface SwapModalProps {
   onSwapped?: () => void; // callback to refresh balances
 }
 
-// Basic list of popular output tokens (could be sourced dynamically later)
-const OUTPUT_TOKENS: { mint: string; symbol: string; decimals: number }[] = [
-  { mint: 'So11111111111111111111111111111111111111112', symbol: 'SOL', decimals: 9 },
-  { mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', symbol: 'USDC', decimals: 6 },
-  { mint: 'FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33', symbol: 'DOPE', decimals: 9 },
-];
+// Dynamic token list will be fetched from /tokenlist.json
 
 type Phase = 'idle' | 'quoting' | 'ready' | 'signing' | 'submitted' | 'success' | 'error';
 
 export default function SwapModal({ inputMint, inputSymbol, balance, onClose, onSwapped }: SwapModalProps) {
   const { keypair, unlock, tryBiometricUnlock } = useWallet() as any;
-  const [outputMint, setOutputMint] = useState<string>(OUTPUT_TOKENS[0].mint === inputMint ? OUTPUT_TOKENS[1].mint : OUTPUT_TOKENS[0].mint);
+  const [tokenList, setTokenList] = useState<any[]>([]);
+  const [outputMint, setOutputMint] = useState<string>('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'); // default USDC
+  const [filter, setFilter] = useState('');
   const [amountIn, setAmountIn] = useState('');
   const [quote, setQuote] = useState<any>(null);
   const [phase, setPhase] = useState<Phase>('idle');
@@ -35,7 +32,14 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
   const [showRoute, setShowRoute] = useState(false);
   const [exactOutMode, setExactOutMode] = useState(false); // placeholder (not wired to backend yet)
 
-  const outputOptions = OUTPUT_TOKENS.filter(t => t.mint !== inputMint);
+  useEffect(() => {
+    fetch('/tokenlist.json')
+      .then(r => r.json())
+      .then(list => setTokenList(list))
+      .catch(() => setTokenList([]));
+  }, []);
+
+  const selectableTokens = tokenList.filter(t => t.mint !== inputMint && (!filter || (t.symbol || t.name || '').toLowerCase().includes(filter.toLowerCase())));
 
   const fetchDecimals = (mint: string) => getTokenDecimals(mint);
 
@@ -48,11 +52,9 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
     setPhase('quoting');
     setStatus('Fetching quote…');
     try {
-      // Use quote API (UI amount * 10^9 inside route currently assumes 9 decimals; acceptable for SOL/DOPE; later adjust by mint)
-  const connection = getConnection();
   const inDec = await fetchDecimals(inputMint);
-  const scaled = amt * Math.pow(10, inDec);
-  const r = await fetch(`/api/swap/quote?in=${encodeURIComponent(inputMint)}&out=${encodeURIComponent(outputMint)}&amount=${encodeURIComponent(String(scaled))}`);
+  const scaled = Math.floor(amt * Math.pow(10, inDec));
+  const r = await fetch(`/api/swap/quote?in=${encodeURIComponent(inputMint)}&out=${encodeURIComponent(outputMint)}&amountAtomic=${encodeURIComponent(String(scaled))}`);
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || 'quote failed');
       setQuote(j);
@@ -79,7 +81,9 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
     setPhase('signing');
     setStatus('Preparing swap transaction…');
     try {
-      const body = { inputMint, outputMint, amount: amt, slippageBps, userPublicKey: keypair.publicKey.toString() };
+  const inDec = await fetchDecimals(inputMint);
+  const atomic = Math.floor(amt * Math.pow(10, inDec));
+  const body = { inputMint, outputMint, amountAtomic: atomic, slippageBps, userPublicKey: keypair.publicKey.toString() };
       const r = await fetch('/api/swap/prepare', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || 'prepare failed');
@@ -121,12 +125,34 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
       <div className="flex flex-col gap-2">
         <label className="text-xs text-white/60">You swap</label>
         <div className="flex gap-2">
-          <input type="number" min="0" step="any" value={amountIn} onChange={e => setAmountIn(e.target.value)} className="flex-1 px-3 py-2 rounded-lg border border-white/10 bg-black/30 text-white text-sm outline-none" placeholder={`0.0 (bal ${balance ?? '—'})`} />
+          <input
+            type="text"
+            inputMode="decimal"
+            pattern="[0-9]*[.,]?[0-9]*"
+            value={amountIn}
+            onChange={e => {
+              let v = e.target.value.replace(/,/g, '.');
+              // Allow only digits and single dot
+              if (!/^\d*(\.?\d*)?$/.test(v)) return; // reject invalid char
+              // Prevent leading zeros like 00 unless decimal
+              if (/^0\d+/.test(v)) v = v.replace(/^0+/, '0');
+              setAmountIn(v);
+            }}
+            className="flex-1 px-3 py-2 rounded-lg border border-white/10 bg-black/30 text-white text-sm outline-none"
+            placeholder={`0.0 (bal ${balance ?? '—'})`}
+          />
           <div className="px-3 py-2 rounded-lg border border-white/10 bg-black/30 text-white text-sm flex items-center font-mono">{inputSymbol}</div>
         </div>
         <label className="text-xs text-white/60 mt-2">For</label>
-        <select value={outputMint} onChange={e => setOutputMint(e.target.value)} className="px-3 py-2 rounded-lg border border-white/10 bg-black/30 text-white text-sm">
-          {outputOptions.map(o => <option key={o.mint} value={o.mint}>{o.symbol}</option>)}
+        <input
+          type="text"
+          placeholder="Search token"
+          value={filter}
+          onChange={e => setFilter(e.target.value)}
+          className="px-3 py-2 mb-2 rounded-lg border border-white/10 bg-black/30 text-white text-xs outline-none"
+        />
+        <select value={outputMint} onChange={e => setOutputMint(e.target.value)} className="px-3 py-2 rounded-lg border border-white/10 bg-black/30 text-white text-sm max-h-40 overflow-auto">
+          {selectableTokens.map(o => <option key={o.mint} value={o.mint}>{o.symbol || o.name || o.mint.slice(0,4)}</option>)}
         </select>
         <div className="flex items-center gap-2 mt-2 flex-wrap">
           <label className="text-xs text-white/60">Slippage (bps)</label>

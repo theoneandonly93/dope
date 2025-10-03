@@ -69,3 +69,12 @@ Set `GUARDIAN_API_BASE` in `.env.local` to point at a different guardian REST en
 
 ---
 This document will expand as redemption and relayer features are implemented.
+
+## Appendix: Arbitrary SPL Token Swapping
+
+The swap flow now supports any SPL token pair discoverable via Jupiter:
+- Quote endpoint accepts `amountAtomic` to handle tokens with arbitrary decimals.
+- UI fetches the global `tokenlist.json` and lets users search by symbol/name.
+- Min receive is computed using the token decimals cache to avoid repeated RPC calls.
+
+If a token isn\'t returning routes, Jupiter may not have liquidity or the mint is missing from the token list.
