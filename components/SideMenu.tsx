@@ -126,6 +126,7 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
             <div className="space-y-3">
               <div className="text-sm text-white/80">Manage your wallet preferences.</div>
               <button className="btn" onClick={() => { onClose(); router.push('/settings'); }}>Open Settings</button>
+              <button className="btn" onClick={() => { onClose(); router.push('/privacy'); }}>Privacy & Terms</button>
             </div>
           )}
 
