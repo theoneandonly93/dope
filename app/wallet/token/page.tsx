@@ -115,7 +115,7 @@ export default function TokenDetailPage() {
       </div>
       <div className="glass rounded-2xl p-5 border border-white/10">
         <h3 className="text-sm font-semibold mb-2">Send {name}</h3>
-        <SendTokenForm mint={mint} balance={balance} keypair={keypair} />
+  <SendTokenForm mint={mint} balance={balance} keypair={keypair} requireUnlock={true} />
       </div>
       <button className="btn w-full mt-4" onClick={() => router.back()}>Close</button>
     </div>

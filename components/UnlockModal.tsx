@@ -1,9 +1,12 @@
 import React, { useState } from "react";
+import { useWalletOptional } from "./WalletProvider";
 
-export default function UnlockModal({ onUnlock, onClose }: { onUnlock: (password: string) => Promise<void>, onClose: () => void }) {
+export default function UnlockModal({ onUnlock, onClose, onBiometricUnlock }: { onUnlock: (password: string) => Promise<void>, onClose: () => void, onBiometricUnlock?: () => Promise<boolean> }) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [bioLoading, setBioLoading] = useState(false);
+  const walletCtx = useWalletOptional();
 
   const handleUnlock = async () => {
     setError("");
@@ -18,6 +21,26 @@ export default function UnlockModal({ onUnlock, onClose }: { onUnlock: (password
     }
   };
 
+  const handleBiometric = async () => {
+    if (!onBiometricUnlock) return;
+    setError("");
+    setBioLoading(true);
+    try {
+      const ok = await onBiometricUnlock();
+      if (ok) {
+        onClose();
+      } else {
+        setError("Biometric unlock failed or not available.");
+      }
+    } catch (e:any) {
+      setError(e?.message || "Biometric unlock failed");
+    } finally {
+      setBioLoading(false);
+    }
+  };
+
+  const biometricCapable = !!walletCtx?.tryBiometricUnlock;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
       <div className="rounded-2xl p-6 w-full max-w-sm border border-white/10 bg-black text-white">
@@ -31,6 +54,9 @@ export default function UnlockModal({ onUnlock, onClose }: { onUnlock: (password
           disabled={loading}
         />
         <button className="btn w-full mb-2" onClick={handleUnlock} disabled={loading || !password}>{loading ? "Unlocking..." : "Unlock"}</button>
+        {biometricCapable && (
+          <button className="btn w-full mb-2" onClick={handleBiometric} disabled={bioLoading}>{bioLoading ? "Verifying…" : "Use Biometric"}</button>
+        )}
         <button className="btn w-full" onClick={onClose} disabled={loading}>Cancel</button>
         {error && <div className="text-xs text-red-400 mt-2">{error}</div>}
       </div>

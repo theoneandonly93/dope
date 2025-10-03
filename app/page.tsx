@@ -132,32 +132,19 @@ export default function Home() {
         setFatalError("Failed to fetch SOL balance. " + (e?.message || ""));
         setShowRpcError(true);
       }
-      // DOPE SPL
+      // Unified Solana token balances (DOPE, DWT, others) via new API route
       try {
-        const dope = await getDopeTokenBalance(address);
-        setDopeSpl(dope);
-    // Removed debug window assignments
-      } catch (e: any) {
-    setDopeSpl(null);
-    setFatalError("Failed to fetch DOPE token balance. " + (e?.message || ""));
-    setShowRpcError(true);
-      }
-      // Dope Wallet Token (DWT)
-      try {
-        const conn = (await import("../lib/wallet")).getConnection();
-        const owner = new (await import("@solana/web3.js")).PublicKey(address);
-        const mint = new (await import("@solana/web3.js")).PublicKey("4R7zJ4JgMz14JCw1JGn81HVrFCAfd2cnCfWvsmqv6xts");
-        const parsed = await conn.getParsedTokenAccountsByOwner(owner, { mint });
-        let dwt = 0;
-        if (parsed && parsed.value.length > 0) {
-          const acc = parsed.value[0].account.data;
-          const ui = acc?.parsed?.info?.tokenAmount?.uiAmount;
-          dwt = typeof ui === 'number' ? ui : 0;
+        const aggRes = await fetch(`/api/wallet/${address}/balances`);
+        const aggJson = await aggRes.json();
+        if (aggJson?.ok) {
+          const tokens: any[] = aggJson.tokens || [];
+            const dope = tokens.find(t => t.mint === 'FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33');
+            const dwt = tokens.find(t => t.mint === '4R7zJ4JgMz14JCw1JGn81HVrFCAfd2cnCfWvsmqv6xts');
+            if (dope) setDopeSpl(dope.uiAmount);
+            else setDopeSpl(0);
+            if (dwt) (newBalances as any).dwt = dwt.uiAmount; else (newBalances as any).dwt = 0;
         }
-        newBalances.dwt = dwt;
-      } catch (e: any) {
-        newBalances.dwt = 0;
-      }
+      } catch {}
       // ETH
       try {
         const ethRes = await fetch(`https://api.blockchair.com/ethereum/dashboards/address/${address}`);
@@ -419,6 +406,7 @@ export default function Home() {
                 mint={sendTokenMint}
                 balance={sendTokenMint === "So11111111111111111111111111111111111111112" ? balances['solana'] : sendTokenMint === "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33" ? dopeSpl : 0}
                 keypair={keypair}
+                requireUnlock={true}
               />
               <button className="btn w-full mt-4" onClick={() => setSendTokenMint(null)}>Close</button>
             </div>

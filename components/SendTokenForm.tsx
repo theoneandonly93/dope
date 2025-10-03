@@ -5,20 +5,21 @@ import { getOrCreateAssociatedTokenAccount, createTransferCheckedInstruction } f
 import UnlockModal from "./UnlockModal";
 import { useWallet } from "./WalletProvider";
 
-export default function SendTokenForm({ mint, balance, keypair }: { mint: string, balance: number | null, keypair: Keypair | null }) {
+export default function SendTokenForm({ mint, balance, keypair, requireUnlock = true }: { mint: string, balance: number | null, keypair: Keypair | null, requireUnlock?: boolean }) {
   // Local transaction log for UI feedback
   function logLocalTx({ signature, status, time, change }: { signature: string, status: string, time: number, change: number|null }) {
     const log = JSON.parse(localStorage.getItem('dope_local_tx_log') || '[]');
     log.unshift({ signature, status, time, change });
     localStorage.setItem('dope_local_tx_log', JSON.stringify(log.slice(0, 20)));
   }
-  const { unlock } = useWallet();
+  const { unlock, tryBiometricUnlock } = useWallet() as any;
 
   const [toAddress, setToAddress] = useState("");
   const [amount, setAmount] = useState<number | "">("");
   const [status, setStatus] = useState("");
   const [sending, setSending] = useState(false);
   const [showUnlock, setShowUnlock] = useState(false);
+  const [unlockedForSession, setUnlockedForSession] = useState(false);
   const [showApprove, setShowApprove] = useState(false);
   const [txid, setTxid] = useState<string>("");
 
@@ -35,8 +36,13 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
 
   const handleSend = async () => {
     setStatus("");
-    if (!keypair) {
-      setShowUnlock(true);
+    if (requireUnlock) {
+      if (!keypair || !unlockedForSession) {
+        setShowUnlock(true);
+        return;
+      }
+    } else if (!keypair) {
+      setShowUnlock(true); // fallback legacy behavior
       return;
     }
     if (!toAddress || !amount || Number(amount) <= 0) {
@@ -174,7 +180,16 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
         <UnlockModal
           onUnlock={async (password) => {
             await unlock(password);
+            setUnlockedForSession(true);
             setShowUnlock(false);
+          }}
+          onBiometricUnlock={async () => {
+            if (!tryBiometricUnlock) return false;
+            const ok = await tryBiometricUnlock();
+            if (ok) {
+              setUnlockedForSession(true);
+            }
+            return ok;
           }}
           onClose={() => setShowUnlock(false)}
         />
