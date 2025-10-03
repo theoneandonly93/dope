@@ -39,6 +39,11 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
       .catch(() => setTokenList([]));
   }, []);
 
+  // Allow dynamic addition of a custom output mint (user provided) beyond token list
+  const [customMint, setCustomMint] = useState<string>('');
+  const [customMintError, setCustomMintError] = useState<string>('');
+  const [useCustomMint, setUseCustomMint] = useState(false);
+
   const selectableTokens = tokenList.filter(t => t.mint !== inputMint && (!filter || (t.symbol || t.name || '').toLowerCase().includes(filter.toLowerCase())));
 
   const fetchDecimals = (mint: string) => getTokenDecimals(mint);
@@ -144,16 +149,68 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
           <div className="px-3 py-2 rounded-lg border border-white/10 bg-black/30 text-white text-sm flex items-center font-mono">{inputSymbol}</div>
         </div>
         <label className="text-xs text-white/60 mt-2">For</label>
-        <input
-          type="text"
-          placeholder="Search token"
-          value={filter}
-          onChange={e => setFilter(e.target.value)}
-          className="px-3 py-2 mb-2 rounded-lg border border-white/10 bg-black/30 text-white text-xs outline-none"
-        />
-        <select value={outputMint} onChange={e => setOutputMint(e.target.value)} className="px-3 py-2 rounded-lg border border-white/10 bg-black/30 text-white text-sm max-h-40 overflow-auto">
-          {selectableTokens.map(o => <option key={o.mint} value={o.mint}>{o.symbol || o.name || o.mint.slice(0,4)}</option>)}
-        </select>
+        <div className="flex flex-col gap-2">
+          <input
+            type="text"
+            placeholder="Search list"
+            value={filter}
+            onChange={e => setFilter(e.target.value)}
+            className="px-3 py-2 rounded-lg border border-white/10 bg-black/30 text-white text-xs outline-none"
+          />
+          {!useCustomMint && (
+            <select value={outputMint} onChange={e => setOutputMint(e.target.value)} className="px-3 py-2 rounded-lg border border-white/10 bg-black/30 text-white text-sm max-h-40 overflow-auto">
+              {selectableTokens.map(o => <option key={o.mint} value={o.mint}>{o.symbol || o.name || o.mint.slice(0,4)}</option>)}
+            </select>
+          )}
+          <div className="flex items-center gap-2 text-[10px] text-white/60">
+            <label className="flex items-center gap-1">
+              <input type="checkbox" checked={useCustomMint} onChange={e => { setUseCustomMint(e.target.checked); if(!e.target.checked) setCustomMintError(''); }} />
+              Custom SPL Mint
+            </label>
+          </div>
+          {useCustomMint && (
+            <div className="flex flex-col gap-1">
+              <input
+                type="text"
+                placeholder="Paste SPL token mint (base58)"
+                value={customMint}
+                onChange={e => {
+                  const v = e.target.value.trim();
+                  setCustomMint(v);
+                  setCustomMintError('');
+                }}
+                className="px-3 py-2 rounded-lg border border-white/10 bg-black/30 text-white text-[11px] outline-none font-mono"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="btn flex-1"
+                  onClick={async () => {
+                    if (!customMint) { setCustomMintError('Enter a mint'); return; }
+                    // Basic base58 validation & length check
+                    try {
+                      const { PublicKey } = await import('@solana/web3.js');
+                      const pk = new PublicKey(customMint);
+                      // Prevent selecting same as input
+                      if (pk.toBase58() === inputMint) { setCustomMintError('Cannot swap a token to itself'); return; }
+                      // Attempt decimals fetch to ensure it exists
+                      setStatus('Validating custom mint…');
+                      const dec = await fetchDecimals(pk.toBase58());
+                      if (dec < 0 || dec > 18) { setCustomMintError('Unusual decimals – rejected'); return; }
+                      setOutputMint(pk.toBase58());
+                      setStatus('Custom mint set');
+                      setCustomMintError('');
+                    } catch (e:any) {
+                      setCustomMintError(e?.message?.includes('Invalid public key') ? 'Invalid base58 mint' : (e?.message || 'Invalid mint'));
+                    }
+                  }}
+                >Use Mint</button>
+                <button type="button" className="btn flex-1" onClick={() => { setUseCustomMint(false); setCustomMint(''); setCustomMintError(''); }}>Cancel</button>
+              </div>
+              {customMintError && <div className="text-red-400 text-[10px]">{customMintError}</div>}
+            </div>
+          )}
+        </div>
         <div className="flex items-center gap-2 mt-2 flex-wrap">
           <label className="text-xs text-white/60">Slippage (bps)</label>
           <input type="number" min={1} max={1000} value={slippageBps} onChange={e => setSlippageBps(Number(e.target.value))} className="w-24 px-2 py-1 rounded bg-black/40 border border-white/10 text-white text-xs" />

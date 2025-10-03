@@ -612,7 +612,7 @@ export default function Home() {
               onClose={() => setShowManageModal(false)}
             />
           )}
-          <TxList address={address || undefined} key={address} />
+          <TxList address={address || undefined} key={address} limit={4} showSeeMore />
         </div>
       </div>
     </ErrorBoundary>

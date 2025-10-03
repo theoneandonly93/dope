@@ -1,10 +1,17 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { getRecentTransactions, RecentTx } from "../lib/wallet";
 import { Connection, PublicKey } from "@solana/web3.js";
+import Link from "next/link";
 
+interface TxListProps {
+  address?: string;
+  tokenMint?: string; // currently unused but kept for backward compat
+  limit?: number; // max number of rows to show (combined local + on-chain)
+  showSeeMore?: boolean; // show the see all arrow/link
+}
 
-export default function TxList({ address, tokenMint }: { address?: string, tokenMint?: string }) {
+export default function TxList({ address, tokenMint, limit, showSeeMore }: TxListProps) {
   const [expandedIdx, setExpandedIdx] = useState<number|null>(null);
   const [items, setItems] = useState<RecentTx[]>([]);
   const [loading, setLoading] = useState(false);
@@ -56,14 +63,30 @@ export default function TxList({ address, tokenMint }: { address?: string, token
     return <div className="glass rounded-2xl p-5 border border-white/5 text-white/60 text-sm">No address provided.</div>;
   }
 
+  // Derive slices based on limit (local first, then on-chain)
+  const { displayLocal, displayItems } = useMemo(() => {
+    if (!limit || limit <= 0) return { displayLocal: localTx, displayItems: items };
+    const first = localTx.slice(0, limit);
+    const remaining = Math.max(0, limit - first.length);
+    const second = items.slice(0, remaining);
+    return { displayLocal: first, displayItems: second };
+  }, [limit, localTx, items]);
+
   return (
     <div className="glass rounded-2xl p-5 border border-white/5">
-      <div className="text-sm font-semibold mb-3">Recent Activity</div>
+      <div className="text-sm font-semibold mb-3 flex items-center justify-between">
+        <span>Recent Activity</span>
+        {showSeeMore && (
+          <Link href="/transactions" className="text-xs text-white/60 hover:text-white flex items-center gap-1">
+            See all <span aria-hidden>→</span>
+          </Link>
+        )}
+      </div>
       {loading && items.length === 0 && <div className="text-white/60 text-sm">Loading...</div>}
       {!loading && items.length === 0 && <div className="text-white/60 text-sm">No recent transactions</div>}
       <div className="space-y-2">
         {/* Show local tx first, then on-chain */}
-        {localTx.map((tx, idx) => {
+        {displayLocal.map((tx, idx) => {
           const isExpanded = expandedIdx === idx;
           return (
             <div
@@ -93,13 +116,13 @@ export default function TxList({ address, tokenMint }: { address?: string, token
             </div>
           );
         })}
-        {items.map((tx, idx) => {
-          const isExpanded = expandedIdx === localTx.length + idx;
+        {displayItems.map((tx, idx) => {
+          const isExpanded = expandedIdx === displayLocal.length + idx;
           return (
             <div
               key={tx.signature || Math.random().toString(36)}
               className="flex flex-col p-3 rounded-lg border border-white/10 hover:bg-white/5 cursor-pointer"
-              onClick={() => setExpandedIdx(isExpanded ? null : localTx.length + idx)}
+              onClick={() => setExpandedIdx(isExpanded ? null : displayLocal.length + idx)}
             >
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">

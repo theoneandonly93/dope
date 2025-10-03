@@ -41,22 +41,36 @@ export default function TransactionsPage() {
     return () => { cancelled = true; clearInterval(iv); };
   }, [address, limit]);
 
-  const filtered = useMemo(() => {
+  const { filteredLocal, filteredChain } = useMemo(() => {
     const s = q.trim().toLowerCase();
     const fromTs = from ? new Date(from + 'T00:00:00Z').getTime() / 1000 : null;
     const toTs = to ? new Date(to + 'T23:59:59Z').getTime() / 1000 : null;
-    return items.filter((tx) => {
-      if (status !== 'all') {
-        if (status === 'pending' && tx.status !== 'unknown') return false;
-        if (status !== 'pending' && tx.status !== status) return false;
-      }
+
+    const matchStatus = (st: string) => {
+      if (status === 'all') return true;
+      if (status === 'pending') return st === 'pending' || st === 'unknown';
+      return st === status; // success or error
+    };
+
+    const local = localTx.filter(tx => {
+      if (!matchStatus(tx.status)) return false;
+      if (fromTs && (tx.time ? tx.time/1000 : 0) < fromTs) return false; // local time stored ms maybe
+      if (toTs && (tx.time ? tx.time/1000 : 0) > toTs) return false;
+      if (!s) return true;
+      const sig = (tx.signature || '').toLowerCase();
+      return sig.includes(s);
+    });
+    const chain = items.filter(tx => {
+      const st = tx.status === 'unknown' ? 'pending' : tx.status; // map unknown -> pending for UI logic
+      if (!matchStatus(st)) return false;
       if (fromTs && (tx.time ?? 0) < fromTs) return false;
       if (toTs && (tx.time ?? 0) > toTs) return false;
       if (!s) return true;
       const sig = tx.signature.toLowerCase();
       return sig.includes(s);
     });
-  }, [items, q, status]);
+    return { filteredLocal: local, filteredChain: chain };
+  }, [items, localTx, q, status, from, to]);
 
   return (
     <div className="space-y-5 pb-24">
@@ -96,10 +110,10 @@ export default function TransactionsPage() {
 
       <div className="glass rounded-2xl p-2 border border-white/10 max-w-md mx-auto shadow-lg">
         {loading && items.length === 0 && <div className="text-white/70 text-sm text-center py-8">Loading...</div>}
-        {!loading && filtered.length === 0 && localTx.length === 0 && <div className="text-white/70 text-sm text-center py-8">No results</div>}
+        {!loading && filteredLocal.length === 0 && filteredChain.length === 0 && <div className="text-white/70 text-sm text-center py-8">No results</div>}
         <div className="flex flex-col gap-2">
           {/* Show local tx first, then on-chain */}
-          {localTx.map((tx, idx) => {
+          {filteredLocal.map((tx, idx) => {
             const isExpanded = expandedIdx === idx;
             return (
               <div
@@ -129,7 +143,7 @@ export default function TransactionsPage() {
               </div>
             );
           })}
-          {filtered.map((tx, idx) => (
+          {filteredChain.map((tx, idx) => (
             <a key={tx.signature} href={`https://explorer.solana.com/tx/${tx.signature}?cluster=custom`} target="_blank" rel="noreferrer" className="rounded-xl bg-gradient-to-r from-black/50 to-black/20 px-3 py-2 flex items-center justify-between shadow-sm active:scale-[0.98] transition-transform">
               <div className="flex flex-col min-w-0">
                 <span className={`text-[11px] font-semibold ${tx.status === 'success' ? 'text-green-400' : tx.status === 'error' ? 'text-red-400' : 'text-yellow-400'}`}>{tx.status === 'success' ? 'Confirmed' : tx.status === 'error' ? 'Failed' : 'Pending'}</span>
