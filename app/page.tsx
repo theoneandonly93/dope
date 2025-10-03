@@ -49,8 +49,7 @@ export default function Home() {
   const [dopePrice, setDopePrice] = useState<number | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState("");
-  // Debug state for Solscan API response
-  const [solscanDebug, setSolscanDebug] = useState<any>(null);
+  // (Removed debug state previously used for Solscan API response)
 
   // Top-level fallback UI for runtime errors
   const [fatalError, setFatalError] = useState<string>("");
@@ -101,16 +100,13 @@ export default function Home() {
       // Solana
       try {
         let solBalance = await getSolBalance(address);
-        let solscanApiResponse = null;
+  // Removed Solscan debug capture
         // If RPC returns 0, try Solscan API as fallback
         if (solBalance === 0) {
           try {
             const solscanRes = await fetch(`https://public-api.solscan.io/account/${address}`);
             const solscanJson = await solscanRes.json();
-            solscanApiResponse = solscanJson;
-            if (solscanJson?.lamports !== undefined) {
-              solBalance = solscanJson.lamports / 1_000_000_000;
-            }
+            if (solscanJson?.lamports !== undefined) solBalance = solscanJson.lamports / 1_000_000_000;
             // If still 0, try scraping Solscan HTML
             if (solBalance === 0) {
               const htmlRes = await fetch(`https://solscan.io/account/${address}`);
@@ -124,8 +120,7 @@ export default function Home() {
           } catch {}
         }
         newBalances.solana = solBalance;
-        // Store Solscan API response for debug
-        setSolscanDebug(solscanApiResponse);
+  // Debug removal: no-op
       } catch (e: any) {
         newBalances.solana = null;
         setFatalError("Failed to fetch SOL balance. " + (e?.message || ""));
@@ -135,16 +130,11 @@ export default function Home() {
       try {
         const dope = await getDopeTokenBalance(address);
         setDopeSpl(dope);
-        // Extra debug info for DOPE SPL
-  (window as any).__DOPE_DEBUG__ = (window as any).__DOPE_DEBUG__ || {};
-  (window as any).__DOPE_DEBUG__.lastDopeBalance = dope;
-  (window as any).__DOPE_DEBUG__.address = address;
+    // Removed debug window assignments
       } catch (e: any) {
-        setDopeSpl(null);
-        setFatalError("Failed to fetch DOPE token balance. " + (e?.message || ""));
-        setShowRpcError(true);
-  (window as any).__DOPE_DEBUG__ = (window as any).__DOPE_DEBUG__ || {};
-  (window as any).__DOPE_DEBUG__.error = e?.message || e;
+    setDopeSpl(null);
+    setFatalError("Failed to fetch DOPE token balance. " + (e?.message || ""));
+    setShowRpcError(true);
       }
       // Dope Wallet Token (DWT)
       try {
@@ -321,29 +311,6 @@ export default function Home() {
         )}
 
         <div className="glass rounded-2xl p-4 sm:p-5 border border-white/5 w-full">
-          {/* Debug Info Section */}
-          <div className="mt-2 p-2 rounded bg-black/40 border border-yellow-400 text-yellow-200 text-xs">
-            <div><b>Debug Info</b></div>
-            <div>Wallet Address: {address}</div>
-            <div>Active Chain: {activeChain}</div>
-            <div>Balance Raw: {JSON.stringify(balances[activeChain])}</div>
-            <div>DOPE SPL Raw: {JSON.stringify(dopeSpl)}</div>
-            <div>DWT Raw: {JSON.stringify(balances['dwt'])}</div>
-            {fatalError && <div>Error: {fatalError}</div>}
-            {activeChain === 'solana' && solscanDebug && (
-              <div>Solscan API Response: <pre style={{whiteSpace:'pre-wrap'}}>{JSON.stringify(solscanDebug, null, 2)}</pre></div>
-            )}
-          </div>
-          {/* Debug Info Section */}
-          <div className="mt-2 p-2 rounded bg-black/40 border border-yellow-400 text-yellow-200 text-xs">
-            <div><b>Debug Info</b></div>
-            <div>Wallet Address: {address}</div>
-            <div>Active Chain: {activeChain}</div>
-            <div>Balance Raw: {JSON.stringify(balances[activeChain])}</div>
-            <div>DOPE SPL Raw: {JSON.stringify(dopeSpl)}</div>
-            <div>DWT Raw: {JSON.stringify(balances['dwt'])}</div>
-            {fatalError && <div>Error: {fatalError}</div>}
-          </div>
           <div className="text-xs text-white/60">Address</div>
           <div className="font-mono break-all text-sm">{address || "No address set"}</div>
           <div className="mt-4 text-xs text-white/60">Balance</div>
@@ -351,16 +318,18 @@ export default function Home() {
             {balances[activeChain] === null ? "—" : balances[activeChain]?.toFixed(4)}
             <span className="text-base font-medium text-white/60"> {activeChain.toUpperCase()}</span>
           </div>
-          {/* USD Value for Solana, DOPE, DWT */}
-          {activeChain === 'solana' && balances['solana'] !== null && solPrice && (
-            <div className="text-lg text-green-400 mt-2">${(balances['solana'] * solPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</div>
-          )}
-          {activeChain === 'solana' && dopeSpl !== null && dopePrice && (
-            <div className="text-lg text-green-400 mt-2">DOPE: ${(dopeSpl * dopePrice).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</div>
-          )}
-          {activeChain === 'solana' && balances['dwt'] !== undefined && dopePrice && (
-            <div className="text-lg text-green-400 mt-2">DWT: {(balances['dwt'] * dopePrice).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</div>
-          )}
+          {/* Single aggregated USD value per chain (currently only Solana has multiple tracked tokens) */}
+          {activeChain === 'solana' && (() => {
+            const solUsd = (balances['solana'] !== null && solPrice) ? (balances['solana'] as number) * solPrice : 0;
+            const dopeUsd = (dopeSpl !== null && dopePrice) ? dopeSpl * dopePrice : 0;
+            // DWT currently reuses dopePrice as placeholder; adjust when real price available
+            const dwtUsd = (balances['dwt'] !== null && balances['dwt'] !== undefined && dopePrice) ? (balances['dwt'] as number) * dopePrice : 0;
+            const total = solUsd + dopeUsd + dwtUsd;
+            if (total === 0) return null;
+            return (
+              <div className="text-lg text-green-400 mt-2">${total.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</div>
+            );
+          })()}
           {fatalError && (
             <div className="text-xs text-red-400 mt-2">Error: {fatalError}</div>
           )}

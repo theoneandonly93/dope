@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { PublicKey, Connection, Keypair } from "@solana/web3.js";
 import { sendSol } from "../lib/wallet";
-import { getOrCreateAssociatedTokenAccount, transferChecked } from "@solana/spl-token";
+import { getOrCreateAssociatedTokenAccount, createTransferCheckedInstruction } from "@solana/spl-token";
 import UnlockModal from "./UnlockModal";
 import { useWallet } from "./WalletProvider";
 
@@ -52,17 +52,9 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
       recipient = toAddress;
     }
     if (balance !== null) {
-      let decimals = 9;
-      if (mint !== "So11111111111111111111111111111111111111112") {
-        try {
-          const { getConnection } = await import("../lib/wallet");
-          const connection = getConnection();
-          decimals = await getTokenDecimals(connection, mint);
-        } catch {}
-      }
-      const baseAmount = Number(amount) * Math.pow(10, decimals);
-      if (baseAmount > balance) {
-        setStatus(`Insufficient balance. You have ${(balance / Math.pow(10, decimals)).toLocaleString()} and tried to send ${amount}.`);
+      // balance prop is passed in UI units already (not raw smallest units)
+      if (Number(amount) > balance) {
+        setStatus(`Insufficient balance. You have ${balance.toLocaleString()} and tried to send ${amount}.`);
         logLocalTx({ signature: '', status: 'error', time: Date.now()/1000, change: null });
         return;
       }
@@ -94,18 +86,44 @@ export default function SendTokenForm({ mint, balance, keypair }: { mint: string
           logLocalTx({ signature: '', status: 'error', time: Date.now()/1000, change: null });
           return;
         }
+        // Derive raw amount (integer) in base units for transferChecked
+        // Use string parsing to avoid floating point issues; support bigint for large amounts
+        const amtStr = String(amount).trim();
+        const [whole, fracRaw = ""] = amtStr.split(".");
+        const frac = fracRaw.slice(0, decimals); // trim extra precision
+        const fracPadded = frac.padEnd(decimals, '0');
+        let rawAmountBigInt: bigint;
+        try {
+          const base = BigInt(10);
+          let mult = BigInt(1);
+          for (let i = 0; i < decimals; i++) mult = mult * base;
+          rawAmountBigInt = (BigInt(whole || '0') * mult) + BigInt(fracPadded || '0');
+        } catch {
+          setStatus("Invalid amount format.");
+          setSending(false);
+          logLocalTx({ signature: '', status: 'error', time: Date.now()/1000, change: null });
+          return;
+        }
+        if (rawAmountBigInt <= BigInt(0)) {
+          setStatus("Amount too small after decimals.");
+          setSending(false);
+          logLocalTx({ signature: '', status: 'error', time: Date.now()/1000, change: null });
+          return;
+        }
         const fromTokenAccount = await getOrCreateAssociatedTokenAccount(connection, keypair, mintPubkey, keypair.publicKey);
         const toTokenAccount = await getOrCreateAssociatedTokenAccount(connection, keypair, mintPubkey, recipient);
-        txidVal = await transferChecked(
-          connection,
-          keypair,
+        // Build manual instruction to pass bigint amount
+        const ix = createTransferCheckedInstruction(
           fromTokenAccount.address,
           mintPubkey,
           toTokenAccount.address,
-          keypair,
-          Number(amount),
+          keypair.publicKey,
+          rawAmountBigInt,
           decimals
         );
+        const { Transaction } = await import("@solana/web3.js");
+        const tx = new Transaction().add(ix);
+        txidVal = await connection.sendTransaction(tx, [keypair]);
       }
       setTxid(txidVal);
       // Robust post-send check: fetch transaction and check status
