@@ -24,7 +24,7 @@ export default function PrivacyTermsPage() {
     <div className="space-y-6 pb-24 max-w-3xl mx-auto px-4">
       <div className="pt-4">
         <h1 className="text-2xl font-bold">Dopelganga Wallet – Privacy Policy & Terms</h1>
-        <div className="text-white/60 text-sm mt-1">Effective Date: <span className="font-mono">[Insert Date]</span></div>
+  <div className="text-white/60 text-sm mt-1">Effective Date: <span className="font-mono">10/3/2025 1:13 PM</span></div>
         <div className="mt-4 flex gap-3 flex-wrap">
           <a href="/api/legal/pdf" className="btn text-xs" target="_blank" rel="noopener noreferrer">Download PDF</a>
         </div>
@@ -194,7 +194,7 @@ export default function PrivacyTermsPage() {
           <p className="text-white/60 text-xs mt-2">You can adapt the language later with formal legal review.</p>
         </section>
       </div>
-      <div className="text-xs text-white/40">Last updated: <span className="font-mono">[Insert Date]</span></div>
+  <div className="text-xs text-white/40">Last updated: <span className="font-mono">10/3/2025 1:13 PM</span></div>
     </div>
   );
 }

@@ -26,6 +26,11 @@ const DAPP_LIST = [
     url: "https://rugflip.io",
     logo: "/rugflip.jpg"
   }
+  ,{
+    name: "Swept.fun",
+    url: "https://swept.fun",
+    logo: "/swept.jpg" // replaced with dedicated swept logo
+  }
 ];
 
 export default function SafeDappList({ onSelect }: { onSelect: (url: string) => void }) {

@@ -13,6 +13,7 @@ import { syncDopeTokenAccounts } from "../lib/dopeToken";
 import TxList from "../components/TxList";
 
 import SendTokenForm from "../components/SendTokenForm";
+import SuggestedTokens from "../components/SuggestedTokens";
 import SelectTokenModal from "../components/SelectTokenModal";
 
 function formatTokenAmount(amount: number | null, symbol: string): string {
@@ -443,10 +444,11 @@ export default function Home() {
 
         {React.createElement(require('../components/SupportChatCard').default)}
 
-        <div className="grid grid-cols-2 gap-2 sm:gap-3 w-full">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 w-full">
           <button className="btn text-center px-2 py-2 text-xs sm:text-base" onClick={() => setShowSendModal(true)}>Send</button>
           <Link href="/wallet/receive" className="btn text-center px-2 py-2 text-xs sm:text-base">Receive</Link>
           <button className="btn text-center px-2 py-2 text-xs sm:text-base" onClick={() => setShowSwap(true)}>Swap</button>
+          <Link href="/wallet/card/topup" className="btn text-center px-2 py-2 text-xs sm:text-base">Add Cash</Link>
         </div>
         {showSendModal && (
           <SelectTokenModal
@@ -664,7 +666,9 @@ export default function Home() {
             />
           )}
         </div>
-        {/* Standalone Recent Activity card */}
+  {/* Suggested Tokens */}
+  <SuggestedTokens />
+  {/* Standalone Recent Activity card */}
         <TxList address={address || undefined} key={address + '-recent'} limit={4} showSeeMore />
       </div>
     </ErrorBoundary>
