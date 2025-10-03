@@ -11,6 +11,10 @@ const nextConfig = {
       'utf-8-validate': false,
       bufferutil: false,
       encoding: false,
+  '@injectivelabs/ts-types': require('path').resolve(__dirname, 'shims/injective-ts-types.js'),
+  '@injectivelabs/token-metadata': require('path').resolve(__dirname, 'shims/injective-token-metadata.js'),
+  '@injectivelabs/networks': require('path').resolve(__dirname, 'shims/injective-empty.js'),
+  '@injectivelabs/sdk-ts': require('path').resolve(__dirname, 'shims/injective-empty.js'),
       // Avoid bundling Node ws on the client; disable ws. We don't alias rpc-websockets; WS is disabled in code.
       ...(isServer ? {} : { ws: false }),
     };
