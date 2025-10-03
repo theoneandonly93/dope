@@ -623,6 +623,37 @@ export async function getSolBalance(pubkey: string) {
   }
 }
 
+// More robust multi-endpoint balance fetch with per-endpoint timeout & raw RPC fallback.
+// Returns null if all attempts fail (caller can decide to show retry UI).
+export async function getSolBalanceRobust(pubkey: string, timeoutMs = 3500): Promise<number | null> {
+  const endpoints = getRpcEndpoints();
+  const pk = new PublicKey(pubkey);
+  for (const url of endpoints) {
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      // First try standard Connection (benefits from http agent pooling)
+      const conn = new Connection(url, { commitment: 'processed' } as any);
+      const lamports = await conn.getBalance(pk);
+      clearTimeout(t);
+      if (typeof lamports === 'number') return lamportsToDope(lamports);
+    } catch {}
+    clearTimeout(t);
+    // Raw JSON RPC fallback (bypass web3.js overhead) – increases resilience if web3.js call path has transient issue
+    try {
+      const body = { jsonrpc: '2.0', id: 1, method: 'getBalance', params: [pubkey, { commitment: 'processed' }] };
+      const rawRes = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      if (rawRes.ok) {
+        const j = await rawRes.json();
+        if (j?.result?.value !== undefined) {
+          return lamportsToDope(j.result.value as number);
+        }
+      }
+    } catch {}
+  }
+  return null;
+}
+
 export async function sendSol(from: Keypair, toAddress: string, amountSol: number) {
   const conn = getConnection();
   const tx = new Transaction().add(

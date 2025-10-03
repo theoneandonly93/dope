@@ -7,7 +7,7 @@ import TokenDetailModal from "./TokenDetailModal";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { useRouter } from "next/navigation";
 import { useWallet } from "../components/WalletProvider";
-import { getSolBalance, getStoredWallet, subscribeBalance, getDopeTokenBalance } from "../lib/wallet";
+import { getSolBalance, getSolBalanceRobust, getStoredWallet, subscribeBalance, getDopeTokenBalance } from "../lib/wallet";
 import { syncDopeTokenAccounts } from "../lib/dopeToken";
 
 import TxList from "../components/TxList";
@@ -44,6 +44,8 @@ export default function Home() {
   const { address, unlocked, hasWallet, keypair, ready } = useWallet() as any;
   // Multi-chain balances
   const [balances, setBalances] = useState<{[chain: string]: number | null}>({ solana: null, eth: null, btc: null, ape: null, bnb: null, sei: null, base: null });
+  const [solError, setSolError] = useState<string>("");
+  const [lastSolFetch, setLastSolFetch] = useState<number>(0);
   const [solPrice, setSolPrice] = useState<number | null>(null);
   const [dopeSpl, setDopeSpl] = useState<number | null>(null);
   const [dopePrice, setDopePrice] = useState<number | null>(null);
@@ -114,11 +116,18 @@ export default function Home() {
   useEffect(() => {
     if (!address) return;
     let iv: any = null;
+    let unsub: (() => void) | null = null;
     const fetchBalances = async () => {
       const newBalances: {[chain: string]: number | null} = { solana: null, eth: null, btc: null, ape: null, bnb: null, sei: null, base: null };
       // Solana
       try {
+        setSolError("");
         let solBalance = await getSolBalance(address);
+        // If zero or clearly stale, try robust path
+        if (solBalance === 0) {
+          const robust = await getSolBalanceRobust(address).catch(()=>null);
+          if (robust !== null) solBalance = robust; else setSolError('All RPC endpoints failed');
+        }
   // Removed Solscan debug capture
         // If RPC returns 0, try Solscan API as fallback
         if (solBalance === 0) {
@@ -139,6 +148,7 @@ export default function Home() {
           } catch {}
         }
         newBalances.solana = solBalance;
+        setLastSolFetch(Date.now());
   // Debug removal: no-op
       } catch (e: any) {
         newBalances.solana = null;
@@ -214,8 +224,14 @@ export default function Home() {
       setBalances(newBalances);
     };
     fetchBalances();
-    iv = setInterval(fetchBalances, 10000); // poll every 10s
-    return () => { if (iv) clearInterval(iv); };
+    iv = setInterval(fetchBalances, 15000); // poll every 15s (less aggressive, rely on subscription)
+    // Live subscription (will update SOL immediately on account change)
+    try {
+      unsub = subscribeBalance(address, (bal) => {
+        setBalances(b => ({ ...b, solana: bal }));
+      });
+    } catch {}
+    return () => { if (iv) clearInterval(iv); if (unsub) unsub(); };
   }, [address]);
 
   // Listen for connection status events (failover / recovery)
@@ -404,8 +420,24 @@ export default function Home() {
           {fatalError && (
             <div className="text-xs text-red-400 mt-2">Error: {fatalError}</div>
           )}
-          {balances[activeChain] === null && !fatalError && (
-            <div className="text-xs text-yellow-400 mt-2">Balance not available. Please check your network, RPC, or wallet address.</div>
+          {activeChain === 'solana' && balances['solana'] === null && !fatalError && (
+            <div className="text-xs text-yellow-400 mt-2 space-y-1">
+              <div>Balance not available. Possible RPC issue.</div>
+              {solError && <div className="text-red-400">{solError}</div>}
+              <button
+                className="underline text-white/70 hover:text-white"
+                onClick={() => {
+                  if (!address) return;
+                  setBalances(b => ({ ...b, solana: null }));
+                  getSolBalanceRobust(address).then(v => {
+                    if (v !== null) setBalances(b => ({ ...b, solana: v }));
+                  }).catch(()=>setSolError('Retry failed'));
+                }}
+              >Retry</button>
+            </div>
+          )}
+          {activeChain === 'solana' && balances['solana'] !== null && (
+            <div className="text-[10px] text-white/40 mt-2">Updated {Math.round((Date.now()-lastSolFetch)/1000)}s ago</div>
           )}
         </div>
 
