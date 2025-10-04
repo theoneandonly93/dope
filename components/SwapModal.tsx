@@ -24,7 +24,7 @@ interface SwapModalProps {
 type Phase = 'idle' | 'quoting' | 'ready' | 'signing' | 'submitted' | 'success' | 'error';
 
 export default function SwapModal({ inputMint, inputSymbol, balance, onClose, onSwapped, initialAmountIn, autoQuote, desiredOutputMint, lockOutputMint, disableInputTokenChange }: SwapModalProps) {
-  const { keypair, unlock, tryBiometricUnlock } = useWallet() as any;
+  const { keypair, unlock, tryBiometricUnlock, unlocked: sessionUnlocked } = useWallet() as any;
   const [tokenList, setTokenList] = useState<any[]>([]);
   const [activeInputMint, setActiveInputMint] = useState<string>(inputMint);
   const [outputMint, setOutputMint] = useState<string>(desiredOutputMint || 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'); // default USDC or locked
@@ -35,7 +35,6 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
   const [phase, setPhase] = useState<Phase>('idle');
   const [status, setStatus] = useState('');
   const [showUnlock, setShowUnlock] = useState(false);
-  const [unlocked, setUnlocked] = useState(false);
   const [txSig, setTxSig] = useState('');
   const [slippageBps, setSlippageBps] = useState(50);
   const [showRoute, setShowRoute] = useState(false);
@@ -163,8 +162,7 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
   };
 
   const doSwap = async () => {
-    if (!unlocked) { setShowUnlock(true); return; }
-    if (!keypair) { setStatus('Wallet not loaded'); return; }
+    if (!sessionUnlocked || !keypair) { setShowUnlock(true); return; }
     const amt = Number(amountIn);
     if (!amt || amt <= 0) { setStatus('Enter amount'); return; }
     if (activeInputMint === outputMint) { setStatus('Select different tokens'); return; }
@@ -193,11 +191,12 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
       const r = await fetch('/api/swap/prepare', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || 'prepare failed');
-      if (!j.swapTransaction) throw new Error('Missing swapTransaction');
-      const raw = Buffer.from(j.swapTransaction, 'base64');
-      const { Transaction } = await import('@solana/web3.js');
-      const tx = Transaction.from(raw);
-      tx.sign(keypair);
+  if (!j.swapTransaction) throw new Error('Missing swapTransaction');
+  // Jupiter v6 returns a VersionedTransaction (base64)
+  const raw = Buffer.from(j.swapTransaction, 'base64');
+  const { VersionedTransaction } = await import('@solana/web3.js');
+  const tx = VersionedTransaction.deserialize(raw);
+  tx.sign([keypair]);
       const conn = getConnection();
       const sig = await conn.sendRawTransaction(tx.serialize());
       setTxSig(sig);
@@ -396,11 +395,11 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
       {status && <div className="text-green-400 text-[11px] whitespace-pre-wrap break-words">{status}</div>}
       {phase==='success' && <button type="button" className="btn" onClick={onClose}>Close</button>}
       {phase!=='success' && <button type="button" className="btn" onClick={onClose}>Cancel</button>}
-      {!unlocked && <button type="button" className="btn" onClick={() => setShowUnlock(true)}>Unlock to Swap</button>}
+  {!sessionUnlocked && <button type="button" className="btn" onClick={() => setShowUnlock(true)}>Unlock to Swap</button>}
       {showUnlock && (
         <UnlockModal
-          onUnlock={async (password) => { await unlock(password); setUnlocked(true); setShowUnlock(false); }}
-          onBiometricUnlock={async () => { if (!tryBiometricUnlock) return false; const ok = await tryBiometricUnlock(); if (ok) setUnlocked(true); return ok; }}
+          onUnlock={async (password) => { await unlock(password); setShowUnlock(false); }}
+          onBiometricUnlock={async () => { if (!tryBiometricUnlock) return false; const ok = await tryBiometricUnlock(); if (ok) setShowUnlock(false); return ok; }}
           onClose={() => setShowUnlock(false)}
         />
       )}

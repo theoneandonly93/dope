@@ -32,10 +32,9 @@ export default function Home() {
   const [showSendModal, setShowSendModal] = useState(false);
   const [sendTokenMint, setSendTokenMint] = useState<string|null>(null);
   const [showManageModal, setShowManageModal] = useState(false);
-  // Always show SOL, DOPE, BTC, ETH, BNB by default unless user turns off
+  // Always show SOL, BTC, ETH, BNB by default unless user turns off
   const defaultTokens = [
     "So11111111111111111111111111111111111111112", // SOL
-    "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33", // DOPE
     "btc", // BTC
     "eth", // ETH
     "bnb" // BNB
@@ -75,8 +74,8 @@ export default function Home() {
   const [swapAmount, setSwapAmount] = useState(0);
   const [swapResult, setSwapResult] = useState<string>("");
   const [swapError, setSwapError] = useState<string>("");
-  const [tokenA, setTokenA] = useState("So11111111111111111111111111111111111111112"); // default SOL
-  const [tokenB, setTokenB] = useState("FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33"); // default DOPE
+  const [tokenA, setTokenA] = useState("");
+  const [tokenB, setTokenB] = useState("");
   const [swapDirection, setSwapDirection] = useState(true); // true: A->B, false: B->A
   const [slippage, setSlippage] = useState(0.5); // default 0.5%
   const [tokenList, setTokenList] = useState<any[]>([]);
@@ -94,19 +93,18 @@ export default function Home() {
       .then(setTokenList)
       .catch(() => setTokenList([]));
     // Fetch prices for all tokens in tokenList
-    const ids = ["solana", "dope"];
+    const ids = ["solana"]; 
     fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(",")}&vs_currencies=usd`)
       .then(res => res.json())
       .then(data => {
         const prices: {[mint: string]: number} = {};
         prices["So11111111111111111111111111111111111111112"] = data?.solana?.usd ?? null;
-        prices["FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33"] = data?.dope?.usd ?? 0.01;
         setTokenPrices(prices);
         setSolPrice(data?.solana?.usd ?? null);
-        setDopePrice(data?.dope?.usd ?? 0.01);
+        setDopePrice(null);
       })
       .catch(() => {
-        setTokenPrices({"So11111111111111111111111111111111111111112": null, "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33": 0.01});
+        setTokenPrices({"So11111111111111111111111111111111111111112": null});
       });
   }, []);
 
@@ -114,9 +112,8 @@ export default function Home() {
   useEffect(() => {
     const handler = (e: any) => {
       if (!address) return;
-      // Re-query SOL & DOPE balances quickly
+  // Re-query SOL quickly; token balances refresh via aggregated API
       getSolBalance(address).then(v => setBalances(b => ({ ...b, solana: v }))).catch(()=>{});
-      getDopeTokenBalance(address).then(setDopeSpl).catch(()=>{});
     };
     window.addEventListener('swap-complete', handler as any);
     return () => window.removeEventListener('swap-complete', handler as any);
