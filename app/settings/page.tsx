@@ -17,7 +17,7 @@ export default function SettingsPage() {
 
   const [pw, setPw] = useState("");
   const [mnemonic, setMnemonic] = useState<string | null>(null);
-  const [skB64, setSkB64] = useState<string | null>(null);
+  const [skB64, setSkB64] = useState<string | null>(null); // kept for internal conversion; not shown in UI
   const [skB58, setSkB58] = useState<string | null>(null);
   const [revealPending, setRevealPending] = useState(false);
   const [showUnlock, setShowUnlock] = useState(false);
@@ -114,7 +114,7 @@ export default function SettingsPage() {
         </button>
         {mnemonic && (
           <div className="mt-3">
-            <div className="text-xs text-white/60 mb-1">Seed Phrase</div>
+            <div className="text-xs text-white/60 mb-1">Recovery Phrase (12 words)</div>
             <div className="font-mono text-sm leading-7 select-all break-words">{mnemonic}</div>
             <button className="text-xs underline mt-1 text-white/70" onClick={() => copy(mnemonic)}>Copy seed phrase</button>
           </div>
@@ -129,13 +129,7 @@ export default function SettingsPage() {
             <button className="text-xs underline mt-1 text-white/70" onClick={() => copy(skB58)}>Copy (base58)</button>
           </div>
         )}
-        {skB64 && (
-          <div className="mt-3">
-            <div className="text-xs text-white/60 mb-1">Secret Key (base64)</div>
-            <div className="font-mono text-sm break-all select-all">{skB64}</div>
-            <button className="text-xs underline mt-1 text-white/70" onClick={() => copy(skB64)}>Copy secret key</button>
-          </div>
-        )}
+        {/* Intentionally not showing base64 secret key to reduce confusion; base58 is widely compatible (e.g., Phantom import). */}
       </div>
       {showUnlock && (
         <UnlockModal
