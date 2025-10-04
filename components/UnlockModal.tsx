@@ -39,7 +39,7 @@ export default function UnlockModal({ onUnlock, onClose, onBiometricUnlock }: { 
     }
   };
 
-  const biometricCapable = !!walletCtx?.tryBiometricUnlock;
+  const biometricCapable = !!onBiometricUnlock && !!walletCtx?.tryBiometricUnlock;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">

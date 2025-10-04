@@ -3,12 +3,13 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useWallet } from "../../components/WalletProvider";
 import { getActiveWallet, getStoredWallet, setActiveWalletName, getActiveWalletSecrets } from "../../lib/wallet";
+import UnlockModal from "../../components/UnlockModal";
 
 export default function SettingsPage() {
   const router = useRouter();
   const { address, unlocked } = useWallet();
   const [name, setName] = useState("");
-  const [scheme, setScheme] = useState<"password" | "device" | "" >("");
+  const [scheme, setScheme] = useState<"password" | "device" | "raw" | "">("");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
@@ -17,6 +18,7 @@ export default function SettingsPage() {
   const [mnemonic, setMnemonic] = useState<string | null>(null);
   const [skB64, setSkB64] = useState<string | null>(null);
   const [revealPending, setRevealPending] = useState(false);
+  const [showUnlock, setShowUnlock] = useState(false);
 
   useEffect(() => {
     try {
@@ -40,10 +42,11 @@ export default function SettingsPage() {
     }
   };
 
-  const reveal = async () => {
+  const reveal = async (providedPassword?: string) => {
     setErr(""); setMsg(""); setRevealPending(true);
     try {
-      const secrets = await getActiveWalletSecrets(scheme === "password" ? pw : undefined);
+      const pass = (scheme === "password" || scheme === "raw") ? (providedPassword || pw) : undefined;
+      const secrets = await getActiveWalletSecrets(pass);
       setMnemonic(secrets.mnemonic);
       setSkB64(secrets.secretKeyB64);
     } catch (e: any) {
@@ -79,16 +82,17 @@ export default function SettingsPage() {
       <div className="glass rounded-2xl p-5 border border-white/10 space-y-3 mt-8">
         <div className="text-sm font-semibold">Sensitive Info</div>
         <div className="text-xs text-white/70">Reveal your seed phrase and private key only in a secure environment. Never share with anyone.</div>
-        {scheme === "password" && (
-          <input
-            type="password"
-            value={pw}
-            onChange={(e)=>setPw(e.target.value)}
-            placeholder="Enter wallet password"
-            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 outline-none"
-          />
-        )}
-        <button className="btn" onClick={reveal} disabled={revealPending || (scheme==='password' && pw.length<4)}>
+        <button
+          className="btn"
+          onClick={() => {
+            if (scheme === 'password' || scheme === 'raw') {
+              setShowUnlock(true);
+            } else {
+              reveal();
+            }
+          }}
+          disabled={revealPending}
+        >
           {revealPending?"Revealing...":"Reveal Secrets"}
         </button>
         {mnemonic && (
@@ -106,6 +110,14 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+      {showUnlock && (
+        <UnlockModal
+          onUnlock={async (password) => {
+            await reveal(password);
+          }}
+          onClose={() => setShowUnlock(false)}
+        />
+      )}
       <div className="glass rounded-2xl p-5 border border-white/10 space-y-4 mt-8">
         <div className="text-sm font-semibold">Legal & Compliance</div>
         <div className="text-xs text-white/60 leading-relaxed">Review the governing documents for Dopelganga Wallet. Acceptance was requested on first unlock; you can revisit them anytime here.</div>
