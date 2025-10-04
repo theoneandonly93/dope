@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useWallet } from "../../components/WalletProvider";
+import bs58 from "bs58";
 import { getActiveWallet, getStoredWallet, setActiveWalletName, getActiveWalletSecrets } from "../../lib/wallet";
 import UnlockModal from "../../components/UnlockModal";
 
@@ -17,6 +18,7 @@ export default function SettingsPage() {
   const [pw, setPw] = useState("");
   const [mnemonic, setMnemonic] = useState<string | null>(null);
   const [skB64, setSkB64] = useState<string | null>(null);
+  const [skB58, setSkB58] = useState<string | null>(null);
   const [revealPending, setRevealPending] = useState(false);
   const [showUnlock, setShowUnlock] = useState(false);
 
@@ -47,8 +49,17 @@ export default function SettingsPage() {
     try {
       const pass = (scheme === "password" || scheme === "raw") ? (providedPassword || pw) : undefined;
       const secrets = await getActiveWalletSecrets(pass);
-      setMnemonic(secrets.mnemonic);
+      setMnemonic(secrets.mnemonic || null);
       setSkB64(secrets.secretKeyB64);
+      try {
+        // derive base58 from base64 for broader wallet compatibility
+        const bin = atob(secrets.secretKeyB64);
+        const u8 = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+        setSkB58(bs58.encode(u8));
+      } catch {
+        setSkB58(null);
+      }
     } catch (e: any) {
       setErr(e?.message || "Failed to reveal secrets");
     } finally {
@@ -82,31 +93,47 @@ export default function SettingsPage() {
       <div className="glass rounded-2xl p-5 border border-white/10 space-y-3 mt-8">
         <div className="text-sm font-semibold">Sensitive Info</div>
         <div className="text-xs text-white/70">Reveal your seed phrase and private key only in a secure environment. Never share with anyone.</div>
+        {scheme === 'raw' && (
+          <div className="text-[11px] text-amber-300/80 bg-amber-500/10 border border-amber-300/20 rounded px-2 py-1">
+            Imported keypair: this wallet was added using a raw secret key, so there is no seed phrase for this wallet. You can still reveal and back up the secret key.
+          </div>
+        )}
         <button
           className="btn"
           onClick={() => {
-            if (scheme === 'password' || scheme === 'raw') {
+            if (scheme !== 'device') {
               setShowUnlock(true);
             } else {
+              // device-encrypted can reveal without password prompt
               reveal();
             }
           }}
           disabled={revealPending}
         >
-          {revealPending?"Revealing...":"Reveal Secrets"}
+          {revealPending ? "Revealing..." : "Reveal Secrets"}
         </button>
         {mnemonic && (
           <div className="mt-3">
             <div className="text-xs text-white/60 mb-1">Seed Phrase</div>
             <div className="font-mono text-sm leading-7 select-all break-words">{mnemonic}</div>
-            <button className="text-xs underline mt-1 text-white/70" onClick={()=>copy(mnemonic)}>Copy seed phrase</button>
+            <button className="text-xs underline mt-1 text-white/70" onClick={() => copy(mnemonic)}>Copy seed phrase</button>
+          </div>
+        )}
+        {scheme === 'raw' && (
+          <div className="text-[11px] text-white/50">Imported keypair wallet: no seed phrase is available. You can back up the private key below.</div>
+        )}
+        {skB58 && (
+          <div className="mt-3">
+            <div className="text-xs text-white/60 mb-1">Secret Key (base58)</div>
+            <div className="font-mono text-[11px] break-all select-all">{skB58}</div>
+            <button className="text-xs underline mt-1 text-white/70" onClick={() => copy(skB58)}>Copy (base58)</button>
           </div>
         )}
         {skB64 && (
           <div className="mt-3">
             <div className="text-xs text-white/60 mb-1">Secret Key (base64)</div>
             <div className="font-mono text-sm break-all select-all">{skB64}</div>
-            <button className="text-xs underline mt-1 text-white/70" onClick={()=>copy(skB64)}>Copy secret key</button>
+            <button className="text-xs underline mt-1 text-white/70" onClick={() => copy(skB64)}>Copy secret key</button>
           </div>
         )}
       </div>
