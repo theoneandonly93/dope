@@ -63,6 +63,7 @@ export default function BridgePage() {
       <div className="mt-6 text-xs text-white/60 text-center">
         Powered by Wormhole. Real bridging logic can be integrated with Wormhole SDK or API.<br />
         This is a demo UI. Please specify token and amount to bridge between chains.
+        <div className="mt-2 text-[10px] text-white/60">Cross‑chain transfers involve third‑party protocols and can be irreversible. Verify details before proceeding. No financial or investment advice.</div>
       </div>
     </div>
   );

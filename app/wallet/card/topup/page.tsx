@@ -106,6 +106,9 @@ export default function TopupPage() {
           <div className="text-xs text-white/60">Apple/Google Pay requires merchant configuration. This call is currently stubbed to credit your demo card balance.</div>
         )}
       </div>
+      <div className="text-[11px] text-white/60 bg-black/20 border border-white/10 rounded p-2">
+        Top‑ups via card are powered by independent processors (e.g., MoonPay/Transak/Ramp) subject to their KYC/AML and terms. Fees may apply. We do not custody user funds. No financial or investment advice.
+      </div>
 
       <div className="text-sm">
         <Link href="/wallet/card" className="underline">Back to Card</Link>

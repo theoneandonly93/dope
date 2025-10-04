@@ -149,6 +149,9 @@ export default function SwapPage() {
         )}
       </div>
       <div className="text-xs text-white/60">Paste ANY SPL token mints. We auto-derive decimals and use atomic amounts for quotes.</div>
+      <div className="text-[11px] text-white/60 bg-black/20 border border-white/10 rounded p-2">
+        Non‑custodial software. Swaps are routed via third‑party aggregators; prices are estimates and can change at execution. Transactions are irreversible; network fees apply. No financial or investment advice.
+      </div>
     </div>
   );
 }

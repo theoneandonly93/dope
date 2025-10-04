@@ -62,6 +62,9 @@ export default function SendPage() {
       <button disabled={pending || !validTo} className="w-full btn disabled:opacity-50">
         {pending ? "Sending..." : "Send"}
       </button>
+      <div className="text-[11px] text-white/60 bg-black/20 border border-white/10 rounded p-2">
+        Non‑custodial wallet: you control your keys. On‑chain transfers are irreversible. Double‑check the recipient address and amount before sending. No financial or investment advice.
+      </div>
     </form>
   );
 }

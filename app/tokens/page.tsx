@@ -189,6 +189,9 @@ export default function TokensListingPage() {
           >{loadingMore ? 'Loading…' : 'Load More'}</button>
         </div>
       )}
+      <div className="text-[11px] text-white/60 bg-black/20 border border-white/10 rounded p-2">
+        Market data is provided for convenience only and may be delayed or inaccurate. Nothing on this page constitutes financial, investment, or legal advice.
+      </div>
     </div>
   );
 }

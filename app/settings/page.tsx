@@ -109,10 +109,15 @@ export default function SettingsPage() {
       <div className="glass rounded-2xl p-5 border border-white/10 space-y-4 mt-8">
         <div className="text-sm font-semibold">Legal & Compliance</div>
         <div className="text-xs text-white/60 leading-relaxed">Review the governing documents for Dopelganga Wallet. Acceptance was requested on first unlock; you can revisit them anytime here.</div>
+        <div className="text-[11px] text-white/60 bg-black/20 border border-white/10 rounded p-2">
+          Non‑custodial software: you control your keys; we cannot recover them. Top‑ups are provided by independent partners (e.g., MoonPay) subject to their terms, KYC/AML, and privacy practices. We do not provide investment advice.
+        </div>
         <ul className="text-xs space-y-2 list-disc pl-5">
           <li><a href="/privacy" className="underline text-white/80 hover:text-white">Privacy Policy</a></li>
           <li><a href="/terms" className="underline text-white/80 hover:text-white">Terms of Service</a></li>
+          <li><a href="/compliance" className="underline text-white/80 hover:text-white">U.S. Compliance Playbook</a></li>
           <li><a href="/api/legal/pdf" target="_blank" rel="noopener noreferrer" className="underline text-white/80 hover:text-white">Download Combined PDF</a></li>
+          <li><a href="/api/compliance/pdf" target="_blank" rel="noopener noreferrer" className="underline text-white/80 hover:text-white">Download Compliance Roadmap PDF</a></li>
         </ul>
         <div className="text-[10px] text-white/40">Version v1.1 · Effective 10/3/2025 · Jurisdiction: Virginia, USA</div>
       </div>

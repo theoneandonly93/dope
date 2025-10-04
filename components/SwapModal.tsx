@@ -3,6 +3,7 @@ import UnlockModal from './UnlockModal';
 import { useWallet } from './WalletProvider';
 import { getConnection } from '../lib/wallet';
 import { getTokenDecimals } from '../lib/tokenMetadataCache';
+import { PublicKey } from '@solana/web3.js';
 
 interface SwapModalProps {
   inputMint: string; // initial token mint (from context / token detail)
@@ -43,6 +44,7 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
   const [onlyDirectRoutes, setOnlyDirectRoutes] = useState(false);
   const [maxAccounts, setMaxAccounts] = useState<number | ''>('');
   const [restrictDexes, setRestrictDexes] = useState('');
+  const [preferPumpFun, setPreferPumpFun] = useState(false);
   const platformFeeBps = Number(process.env.NEXT_PUBLIC_JUPITER_PLATFORM_FEE_BPS || 0);
   const feeAccount = process.env.NEXT_PUBLIC_JUPITER_FEE_ACCOUNT as string | undefined;
   const [editInputToken, setEditInputToken] = useState(false);
@@ -79,29 +81,48 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
   const [minOut, setMinOut] = useState<string>('');
   const [feeApprox, setFeeApprox] = useState<string>('');
 
+  const normalizeMint = (m: string): string => {
+    const s = (m || '').trim().toLowerCase();
+    if (s === 'sol' || s === 'wsol') return 'So11111111111111111111111111111111111111112';
+    if (s === 'btc') return '9n4nbM75f5Ui33ZbPYXn59EwSgE8CGsHtAeTH5YFeJ9E'; // renBTC (legacy)
+    if (s === 'eth') return '7vfCXTUXx5WJVxrzS2KHGfJo3AmoQ39kuixZ7Z6w7R8'; // soETH (Wormhole)
+    return m;
+  };
+
+  const isValidMint = (m: string): boolean => {
+    const n = normalizeMint(m);
+    try { new PublicKey(n); return true; } catch { return false; }
+  };
+
   const doQuote = async () => {
     const amt = Number(amountIn);
     if (!amt || amt <= 0) { setStatus('Enter amount'); return; }
     if (activeInputMint === outputMint) { setStatus('Select different tokens'); return; }
+    if (!isValidMint(activeInputMint)) { setStatus('Unsupported input token/mint on Solana'); return; }
+    if (!isValidMint(outputMint)) { setStatus('This token is not available on Solana'); return; }
     // Balance check only for initial token (we don't have dynamic balance for arbitrary tokens yet)
     if (activeInputMint === inputMint && balance != null && amt > balance) { setStatus('Amount exceeds balance'); return; }
     setPhase('quoting');
     setStatus('Fetching quote…');
     try {
-  const inDec = await fetchDecimals(activeInputMint);
-  const outDec = await fetchDecimals(outputMint);
+  const nIn = normalizeMint(activeInputMint);
+  const nOut = normalizeMint(outputMint);
+  const inDec = await fetchDecimals(nIn);
+  const outDec = await fetchDecimals(nOut);
   const scaled = exactOutMode
     ? Math.floor(amt * Math.pow(10, outDec))
     : Math.floor(amt * Math.pow(10, inDec));
   const params = new URLSearchParams({
-    in: activeInputMint,
-    out: outputMint,
+    in: nIn,
+    out: nOut,
     amountAtomic: String(scaled),
     swapMode: exactOutMode ? 'ExactOut' : 'ExactIn',
   });
   if (onlyDirectRoutes) params.set('onlyDirectRoutes', 'true');
   if (maxAccounts !== '' && Number(maxAccounts) > 0) params.set('maxAccounts', String(maxAccounts));
   if (restrictDexes) params.set('restrictDexes', restrictDexes);
+  // Prefer Pump.fun pools by hinting DEX restriction when toggled
+  if (!restrictDexes && preferPumpFun) params.set('restrictDexes', 'Pump.fun');
   const r = await fetch(`/api/swap/quote?${params.toString()}`);
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || 'quote failed');
@@ -150,14 +171,16 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
     setPhase('signing');
     setStatus('Preparing swap transaction…');
     try {
-  const inDec = await fetchDecimals(activeInputMint);
-  const outDec = await fetchDecimals(outputMint);
+  const nIn = normalizeMint(activeInputMint);
+  const nOut = normalizeMint(outputMint);
+  const inDec = await fetchDecimals(nIn);
+  const outDec = await fetchDecimals(nOut);
   const atomic = exactOutMode
     ? Math.floor(amt * Math.pow(10, outDec))
     : Math.floor(amt * Math.pow(10, inDec));
   const body: any = {
-    inputMint: activeInputMint,
-    outputMint,
+    inputMint: nIn,
+    outputMint: nOut,
     amountAtomic: atomic,
     slippageBps,
     userPublicKey: keypair.publicKey.toString(),
@@ -326,6 +349,9 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
               <span>Restrict DEXes</span>
               <input type="text" placeholder="e.g. Orca,Raydium" value={restrictDexes} onChange={e=>setRestrictDexes(e.target.value)} className="flex-1 px-2 py-1 rounded bg-black/40 border border-white/10 text-white" />
             </div>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={preferPumpFun} onChange={e=>setPreferPumpFun(e.target.checked)} /> Prefer Pump.fun pools
+            </label>
             {(platformFeeBps > 0 && feeAccount) && (
               <div className="text-white/60">Platform fee: {platformFeeBps} bps → fee account {feeAccount.slice(0,4)}…</div>
             )}

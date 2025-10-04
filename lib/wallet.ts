@@ -746,7 +746,7 @@ export async function getMnemonicForActiveWallet(password?: string): Promise<str
     return await decryptWithDeviceSecret(stored.encMnemonic);
   }
   if (stored.scheme === "password") {
-    if (!password) throw new Error("Password required for chat");
+    if (!password) throw new Error("Password required");
     return await decryptMnemonic(stored.encMnemonic, password);
   }
   throw new Error("Unsupported wallet scheme");
@@ -754,6 +754,14 @@ export async function getMnemonicForActiveWallet(password?: string): Promise<str
 
 // Helper to fetch the mnemonic and derived secret key (base64) for the active wallet
 export async function getActiveWalletSecrets(password?: string): Promise<{ mnemonic: string; secretKeyB64: string }> {
+  const stored = getStoredWallet();
+  if (!stored) throw new Error("No wallet on this device");
+  if (stored.scheme === 'raw') {
+    if (!stored.encSecretKey) throw new Error('No secret key stored');
+    if (!password) throw new Error('Password required');
+    const skB64 = await decryptMnemonic(stored.encSecretKey, password);
+    return { mnemonic: '', secretKeyB64: skB64 };
+  }
   const mnemonic = await getMnemonicForActiveWallet(password);
   const kp = await mnemonicToKeypair(mnemonic);
   // Convert secretKey (Uint8Array) to base64
