@@ -47,8 +47,11 @@ export default function BrowserPage() {
   <SafeDappList onSelect={openUrl} />
         {/* Mining quick access */}
         <div className="glass rounded-2xl p-4 border border-white/10 mb-3">
-          <div className="text-lg font-semibold mb-1">Mining</div>
-          <p className="text-sm text-white/60 mb-2">Use your wallet as the username and mine via Scrypt.</p>
+          <div className="flex items-center justify-between mb-1">
+            <div className="text-lg font-semibold">Mining</div>
+            <Link href="/fairbrix" className="text-xs underline text-white/60 hover:text-white">Configure</Link>
+          </div>
+          <p className="text-sm text-white/60 mb-2">Use your Solana wallet as the username for miners. Add a Fairbrix payout address in Configure to track rewards.</p>
           <div className="flex gap-2 flex-wrap">
             <Link href="/fairbrix" className="btn">Fairbrix Mining Pool</Link>
             <a href="https://www.miningrigrentals.com/?ref=2713785" target="_blank" rel="noreferrer" className="btn">Mining Rig Rentals</a>

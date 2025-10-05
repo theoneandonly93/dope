@@ -65,7 +65,7 @@ export default function FairbrixMiningPage() {
         setLoadingStats(true);
         const data = await fetchFairbrixStats(addr);
         if (cancelled) return;
-        const next = data || { unpaid: 0, payouts: 0, workers: 0, updated: Date.now() };
+  const next = data || { unpaid: 0, totalPayouts: 0, workers: 0, updated: Date.now() };
         // Detect changes for notifications
         const prev = prevStats.current;
         if (prev) {
