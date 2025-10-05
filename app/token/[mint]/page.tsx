@@ -1,6 +1,6 @@
 "use client";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -18,6 +18,7 @@ import { getConnection } from "../../../lib/wallet";
 import dynamic from "next/dynamic";
 const PhantomSwapModal = dynamic(() => import("../../../components/PhantomSwapModal"), { ssr: false });
 import TrendingTokens from "../../../components/browser/TrendingTokens";
+import TxList from "../../../components/TxList";
 import { copyText, hapticLight } from "../../../lib/clipboard";
 
 const ACCENT = "#A78BFA";
@@ -26,6 +27,8 @@ export default function TokenDetailPage() {
   const params = useParams<{ mint: string }>();
   const mint = decodeURIComponent((params?.mint as string) || "");
   const router = useRouter();
+  const search = useSearchParams();
+  const fromHoldings = (search?.get("from") || "") === "holdings";
   const { address } = useWallet() as any;
   const [meta, setMeta] = useState<{ name?: string; symbol?: string; logo?: string; decimals?: number } | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
@@ -131,18 +134,31 @@ export default function TokenDetailPage() {
           <button className="text-white/70" onClick={() => router.back()}>← Back</button>
           <div className="text-white/60 text-xs">Solana</div>
         </div>
-        {/* Inline Swap like Phantom (top of page) */}
+        {/* Top action: Buy/Sell when coming from holdings; otherwise show inline Swap */}
         <div className="mt-4">
-          <PhantomSwapModal
-            variant="inline"
-            open={true}
-            onClose={()=>{}}
-            initialFromMint={"So11111111111111111111111111111111111111112"}
-            initialToMint={mint}
-            showTrending={false}
-          />
+          {fromHoldings ? (
+            <div className="glass rounded-2xl p-4 border border-white/10 flex gap-3">
+              <button
+                className="btn flex-1"
+                onClick={() => setSwapOpen("buy")}
+              >Buy</button>
+              <button
+                className="btn flex-1"
+                onClick={() => setSwapOpen("sell")}
+              >Sell</button>
+            </div>
+          ) : (
+            <PhantomSwapModal
+              variant="inline"
+              open={true}
+              onClose={()=>{}}
+              initialFromMint={"So11111111111111111111111111111111111111112"}
+              initialToMint={mint}
+              showTrending={false}
+            />
+          )}
         </div>
-        {/* Trending Tokens under the swap panel */}
+        {/* Trending Tokens under the top panel */}
         <div className="mt-4">
           <TrendingTokens onOpenToken={(m:string)=>{ try { router.push(`/token/${encodeURIComponent(m)}`); } catch {} }} />
         </div>
@@ -196,6 +212,23 @@ export default function TokenDetailPage() {
           <button title="QR" className="px-3 py-2 rounded-lg bg-white/5 border border-white/10">QR</button>
         </div>
 
+        {/* Recent Activity at the bottom */}
+        <div className="mt-6 glass rounded-2xl p-4 border border-white/10">
+          <div className="text-sm font-semibold mb-2">Recent Activity</div>
+          <TxList address={address} tokenMint={mint} />
+        </div>
+
+        {/* Swap modal for Buy/Sell intents */}
+        {swapOpen && (
+          <PhantomSwapModal
+            open={true}
+            onClose={() => setSwapOpen(false)}
+            initialFromMint={swapOpen === "buy" ? "So11111111111111111111111111111111111111112" : mint}
+            initialToMint={swapOpen === "buy" ? mint : "So11111111111111111111111111111111111111112"}
+            variant="modal"
+            showTrending={false}
+          />
+        )}
         
       </div>
     </div>

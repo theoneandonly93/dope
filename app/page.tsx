@@ -10,7 +10,7 @@ import { useWallet } from "../components/WalletProvider";
 import { getSolBalance, getSolBalanceRobust, getStoredWallet, subscribeBalance, getDopeTokenBalance } from "../lib/wallet";
 import { syncDopeTokenAccounts } from "../lib/dopeToken";
 
-import TxList from "../components/TxList";
+// Removed home Recent Activity card; keep TxList usage on token detail only
 
 import SendTokenForm from "../components/SendTokenForm";
 import SuggestedTokens from "../components/SuggestedTokens";
@@ -580,7 +580,7 @@ export default function Home() {
                     <div
                       key={token.mint}
                       className={`flex items-center justify-between py-2${idx > 0 ? " border-t border-white/10 mt-2 pt-2" : ""} cursor-pointer`}
-                      onClick={() => { try { router.push(`/token/${encodeURIComponent(token.mint)}`); } catch {} }}
+                      onClick={() => { try { router.push(`/token/${encodeURIComponent(token.mint)}?from=holdings`); } catch {} }}
                     >
                       <div className="flex items-center gap-3">
                         <img src={logoSrc} alt={token.symbol} className={`${logoSize} rounded-full`} />
@@ -634,10 +634,8 @@ export default function Home() {
         <div className="mt-4">
           <TrendingTokens onOpenToken={(mint:string)=>{ try { router.push(`/token/${encodeURIComponent(mint)}`); } catch {} }} />
         </div>
-        {/* Suggested Tokens */}
-        <SuggestedTokens />
-  {/* Standalone Recent Activity card */}
-        <TxList address={address || undefined} key={address + '-recent'} limit={4} showSeeMore />
+    {/* Suggested Tokens */}
+    <SuggestedTokens />
       </div>
     </ErrorBoundary>
   );
