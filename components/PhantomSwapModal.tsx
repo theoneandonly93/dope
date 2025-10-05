@@ -3,10 +3,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useWallet } from "./WalletProvider";
 import { getConnection } from "../lib/wallet";
 import { getTokenDecimals } from "../lib/tokenMetadataCache";
-import { getQuote as pumpQuote, executeSwap as pumpExecute } from "../lib/pumpfunSwap";
+import { getQuote as pumpQuote, executeSwap as pumpExecute, PumpQuoteOptions } from "../lib/pumpfunSwap";
 import { PublicKey, VersionedTransaction } from "@solana/web3.js";
 
-type Props = { open: boolean; onClose: () => void };
+type Props = { open: boolean; onClose: () => void; initialFromMint?: string; initialToMint?: string };
 
 function normalizeMint(m: string): string {
   const s = (m || '').trim().toLowerCase();
@@ -18,7 +18,7 @@ function normalizeMint(m: string): string {
 
 function isValidBase58(m: string) { try { new PublicKey(m); return true; } catch { return false; } }
 
-export default function PhantomSwapModal({ open, onClose }: Props) {
+export default function PhantomSwapModal({ open, onClose, initialFromMint, initialToMint }: Props) {
   const { keypair, unlocked, unlock, tryBiometricUnlock } = useWallet() as any;
   const [fromMint, setFromMint] = useState<string>('So11111111111111111111111111111111111111112'); // SOL
   const [toMint, setToMint] = useState<string>('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'); // USDC
@@ -31,6 +31,12 @@ export default function PhantomSwapModal({ open, onClose }: Props) {
   const [showFromEdit, setShowFromEdit] = useState(false);
   const [showToEdit, setShowToEdit] = useState(false);
   const [showUnlock, setShowUnlock] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  // Settings
+  const [slippagePct, setSlippagePct] = useState<number>(1); // default 1%
+  const [priorityFee, setPriorityFee] = useState<number>(0); // micro-lamports per CU
+  const [tipSol, setTipSol] = useState<number>(0);
+  const [minReceived, setMinReceived] = useState<string>("");
 
   useEffect(() => {
     if (!open) return;
@@ -40,11 +46,22 @@ export default function PhantomSwapModal({ open, onClose }: Props) {
     }).catch(()=>setTrending([]));
   }, [open]);
 
+  // Apply initial mints when opening
+  useEffect(() => {
+    if (!open) return;
+    if (initialFromMint && isValidBase58(normalizeMint(initialFromMint))) setFromMint(initialFromMint);
+    if (initialToMint && isValidBase58(normalizeMint(initialToMint))) setToMint(initialToMint);
+    // re-quote if amount set
+    if (amountIn) handleQuote(amountIn);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialFromMint, initialToMint]);
+
   const handleQuote = async (v: string) => {
     setAmountIn(v);
     setErr("");
     setAmountOut("");
     setPriceImpact("");
+    setMinReceived("");
     const n = Number(v);
     if (!(n>0)) return;
     if (!isValidBase58(normalizeMint(fromMint)) || !isValidBase58(normalizeMint(toMint))) { setErr('Invalid mint'); return; }
@@ -52,12 +69,16 @@ export default function PhantomSwapModal({ open, onClose }: Props) {
       const inDec = await getTokenDecimals(normalizeMint(fromMint));
       const outDec = await getTokenDecimals(normalizeMint(toMint));
       // Use Pump.fun quote endpoint (amount in UI units)
-      const q = await pumpQuote(normalizeMint(fromMint), normalizeMint(toMint), n);
+      const q = await pumpQuote(normalizeMint(fromMint), normalizeMint(toMint), n, settingsToOpts());
       if (!q) throw new Error('No route');
       const outRaw = q?.outAmountAtomic || q?.outAmount || 0;
       setAmountOut((outRaw/Math.pow(10, outDec)).toLocaleString(undefined,{ maximumFractionDigits: 6 }));
       const pi = q?.priceImpactPct ?? q?.priceImpact ?? null;
       if (pi != null) setPriceImpact(((Number(pi)||0)*100).toFixed(2)+"%");
+      // Minimum received: apply slippage
+      const outUi = outRaw/Math.pow(10, outDec);
+      const minUi = outUi * (1 - (Number(slippagePct)||0)/100);
+      setMinReceived(minUi.toLocaleString(undefined,{ maximumFractionDigits: 6 }));
     } catch (e:any) {
       setErr(e?.message || 'Quote failed');
     }
@@ -67,13 +88,21 @@ export default function PhantomSwapModal({ open, onClose }: Props) {
     if (!unlocked || !keypair) { setShowUnlock(true); return; }
     setLoading(true); setErr("");
     try {
-      const sig = await pumpExecute({ publicKey: keypair.publicKey, signTransaction: async (tx:any) => { tx.sign([keypair]); return tx; } }, normalizeMint(fromMint), normalizeMint(toMint), Number(amountIn));
+      const sig = await pumpExecute({ publicKey: keypair.publicKey, signTransaction: async (tx:any) => { tx.sign([keypair]); return tx; } }, normalizeMint(fromMint), normalizeMint(toMint), Number(amountIn), settingsToOpts());
       try { window.dispatchEvent(new CustomEvent('swap-complete', { detail: { fromMint, toMint, amount: Number(amountIn), signature: sig } })); } catch {}
       onClose();
     } catch (e:any) {
       setErr(e?.message || 'Swap failed');
     } finally { setLoading(false); }
   };
+
+  function settingsToOpts(): PumpQuoteOptions {
+    return {
+      slippagePct: isFinite(slippagePct as any) ? slippagePct : 0,
+      priorityFeeMicrolamports: isFinite(priorityFee as any) ? priorityFee : undefined,
+      tipSol: isFinite(tipSol as any) ? tipSol : undefined,
+    };
+  }
 
   const TokenEdit = ({ label, value, onChange, show, setShow }: any) => (
     <div className="mt-2">
@@ -96,8 +125,35 @@ export default function PhantomSwapModal({ open, onClose }: Props) {
       <div className="bg-[#111] text-white w-full sm:w-[420px] rounded-t-3xl sm:rounded-2xl p-6 border border-white/10">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Swap</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">✕</button>
+          <div className="flex items-center gap-2">
+            <button title="Settings" onClick={()=>setShowSettings(s=>!s)} className="text-gray-300 hover:text-white">⚙️</button>
+            <button onClick={onClose} className="text-gray-400 hover:text-white">✕</button>
+          </div>
         </div>
+        {showSettings && (
+          <div className="bg-[#151515] border border-white/10 rounded-xl p-4 mb-3">
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <label className="text-xs text-white/60">Slippage tolerance (%)</label>
+                <input type="number" min={0} step={0.1} value={slippagePct}
+                  onChange={(e)=>{ const v = parseFloat(e.target.value); setSlippagePct(isNaN(v)?0:v); if (amountIn) handleQuote(amountIn); }}
+                  className="mt-1 w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-sm outline-none" />
+              </div>
+              <div>
+                <label className="text-xs text-white/60">Priority fee (µ-lamports/CU)</label>
+                <input type="number" min={0} step={100} value={priorityFee}
+                  onChange={(e)=>{ const v = parseFloat(e.target.value); setPriorityFee(isNaN(v)?0:v); }}
+                  className="mt-1 w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-sm outline-none" />
+              </div>
+              <div>
+                <label className="text-xs text-white/60">Tip (SOL)</label>
+                <input type="number" min={0} step={0.001} value={tipSol}
+                  onChange={(e)=>{ const v = parseFloat(e.target.value); setTipSol(isNaN(v)?0:v); }}
+                  className="mt-1 w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-sm outline-none" />
+              </div>
+            </div>
+          </div>
+        )}
         <div className="bg-[#1a1a1a] rounded-xl p-4 mb-3">
           <div className="flex justify-between items-center text-sm text-gray-400 mb-1">You Pay</div>
           <div className="flex items-center justify-between gap-2">
@@ -130,6 +186,7 @@ export default function PhantomSwapModal({ open, onClose }: Props) {
           </div>
           <TokenEdit label="To" value={toMint} onChange={(m:string)=>{ setToMint(m); setAmountOut(""); if (amountIn) handleQuote(amountIn); }} show={showToEdit} setShow={setShowToEdit} />
           {priceImpact && <div className="text-[11px] text-white/50 mt-2">Price Impact: {priceImpact}</div>}
+          {minReceived && <div className="text-[11px] text-white/50 mt-1">Minimum received (est.): {minReceived}</div>}
         </div>
         {err && <div className="text-[12px] text-red-400 mb-2">{err}</div>}
         <button onClick={handleSwap} disabled={loading || !amountIn} className="bg-gradient-to-r from-purple-500 to-indigo-500 w-full py-3 rounded-xl font-semibold disabled:opacity-50">

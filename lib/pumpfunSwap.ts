@@ -11,9 +11,35 @@ function getRpcUrl(): string {
   );
 }
 
-export async function getQuote(fromMint: string, toMint: string, amountIn: number) {
+export type PumpQuoteOptions = {
+  // Slippage settings (provide either pct or bps; bps takes precedence if both provided)
+  slippagePct?: number; // e.g., 1 = 1%
+  slippageBps?: number; // e.g., 100 = 1%
+  // Priority fee in micro-lamports per compute unit (aka CU price)
+  priorityFeeMicrolamports?: number; // e.g., 10000
+  // Optional extra tip paid in lamports (or specify in SOL)
+  tipLamports?: number;
+  tipSol?: number; // convenience; will be converted to lamports
+  // Optional referrer or other pass-through params supported by router
+  referrer?: string;
+};
+
+export async function getQuote(fromMint: string, toMint: string, amountIn: number, opts?: PumpQuoteOptions) {
   try {
-    const url = `${PUMP_FUN_BASE}/swap/quote?from=${encodeURIComponent(fromMint)}&to=${encodeURIComponent(toMint)}&amount=${encodeURIComponent(String(amountIn))}`;
+    const params = new URLSearchParams({
+      from: fromMint,
+      to: toMint,
+      amount: String(amountIn), // UI units; router is expected to handle token decimals
+    });
+    if (opts) {
+      const tipLamports = opts.tipLamports ?? (opts.tipSol != null ? Math.round(opts.tipSol * 1e9) : undefined);
+      const slippageBps = opts.slippageBps ?? (opts.slippagePct != null ? Math.round(opts.slippagePct * 100) : undefined);
+      if (slippageBps != null) params.set("slippageBps", String(slippageBps));
+      if (opts.priorityFeeMicrolamports != null) params.set("priorityFee", String(opts.priorityFeeMicrolamports));
+      if (tipLamports != null) params.set("tip", String(tipLamports));
+      if (opts.referrer) params.set("referrer", opts.referrer);
+    }
+    const url = `${PUMP_FUN_BASE}/swap/quote?${params.toString()}`;
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) throw new Error(await res.text());
     return await res.json();
@@ -33,10 +59,11 @@ export async function executeSwap(
   signer: WalletLike | Keypair,
   fromMint: string,
   toMint: string,
-  amount: number
+  amount: number,
+  opts?: PumpQuoteOptions
 ) {
   const conn = new Connection(getRpcUrl(), { commitment: "confirmed" } as any);
-  const quote = await getQuote(fromMint, toMint, amount);
+  const quote = await getQuote(fromMint, toMint, amount, opts);
   if (!quote || !(quote.tx || quote.swapTransaction || quote.transaction)) throw new Error("No transaction from router");
   const b64 = quote.tx || quote.swapTransaction || quote.transaction;
   const raw = Buffer.from(b64, "base64");

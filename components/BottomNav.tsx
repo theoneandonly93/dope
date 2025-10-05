@@ -9,6 +9,12 @@ const items = [
       <path d="M3 10.5L12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-10.5z" fill={active?"#ffffff":"#9aa0a6"}/>
     </svg>
   ) },
+  { href: "/tokens", label: "Tokens", icon: (active: boolean) => (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="8" cy="8" r="4" stroke={active?"#ffffff":"#9aa0a6"} strokeWidth="2" />
+      <circle cx="16" cy="16" r="4" stroke={active?"#ffffff":"#9aa0a6"} strokeWidth="2" />
+    </svg>
+  ) },
   { href: "/card", label: "Card", icon: (active: boolean) => (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect x="3" y="6" width="18" height="12" rx="2" stroke={active?"#ffffff":"#9aa0a6"} strokeWidth="2" />
