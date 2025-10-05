@@ -393,25 +393,32 @@ export function setSelectedNetwork(n: NetworkChoice) {
 //  2. NEXT_PUBLIC_RPC_URL / RPC_URL / SOLANA_RPC_URL (single)
 //  3. Built-in default QuickNode (primary) + api.mainnet-beta fallback.
 export function getRpcEndpoints(): string[] {
-  const listRaw =
+  const primaryRaw =
     process.env.NEXT_PUBLIC_RPC_URLS ||
     process.env.RPC_URLS ||
     process.env.NEXT_PUBLIC_RPC_URL ||
     process.env.RPC_URL ||
     process.env.SOLANA_RPC_URL || "";
 
+  const fallbacksRaw =
+    process.env.DOPE_RPC_FALLBACKS ||
+    process.env.FALLBACK_RPC_URL || "";
+
   let endpoints: string[] = [];
-  if (listRaw.includes(",")) {
-    endpoints = listRaw.split(",");
-  } else if (listRaw.trim().length > 0) {
-    endpoints = [listRaw];
+  if (primaryRaw.includes(",")) {
+    endpoints = primaryRaw.split(",");
+  } else if (primaryRaw.trim().length > 0) {
+    endpoints = [primaryRaw];
+  }
+  if (fallbacksRaw) {
+    if (fallbacksRaw.includes(",")) endpoints.push(...fallbacksRaw.split(","));
+    else if (fallbacksRaw.trim().length > 0) endpoints.push(fallbacksRaw);
   }
 
   // Always ensure we have at least a stable public endpoint fallback
   const defaults = [
-    "https://tiniest-few-patron.solana-mainnet.quiknode.pro/6006d42ab7ce4dac6a265fdbf87f6586c73827a9/",
+    // Prefer public, widely-available endpoints by default
     "https://api.mainnet-beta.solana.com",
-    // Extra public endpoints for resilience
     "https://solana-rpc.publicnode.com",
     "https://rpc.ankr.com/solana",
   ];
@@ -552,6 +559,8 @@ export function getConnection() {
               const msg = (e?.message || '').toLowerCase();
               const isForbidden = msg.includes('403') || msg.includes('forbidden') || msg.includes('access forbidden');
               if (isForbidden || activeStatus.consecutiveFailures >= 2) {
+                // Mark this endpoint as bad for this session to avoid bouncing back
+                if (isForbidden) activeStatus.consecutiveFailures = Math.max(activeStatus.consecutiveFailures, 999);
                 rotate(isForbidden ? '403-forbidden' : 'call-fail');
                 try { return await (state.conn as any)[prop](...args); } catch {}
               }
