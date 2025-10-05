@@ -29,6 +29,8 @@ export default function TokenDetailPage() {
   const router = useRouter();
   const search = useSearchParams();
   const fromHoldings = (search?.get("from") || "") === "holdings";
+  const fromSuggested = (search?.get("from") || "") === "suggested";
+  const intent = (search?.get("intent") || "") as ("buy"|"sell"|"");
   const { address } = useWallet() as any;
   const [meta, setMeta] = useState<{ name?: string; symbol?: string; logo?: string; decimals?: number } | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
@@ -134,9 +136,9 @@ export default function TokenDetailPage() {
           <button className="text-white/70" onClick={() => router.back()}>← Back</button>
           <div className="text-white/60 text-xs">Solana</div>
         </div>
-        {/* Top action: Buy/Sell when coming from holdings; otherwise show inline Swap */}
+        {/* Top action: Buy/Sell when coming from holdings/suggested; otherwise show inline Swap */}
         <div className="mt-4">
-          {fromHoldings ? (
+          {fromHoldings || fromSuggested ? (
             <div className="glass rounded-2xl p-4 border border-white/10 flex gap-3">
               <button
                 className="btn flex-1"
@@ -216,10 +218,10 @@ export default function TokenDetailPage() {
         </div>
 
         {/* Buy/Sell modal with numeric keypad when launched from holdings */}
-        {swapOpen && (
+        {(swapOpen || (intent === 'buy' || intent === 'sell')) && (
           <BuySellModal
             open={true}
-            mode={swapOpen}
+            mode={(swapOpen || intent || 'buy') as any}
             mint={mint}
             onClose={() => setSwapOpen(false)}
             onConfirm={(usd, ctx) => {

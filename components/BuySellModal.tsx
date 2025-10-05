@@ -58,16 +58,24 @@ export default function BuySellModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80">
-      <div className="w-full max-w-md mx-auto rounded-t-2xl sm:rounded-2xl border border-white/10 bg-black text-white overflow-hidden">
+      <div
+        className="w-full max-w-md mx-auto rounded-t-2xl sm:rounded-2xl border border-white/10 bg-black text-white overflow-hidden flex flex-col"
+        style={{ maxHeight: "100dvh" }}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${mode} token`}
+      >
         <div className="p-4 border-b border-white/10 flex items-center justify-between">
           <div className="text-sm font-semibold capitalize">{mode} {mode === "buy" ? "with USD" : "for USD"}</div>
           <button className="text-white/60 hover:text-white" onClick={onClose}>Close</button>
         </div>
-        <div className="p-5 pt-6">
+        {/* Scrollable content area */}
+        <div className="p-5 pt-6 flex-1 overflow-y-auto">
           <div className="text-xs text-white/60 mb-1">Amount (USD)</div>
           <div className="text-4xl font-bold tracking-tight">${pretty}</div>
           <div className="text-xs text-white/50 mt-2">Mint: <span className="font-mono text-[11px]">{mint}</span></div>
         </div>
+        {/* Keypad (fixed height) */}
         <div className="p-3 grid grid-cols-3 gap-2 select-none">
           {(["1","2","3","4","5","6","7","8","9",".","0","back"] as const).map((k) => (
             <button
@@ -85,7 +93,8 @@ export default function BuySellModal({
             </button>
           ))}
         </div>
-        <div className="p-4 pt-0">
+        {/* Action area with safe-area bottom padding */}
+        <div className="p-4 pt-0" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
           <button
             className="btn w-full min-h-12 text-base"
             disabled={parsed <= 0}

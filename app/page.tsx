@@ -72,7 +72,10 @@ export default function Home() {
     const handler = (e: any) => {
       const d = e.detail || {};
       if (!d.mint) return;
-      try { router.push(`/token/${encodeURIComponent(d.mint)}`); } catch {}
+      try {
+        const intent = d.intent && (d.intent === 'buy' || d.intent === 'sell') ? `&intent=${d.intent}` : '';
+        router.push(`/token/${encodeURIComponent(d.mint)}?from=suggested${intent}`);
+      } catch {}
     };
     window.addEventListener('dope:token-detail', handler as any);
     return () => window.removeEventListener('dope:token-detail', handler as any);
