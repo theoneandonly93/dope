@@ -57,6 +57,9 @@ export default function Home() {
   const [fatalError, setFatalError] = useState<string>("");
   const [showRpcError, setShowRpcError] = useState(true);
   const [rpcStatus, setRpcStatus] = useState<{status:string,url:string,error?:string}|null>(null);
+  const [revealOpen, setRevealOpen] = useState(false);
+  const [newSeed, setNewSeed] = useState<string | null>(null);
+  const [newSk58, setNewSk58] = useState<string>("");
 
   // Move swap UI state hooks to top level
   const [showSwap, setShowSwap] = useState(false);
@@ -253,6 +256,21 @@ export default function Home() {
     return () => window.removeEventListener('dope:rpc', handler as any);
   }, []);
 
+  // Check if a new wallet was just created and show reveal modal once
+  useEffect(() => {
+    try {
+      const seed = sessionStorage.getItem('dope:new_wallet_seed');
+      const sk58 = sessionStorage.getItem('dope:new_wallet_sk58');
+      if (sk58) {
+        setNewSeed(seed);
+        setNewSk58(sk58);
+        setRevealOpen(true);
+        sessionStorage.removeItem('dope:new_wallet_seed');
+        sessionStorage.removeItem('dope:new_wallet_sk58');
+      }
+    } catch {}
+  }, []);
+
   const onSyncDope = async () => {
     setSyncMsg("");
     setSyncing(true);
@@ -367,6 +385,11 @@ export default function Home() {
   return (
     <ErrorBoundary>
       <div className="pb-24 space-y-6 w-full max-w-md mx-auto px-2 sm:px-0">
+        {/* One-time reveal modal after account creation */}
+        {revealOpen && (
+          // @ts-ignore dynamic import type
+          React.createElement(require('../components/RevealSecretsModal').default, { open: revealOpen, mnemonic: newSeed, secretBase58: newSk58, onClose: () => setRevealOpen(false) })
+        )}
         {/* Chain Switcher Dropdown with label and status light */}
         <div className="flex items-center justify-center py-2 gap-3">
           <span className="text-white/70 text-sm font-semibold">Chains</span>

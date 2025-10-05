@@ -169,36 +169,36 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
     setPhase('signing');
     setStatus('Preparing swap transaction…');
     try {
-  const nIn = normalizeMint(activeInputMint);
-  const nOut = normalizeMint(outputMint);
-  const inDec = await fetchDecimals(nIn);
-  const outDec = await fetchDecimals(nOut);
-  const atomic = exactOutMode
-    ? Math.floor(amt * Math.pow(10, outDec))
-    : Math.floor(amt * Math.pow(10, inDec));
-  const body: any = {
-    inputMint: nIn,
-    outputMint: nOut,
-    amountAtomic: atomic,
-    slippageBps,
-    userPublicKey: keypair.publicKey.toString(),
-    swapMode: exactOutMode ? 'ExactOut' : 'ExactIn',
-  };
-  if (onlyDirectRoutes) body.onlyDirectRoutes = true;
-  if (maxAccounts !== '' && Number(maxAccounts) > 0) body.maxAccounts = Number(maxAccounts);
-  if (restrictDexes) body.restrictDexes = restrictDexes;
-  if (platformFeeBps > 0 && feeAccount) { body.platformFeeBps = platformFeeBps; body.feeAccount = feeAccount; }
+      const nIn = normalizeMint(activeInputMint);
+      const nOut = normalizeMint(outputMint);
+      const inDec = await fetchDecimals(nIn);
+      const outDec = await fetchDecimals(nOut);
+      const atomic = exactOutMode
+        ? Math.floor(amt * Math.pow(10, outDec))
+        : Math.floor(amt * Math.pow(10, inDec));
+      const body: any = {
+        inputMint: nIn,
+        outputMint: nOut,
+        amountAtomic: atomic,
+        slippageBps,
+        userPublicKey: keypair.publicKey.toString(),
+        swapMode: exactOutMode ? 'ExactOut' : 'ExactIn',
+      };
+      if (onlyDirectRoutes) body.onlyDirectRoutes = true;
+      if (maxAccounts !== '' && Number(maxAccounts) > 0) body.maxAccounts = Number(maxAccounts);
+      if (restrictDexes) body.restrictDexes = restrictDexes;
+      if (platformFeeBps > 0 && feeAccount) { body.platformFeeBps = platformFeeBps; body.feeAccount = feeAccount; }
       const r = await fetch('/api/swap/prepare', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || 'prepare failed');
-  if (!j.swapTransaction) throw new Error('Missing swapTransaction');
-  // Jupiter v6 returns a VersionedTransaction (base64)
-  const raw = Buffer.from(j.swapTransaction, 'base64');
-  const { VersionedTransaction } = await import('@solana/web3.js');
-  const tx = VersionedTransaction.deserialize(raw);
-  tx.sign([keypair]);
+      if (!j.swapTransaction) throw new Error('Missing swapTransaction');
+      // Jupiter v6 returns a VersionedTransaction (base64)
+      const raw = Buffer.from(j.swapTransaction, 'base64');
+      const { VersionedTransaction } = await import('@solana/web3.js');
+      const tx = VersionedTransaction.deserialize(raw);
+      tx.sign([keypair]);
       const conn = getConnection();
-      const sig = await conn.sendRawTransaction(tx.serialize());
+      const sig = await conn.sendRawTransaction(tx.serialize(), { skipPreflight: false, maxRetries: 3 } as any);
       setTxSig(sig);
       setPhase('submitted');
       setStatus('Submitted. Confirming…');
