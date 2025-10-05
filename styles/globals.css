@@ -24,6 +24,18 @@ body { -webkit-tap-highlight-color: transparent; }
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes floaty {
+  0% { transform: translate(var(--tx, -50%), var(--ty, -50%)) rotate(var(--rot, 0deg)); }
+  50% { transform: translate(calc(var(--tx, -50%) + 6px), calc(var(--ty, -50%) - 6px)) rotate(calc(var(--rot, 0deg) + 3deg)); }
+  100% { transform: translate(var(--tx, -50%), var(--ty, -50%)) rotate(var(--rot, 0deg)); }
+}
+
+.animate-floaty {
+  animation-name: floaty;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
 .glass {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);

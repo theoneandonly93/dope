@@ -26,7 +26,7 @@ export type StoredWallet = {
   encSecretKey?: EncryptedData; // when importing a raw CLI keypair
 };
 
-type StoredWalletWithMeta = StoredWallet & { id: string; name?: string };
+type StoredWalletWithMeta = StoredWallet & { id: string; name?: string; username?: string };
 type WalletStore = { version: 2; wallets: StoredWalletWithMeta[]; selectedId?: string };
 
 const STORAGE_KEY = "dope_wallet_v1"; // keep same key; migrate single -> multi in-place
@@ -197,6 +197,18 @@ export function setActiveWalletName(name: string) {
   updateActiveWallet((w) => {
     w.name = name.trim() || undefined;
   });
+}
+
+// Update the active wallet's username (used for social/leaderboards)
+export function setActiveWalletUsername(username: string) {
+  updateActiveWallet((w) => {
+    (w as any).username = username.trim() || undefined;
+  });
+}
+
+export function getActiveWalletUsername(): string | undefined {
+  const aw = getActiveWallet();
+  return (aw as any)?.username || undefined;
 }
 
 export function getStoredWallet(): StoredWallet | null {
