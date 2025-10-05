@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useWallet } from "./WalletProvider";
 import { getConnection } from "../lib/wallet";
 import { getTokenDecimals } from "../lib/tokenMetadataCache";
+import { getTokenInfo, normalizeMint, searchTokens } from "../lib/tokenInfo";
 import { getQuote as pumpQuote, executeSwap as pumpExecute, PumpQuoteOptions } from "../lib/pumpfunSwap";
 import { PublicKey, VersionedTransaction } from "@solana/web3.js";
 
@@ -15,13 +16,7 @@ type Props = {
   showTrending?: boolean; // control embedded trending list visibility
 };
 
-function normalizeMint(m: string): string {
-  const s = (m || '').trim().toLowerCase();
-  if (s === 'sol' || s === 'wsol') return 'So11111111111111111111111111111111111111112';
-  if (s === 'btc') return '9n4nbM75f5Ui33ZbPYXn59EwSgE8CGsHtAeTH5YFeJ9E';
-  if (s === 'eth') return '7vfCXTUXx5WJVxrzS2KHGfJo3AmoQ39kuixZ7Z6w7R8';
-  return m;
-}
+// normalizeMint moved to lib/tokenInfo
 
 function isValidBase58(m: string) { try { new PublicKey(m); return true; } catch { return false; } }
 
@@ -44,6 +39,8 @@ export default function PhantomSwapModal({ open, onClose, initialFromMint, initi
   const [priorityFee, setPriorityFee] = useState<number>(0); // micro-lamports per CU
   const [tipSol, setTipSol] = useState<number>(0);
   const [minReceived, setMinReceived] = useState<string>("");
+  const [fromInfo, setFromInfo] = useState<any>(null);
+  const [toInfo, setToInfo] = useState<any>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -62,6 +59,14 @@ export default function PhantomSwapModal({ open, onClose, initialFromMint, initi
     if (amountIn) handleQuote(amountIn);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialFromMint, initialToMint]);
+
+  // Resolve token info for display
+  useEffect(() => {
+    getTokenInfo(fromMint).then(setFromInfo).catch(()=>setFromInfo(null));
+  }, [fromMint]);
+  useEffect(() => {
+    getTokenInfo(toMint).then(setToInfo).catch(()=>setToInfo(null));
+  }, [toMint]);
 
   const handleQuote = async (v: string) => {
     setAmountIn(v);
@@ -111,20 +116,86 @@ export default function PhantomSwapModal({ open, onClose, initialFromMint, initi
     };
   }
 
-  const TokenEdit = ({ label, value, onChange, show, setShow }: any) => (
-    <div className="mt-2">
-      {!show && <button type="button" className="text-[11px] underline text-white/60" onClick={()=>setShow(true)}>Change {label}</button>}
-      {show && (
-        <div className="flex gap-2 items-center">
-          <input value={value}
-            onChange={(e)=>onChange(e.target.value.trim())}
-            placeholder="Paste SPL mint (base58)"
-            className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-[12px] font-mono outline-none" />
-          <button className="btn btn-xs" onClick={()=>setShow(false)}>Done</button>
-        </div>
-      )}
-    </div>
-  );
+  const TokenEdit = ({ label, value, onChange, show, setShow }: any) => {
+    const [query, setQuery] = useState<string>("");
+    const [results, setResults] = useState<any[]>([]);
+    const [searching, setSearching] = useState(false);
+
+    useEffect(() => {
+      if (!show) return;
+      setQuery("");
+      setResults([]);
+    }, [show, value]);
+
+    useEffect(() => {
+      if (!show) return;
+      const q = query.trim();
+      if (!q) { setResults([]); return; }
+      setSearching(true);
+      const id = setTimeout(async () => {
+        try {
+          const r = await searchTokens(q, 8);
+          setResults(r || []);
+        } finally { setSearching(false); }
+      }, 200);
+      return () => clearTimeout(id);
+    }, [query, show]);
+
+    function short(m: string) { return m?.length > 10 ? `${m.slice(0,4)}…${m.slice(-4)}` : m; }
+    const handleSelect = (m: string) => { onChange(m); setShow(false); };
+    const onKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
+      if (e.key === 'Enter') {
+        if (isValidBase58(query)) return handleSelect(query.trim());
+        if (results.length > 0) return handleSelect(results[0].mint);
+      }
+    };
+
+    return (
+      <div className="mt-2">
+        {!show && <button type="button" className="text-[11px] underline text-white/60" onClick={()=>setShow(true)}>Change {label}</button>}
+        {show && (
+          <div className="">
+            <div className="flex gap-2 items-center">
+              <input
+                value={query}
+                onChange={(e)=>setQuery(e.target.value)}
+                onKeyDown={onKeyDown}
+                placeholder="Search name or paste mint"
+                className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-[12px] outline-none" />
+              <button className="btn btn-xs" onClick={()=>setShow(false)}>Done</button>
+            </div>
+            {(searching || results.length>0 || isValidBase58(query)) && (
+              <div className="mt-2 max-h-56 overflow-auto rounded-lg border border-white/10 bg-black/40">
+                {isValidBase58(query) && (
+                  <button type="button" onClick={()=>handleSelect(query.trim())} className="w-full text-left px-3 py-2 hover:bg-white/5 flex items-center gap-2">
+                    <span className="text-[11px] text-white/50">Use address</span>
+                    <span className="font-mono text-[12px]">{short(query.trim())}</span>
+                  </button>
+                )}
+                {results.map((t:any, i:number) => (
+                  <button key={i} type="button" onClick={()=>handleSelect(t.mint)} className="w-full px-3 py-2 hover:bg-white/5 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={t.logo || '/logo-192.png'} alt={t.symbol} className="w-5 h-5 rounded-full" />
+                      <div className="flex flex-col items-start">
+                        <div className="text-sm font-semibold">{t.symbol}</div>
+                        <div className="text-[10px] text-white/40">{t.name}</div>
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-white/40 font-mono">{short(t.mint)}</div>
+                  </button>
+                ))}
+                {searching && <div className="px-3 py-2 text-[12px] text-white/50">Searching…</div>}
+                {!searching && results.length===0 && !isValidBase58(query) && query.trim() && (
+                  <div className="px-3 py-2 text-[12px] text-white/50">No matches</div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   if (!open && variant !== 'inline') return null;
   const Container = variant === 'modal' ? 'div' : React.Fragment as any;
@@ -174,10 +245,14 @@ export default function PhantomSwapModal({ open, onClose, initialFromMint, initi
               onChange={(e)=>handleQuote(e.target.value.replace(/[^0-9.]/g,'').replace(/(\..*?)\..*/,'$1'))}
               className="bg-transparent text-3xl outline-none w-full"
             />
-            <div className="flex flex-col items-end">
-              <div className="text-[10px] text-white/40">Mint</div>
-              <div className="font-mono text-[10px] max-w-[200px] truncate" title={fromMint}>{fromMint}</div>
-            </div>
+            <button type="button" className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/5" onClick={()=>setShowFromEdit(s=>!s)} title={fromMint}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={fromInfo?.logo || '/logo-192.png'} alt={fromInfo?.symbol || 'token'} className="w-6 h-6 rounded-full" />
+              <div className="flex flex-col items-end">
+                <div className="text-sm font-semibold">{fromInfo?.symbol || 'Token'}</div>
+                <div className="text-[10px] text-white/40 max-w-[160px] truncate">{fromInfo?.name || 'Unknown'}</div>
+              </div>
+            </button>
           </div>
           <TokenEdit label="From" value={fromMint} onChange={setFromMint} show={showFromEdit} setShow={setShowFromEdit} />
         </div>
@@ -188,10 +263,14 @@ export default function PhantomSwapModal({ open, onClose, initialFromMint, initi
           <div className="flex justify-between items-center text-sm text-gray-400 mb-1">You Receive</div>
           <div className="flex items-center justify-between gap-2">
             <input type="text" readOnly value={amountOut} placeholder="0" className="bg-transparent text-3xl outline-none w-full" />
-            <div className="flex flex-col items-end">
-              <div className="text-[10px] text-white/40">Mint</div>
-              <div className="font-mono text-[10px] max-w-[200px] truncate" title={toMint}>{toMint}</div>
-            </div>
+            <button type="button" className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/5" onClick={()=>setShowToEdit(s=>!s)} title={toMint}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={toInfo?.logo || '/logo-192.png'} alt={toInfo?.symbol || 'token'} className="w-6 h-6 rounded-full" />
+              <div className="flex flex-col items-end">
+                <div className="text-sm font-semibold">{toInfo?.symbol || 'Token'}</div>
+                <div className="text-[10px] text-white/40 max-w-[160px] truncate">{toInfo?.name || 'Unknown'}</div>
+              </div>
+            </button>
           </div>
           <TokenEdit label="To" value={toMint} onChange={(m:string)=>{ setToMint(m); setAmountOut(""); if (amountIn) handleQuote(amountIn); }} show={showToEdit} setShow={setShowToEdit} />
           {priceImpact && <div className="text-[11px] text-white/50 mt-2">Price Impact: {priceImpact}</div>}
