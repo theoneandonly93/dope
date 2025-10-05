@@ -388,14 +388,13 @@ export default function Home() {
   return (
     <ErrorBoundary>
       <div className="pb-24 space-y-6 w-full max-w-md mx-auto px-2 sm:px-0">
-        {/* Header actions moved to global header */}
-        <div className="pt-2" />
+        {/* History icon moved to header */}
         {/* One-time reveal modal after account creation */}
         {revealOpen && (
           // @ts-ignore dynamic import type
           React.createElement(require('../components/RevealSecretsModal').default, { open: revealOpen, mnemonic: newSeed, secretBase58: newSk58, onClose: () => setRevealOpen(false) })
         )}
-        {/* Multichain selector removed per spec */}
+        {/* Multichain bar removed per spec */}
         {showRpcError && fatalError && (
           <div className="fixed top-0 left-0 w-full z-50 flex justify-center">
             <div className="bg-yellow-900 text-yellow-200 border border-yellow-400 rounded-xl px-4 py-3 mt-4 shadow-lg max-w-md w-full flex items-center justify-between">
@@ -415,13 +414,12 @@ export default function Home() {
         <div className="glass rounded-2xl p-4 sm:p-5 border border-white/5 w-full">
           <div className="flex items-center justify-between">
             <div className="text-xs text-white/60">Balance</div>
-            {/* Network status dot */}
             <span
-              className={`inline-block w-2.5 h-2.5 rounded-full border border-white/20 ${balances[activeChain] !== null ? 'bg-green-500' : 'bg-red-500'}`}
+              className={`w-3 h-3 rounded-full border border-white/20 ${balances[activeChain] !== null ? 'bg-green-500' : 'bg-red-500'}`}
               title={balances[activeChain] !== null ? 'Connected' : 'Not Connected'}
             />
           </div>
-          <div className="text-3xl font-bold mt-1">
+          <div className="text-3xl font-bold">
             {balances[activeChain] === null ? "—" : balances[activeChain]?.toFixed(4)}
             <span className="text-base font-medium text-white/60"> {activeChain.toUpperCase()}</span>
           </div>
