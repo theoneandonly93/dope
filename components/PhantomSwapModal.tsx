@@ -6,7 +6,14 @@ import { getTokenDecimals } from "../lib/tokenMetadataCache";
 import { getQuote as pumpQuote, executeSwap as pumpExecute, PumpQuoteOptions } from "../lib/pumpfunSwap";
 import { PublicKey, VersionedTransaction } from "@solana/web3.js";
 
-type Props = { open: boolean; onClose: () => void; initialFromMint?: string; initialToMint?: string };
+type Props = {
+  open: boolean;
+  onClose: () => void;
+  initialFromMint?: string;
+  initialToMint?: string;
+  variant?: 'modal' | 'inline';
+  showTrending?: boolean; // control embedded trending list visibility
+};
 
 function normalizeMint(m: string): string {
   const s = (m || '').trim().toLowerCase();
@@ -18,7 +25,7 @@ function normalizeMint(m: string): string {
 
 function isValidBase58(m: string) { try { new PublicKey(m); return true; } catch { return false; } }
 
-export default function PhantomSwapModal({ open, onClose, initialFromMint, initialToMint }: Props) {
+export default function PhantomSwapModal({ open, onClose, initialFromMint, initialToMint, variant='modal', showTrending=true }: Props) {
   const { keypair, unlocked, unlock, tryBiometricUnlock } = useWallet() as any;
   const [fromMint, setFromMint] = useState<string>('So11111111111111111111111111111111111111112'); // SOL
   const [toMint, setToMint] = useState<string>('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'); // USDC
@@ -119,15 +126,17 @@ export default function PhantomSwapModal({ open, onClose, initialFromMint, initi
     </div>
   );
 
-  if (!open) return null;
+  if (!open && variant !== 'inline') return null;
+  const Container = variant === 'modal' ? 'div' : React.Fragment as any;
+  const containerProps = variant === 'modal' ? { className: "fixed inset-0 bg-black/80 z-50 flex items-end sm:items-center justify-center" } : {};
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-end sm:items-center justify-center">
-      <div className="bg-[#111] text-white w-full sm:w-[420px] rounded-t-3xl sm:rounded-2xl p-6 border border-white/10">
+    <Container {...containerProps}>
+      <div className={variant==='modal' ? "bg-[#111] text-white w-full sm:w-[420px] rounded-t-3xl sm:rounded-2xl p-6 border border-white/10" : "bg-[#111] text-white w-full rounded-2xl p-4 border border-white/10"}>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Swap</h2>
           <div className="flex items-center gap-2">
             <button title="Settings" onClick={()=>setShowSettings(s=>!s)} className="text-gray-300 hover:text-white">⚙️</button>
-            <button onClick={onClose} className="text-gray-400 hover:text-white">✕</button>
+            {variant==='modal' && <button onClick={onClose} className="text-gray-400 hover:text-white">✕</button>}
           </div>
         </div>
         {showSettings && (
@@ -192,7 +201,7 @@ export default function PhantomSwapModal({ open, onClose, initialFromMint, initi
         <button onClick={handleSwap} disabled={loading || !amountIn} className="bg-gradient-to-r from-purple-500 to-indigo-500 w-full py-3 rounded-xl font-semibold disabled:opacity-50">
           {loading ? 'Swapping…' : 'Swap'}
         </button>
-        {trending.length>0 && (
+        {trending.length>0 && showTrending && (
           <div className="mt-6">
             <h3 className="text-sm text-gray-400 mb-2">Trending Tokens</h3>
             <div className="space-y-3">
@@ -214,6 +223,6 @@ export default function PhantomSwapModal({ open, onClose, initialFromMint, initi
           React.createElement(require('./UnlockModal').default, { onUnlock: async (p:string)=>{ await unlock(p); setShowUnlock(false); }, onBiometricUnlock: async ()=>{ const ok = await tryBiometricUnlock(); if (ok) setShowUnlock(false); return ok; }, onClose: ()=>setShowUnlock(false) })
         )}
       </div>
-    </div>
+    </Container>
   );
 }

@@ -387,6 +387,22 @@ export default function Home() {
   return (
     <ErrorBoundary>
       <div className="pb-24 space-y-6 w-full max-w-md mx-auto px-2 sm:px-0">
+        <div className="flex items-center justify-between pt-2">
+          <div />
+          <button
+            type="button"
+            aria-label="History"
+            className="p-2 rounded-full bg-white/5 border border-white/10 text-white/70 hover:text-white"
+            onClick={()=>{ try { router.push('/transactions'); } catch {} }}
+            title="History"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 8v5l3 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M3 12a9 9 0 1 0 9-9" stroke="currentColor" strokeWidth="2" fill="none"/>
+              <path d="M3 5v4h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        </div>
         {/* One-time reveal modal after account creation */}
         {revealOpen && (
           // @ts-ignore dynamic import type

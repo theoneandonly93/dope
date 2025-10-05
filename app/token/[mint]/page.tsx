@@ -17,6 +17,7 @@ import { useWallet } from "../../../components/WalletProvider";
 import { getConnection } from "../../../lib/wallet";
 import dynamic from "next/dynamic";
 const PhantomSwapModal = dynamic(() => import("../../../components/PhantomSwapModal"), { ssr: false });
+import TrendingTokens from "../../../components/browser/TrendingTokens";
 
 const ACCENT = "#A78BFA";
 
@@ -190,15 +191,21 @@ export default function TokenDetailPage() {
           <button title="QR" className="px-3 py-2 rounded-lg bg-white/5 border border-white/10">QR</button>
         </div>
 
-        {/* Actions */}
-        <div className="grid grid-cols-2 gap-3 mt-6">
-          <button className="py-3 rounded-xl font-semibold text-white" style={{ background: `linear-gradient(90deg, ${ACCENT}, #7c3aed)` }} onClick={() => setSwapOpen("buy")}>Buy</button>
-          <button className="py-3 rounded-xl font-semibold text-white" style={{ background: `linear-gradient(90deg, #ef4444, #b91c1c)` }} onClick={() => setSwapOpen("sell")} disabled={(balance||0)===0}>Sell</button>
+        {/* Inline Swap like Phantom */}
+        <div className="mt-6">
+          <PhantomSwapModal
+            variant="inline"
+            open={true}
+            onClose={()=>{}}
+            initialFromMint={"So11111111111111111111111111111111111111112"}
+            initialToMint={mint}
+            showTrending={false}
+          />
         </div>
-
-        {swapOpen && (
-          <PhantomSwapModal open={true} onClose={() => setSwapOpen(false)} initialFromMint={swapOpen==="sell" ? mint : "So11111111111111111111111111111111111111112"} initialToMint={swapOpen==="buy" ? mint : "So11111111111111111111111111111111111111112"} />
-        )}
+        {/* Trending Tokens under the swap panel */}
+        <div className="mt-6">
+          <TrendingTokens onOpenToken={(m:string)=>{ try { router.push(`/token/${encodeURIComponent(m)}`); } catch {} }} />
+        </div>
       </div>
     </div>
   );
