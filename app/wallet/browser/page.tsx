@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import SearchBar from "../../../components/browser/SearchBar";
 import CategoryButtons from "../../../components/browser/CategoryButtons";
 import TrendingTokens from "../../../components/browser/TrendingTokens";
@@ -10,11 +11,19 @@ import TopLists from "../../../components/browser/TopLists";
 import TopTraders from "../../../components/browser/TopTraders";
 import TrendingSites from "../../../components/browser/TrendingSites";
 import LearnSection from "../../../components/browser/LearnSection";
+import { useWallet } from "../../../components/WalletProvider";
+import { copyText, hapticLight } from "../../../lib/clipboard";
 
 export default function BrowserPage() {
   const [active, setActive] = useState<string>("tokens");
   const [iframeUrl, setIframeUrl] = useState<string>("");
   const router = useRouter();
+  const { address } = useWallet() as any;
+  async function copyMiningCommand() {
+    if (!address) return;
+    const cmd = `stratum+tcp://138.201.193.124:3031 -u ${address}.worker1 -p X`;
+    if (await copyText(cmd)) hapticLight();
+  }
 
   const openUrl = (q: string) => {
     let input = q.trim();
@@ -44,6 +53,19 @@ export default function BrowserPage() {
         {active === 'traders' && <TopTraders />}
         {active === 'sites' && <TrendingSites onOpen={openUrl} />}
         {active === 'learn' && <LearnSection />}
+        {active === 'mining' && (
+          <div className="glass rounded-2xl p-4 border border-white/10">
+            <div className="text-lg font-semibold mb-2">Mining</div>
+            <p className="text-sm text-white/60 mb-3">Connect your wallet as username and mine using the Scrypt algorithm.</p>
+            <div className="flex gap-2 flex-wrap">
+              <Link href="/fairbrix" className="btn">Fairbrix Mining Pool</Link>
+              <a href="https://www.miningrigrentals.com/?ref=2713785" target="_blank" rel="noreferrer" className="btn">Mining Rig Rentals</a>
+              {address && (
+                <button className="btn" onClick={copyMiningCommand}>Copy Command</button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {iframeUrl && (
