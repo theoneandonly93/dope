@@ -15,6 +15,8 @@ import TxList from "../components/TxList";
 import SendTokenForm from "../components/SendTokenForm";
 import SuggestedTokens from "../components/SuggestedTokens";
 import SelectTokenModal from "../components/SelectTokenModal";
+import dynamic from "next/dynamic";
+const PhantomSwapModal = dynamic(() => import('../components/PhantomSwapModal'), { ssr: false });
 
 function formatTokenAmount(amount: number | null, symbol: string): string {
   if (amount === null) return "—";
@@ -508,81 +510,7 @@ export default function Home() {
           </div>
         )}
         {showSwap && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90">
-            <div className="rounded-2xl p-6 w-full max-w-md border border-white/10" style={{background: '#000'}}>
-              <h2 className="text-lg font-semibold mb-4 text-white">Swap Tokens</h2>
-              <div className="mb-4 flex flex-col gap-4">
-                <div className="flex gap-2 items-center">
-                  <select
-                    className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"
-                    value={tokenA}
-                    onChange={e => setTokenA(e.target.value)}
-                    disabled={!swapDirection}
-                  >
-                    {tokenList.map(t => (
-                      <option key={t.mint} value={t.mint}>{t.name} ({t.symbol})</option>
-                    ))}
-                  </select>
-                  <img src={tokenList.find(t => t.mint === tokenA)?.logo || "/logo-192.png"} alt="tokenA" className="w-8 h-8 rounded-full" />
-                </div>
-                <button className="btn w-full" onClick={handleSwitch}>⇅ Switch</button>
-                <div className="flex gap-2 items-center">
-                  <select
-                    className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"
-                    value={tokenB}
-                    onChange={e => setTokenB(e.target.value)}
-                    disabled={swapDirection}
-                  >
-                    {tokenList.map(t => (
-                      <option key={t.mint} value={t.mint}>{t.name} ({t.symbol})</option>
-                    ))}
-                  </select>
-                  <img src={tokenList.find(t => t.mint === tokenB)?.logo || "/logo-192.png"} alt="tokenB" className="w-8 h-8 rounded-full" />
-                </div>
-                <input
-                  type="number"
-                  min="0"
-                  step="any"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 outline-none mt-2 text-white"
-                  placeholder="Amount to swap"
-                  value={swapAmount}
-                  onChange={e => setSwapAmount(Number(e.target.value))}
-                />
-                <div className="flex items-center gap-2">
-                  <span className="text-white/70">Slippage</span>
-                  <input
-                    type="number"
-                    min="0"
-                    max="5"
-                    step="0.1"
-                    className="w-20 bg-white/5 border border-white/10 rounded-lg px-2 py-1 outline-none text-white"
-                    value={slippage}
-                    onChange={e => setSlippage(Number(e.target.value))}
-                  />
-                  <span className="text-white/60">%</span>
-                </div>
-              </div>
-              <div className="flex flex-col gap-2 mt-2">
-                <button className="btn w-full" onClick={handleGetQuote} disabled={quoteLoading || swapLoading}>
-                  {quoteLoading ? 'Fetching quote…' : 'Get Quote'}
-                </button>
-                {showSwapConfirm && latestQuote && (
-                  <div className="rounded-lg border border-white/10 bg-black/40 p-3 text-xs space-y-2">
-                    <div className="flex justify-between"><span>Output</span><span>{quoteOutUi}</span></div>
-                    {quotePriceImpact !== null && <div className="flex justify-between"><span>Price Impact</span><span>{(quotePriceImpact*100).toFixed(2)}%</span></div>}
-                    <div className="flex justify-between"><span>Slippage</span><span>{slippage}%</span></div>
-                    <div className="flex gap-2 mt-1">
-                      <button className="btn flex-1" onClick={handleExecuteSwap} disabled={swapLoading}>{swapLoading ? 'Swapping…' : 'Confirm Swap'}</button>
-                      <button className="btn flex-1" onClick={() => { setShowSwapConfirm(false); setLatestQuote(null); }}>Cancel</button>
-                    </div>
-                  </div>
-                )}
-                {swapResult && <div className="text-green-400 text-sm">{swapResult}</div>}
-                {swapError && <div className="text-red-400 text-sm">{swapError}</div>}
-              </div>
-              <button className="btn w-full" onClick={() => setShowSwap(false)}>Close</button>
-            </div>
-          </div>
+          <PhantomSwapModal open={showSwap} onClose={()=>setShowSwap(false)} />
         )}
 
         <div className="glass rounded-2xl p-5 border border-white/5">
