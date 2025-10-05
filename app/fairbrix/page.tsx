@@ -3,15 +3,17 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useWallet } from "../../components/WalletProvider";
 import { copyText, hapticLight } from "../../lib/clipboard";
+import { fetchFairbrixStats, getStoredFairbrixAddress, setStoredFairbrixAddress } from "../../lib/fairbrix";
 
 export default function FairbrixMiningPage() {
   const { address } = useWallet() as any;
   const [worker, setWorker] = useState("worker1");
   const [difficulty, setDifficulty] = useState("3031"); // 3031 (regular) or 3032 (high)
-  const [stats, setStats] = useState<{ unpaid?: number; payouts?: number; workers?: number; updated?: number } | null>(null);
+  const [stats, setStats] = useState<{ unpaid?: number; totalPayouts?: number; workers?: number; updated?: number } | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
   const [notice, setNotice] = useState<string>("");
-  const prevStats = useRef<{ unpaid?: number; payouts?: number } | null>(null);
+  const prevStats = useRef<{ unpaid?: number; totalPayouts?: number } | null>(null);
+  const [fairbrixAddr, setFairbrixAddr] = useState<string>("");
 
   // Persist worker/difficulty locally
   useEffect(() => {
@@ -20,6 +22,8 @@ export default function FairbrixMiningPage() {
       const d = localStorage.getItem("fairbrix:difficulty");
       if (w) setWorker(w);
       if (d) setDifficulty(d);
+      const fa = getStoredFairbrixAddress();
+      if (fa) setFairbrixAddr(fa);
     } catch {}
   }, []);
   useEffect(() => { try { localStorage.setItem("fairbrix:worker", worker); } catch {} }, [worker]);
@@ -41,13 +45,14 @@ export default function FairbrixMiningPage() {
     if (await copyText(command)) hapticLight();
   }
 
-  // Live stats + lightweight cache
+  // Live stats + lightweight cache (uses explicit Fairbrix address when provided)
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      if (!address) { setStats(null); return; }
+      const addr = fairbrixAddr?.trim();
+      if (!addr) { setStats(null); return; }
       try {
-        const key = `fairbrix:stats:${address}`;
+        const key = `fairbrix:stats:${addr}`;
         const cached = sessionStorage.getItem(key);
         if (cached) {
           try {
@@ -58,26 +63,20 @@ export default function FairbrixMiningPage() {
           } catch {}
         }
         setLoadingStats(true);
-        const r = await fetch(`https://fairbrixscan.com/api/address/${address}`, { cache: "no-store" });
-        const j = await r.json();
+        const data = await fetchFairbrixStats(addr);
         if (cancelled) return;
-        const next = {
-          unpaid: Number(j?.unpaid) || 0,
-          payouts: Number(j?.totalPayouts) || 0,
-          workers: Array.isArray(j?.workers) ? j.workers.length : Number(j?.workers) || 0,
-          updated: Date.now()
-        };
+        const next = data || { unpaid: 0, payouts: 0, workers: 0, updated: Date.now() };
         // Detect changes for notifications
         const prev = prevStats.current;
         if (prev) {
-          if ((next.payouts ?? 0) > (prev.payouts ?? 0)) {
+          if ((next.totalPayouts ?? 0) > (prev.totalPayouts ?? 0)) {
             setNotice("New payout received");
           } else if ((next.unpaid ?? 0) < (prev.unpaid ?? 0)) {
             setNotice("Unpaid decreased (payout or fee)");
           }
           if (notice) setTimeout(() => setNotice(""), 4000);
         }
-        prevStats.current = { unpaid: next.unpaid, payouts: next.payouts };
+        prevStats.current = { unpaid: next.unpaid, totalPayouts: next.totalPayouts };
         setStats(next);
         try { sessionStorage.setItem(key, JSON.stringify(next)); } catch {}
       } catch {
@@ -89,7 +88,7 @@ export default function FairbrixMiningPage() {
     load();
     const iv = setInterval(load, 60_000);
     return () => { cancelled = true; clearInterval(iv); };
-  }, [address]);
+  }, [fairbrixAddr]);
 
   return (
     <div className="min-h-screen pb-24" style={{ background: "#000" }}>
@@ -110,6 +109,17 @@ export default function FairbrixMiningPage() {
         <section className="bg-[#111] rounded-2xl p-4 border border-white/10 mb-4">
           <h2 className="text-lg font-semibold mb-2">Your Configuration</h2>
           <div className="text-sm text-white/80"><b>Wallet:</b> {address || "—"}</div>
+          <label className="block mt-3 text-sm">
+            Fairbrix payout address (for stats)
+            <input
+              value={fairbrixAddr}
+              onChange={(e) => setFairbrixAddr(e.target.value)}
+              onBlur={() => setStoredFairbrixAddress(fairbrixAddr.trim())}
+              className="bg-[#1a1a1a] text-white rounded-lg p-2 w-full mt-1 border border-white/10 outline-none font-mono text-xs"
+              placeholder="fSezdqhWyh6FTznBxcGroVvgkvRyrsEquf"
+              inputMode="text"
+            />
+          </label>
           <label className="block mt-3 text-sm">
             Worker name
             <input
@@ -166,7 +176,7 @@ export default function FairbrixMiningPage() {
             </div>
             <div className="rounded-lg bg-white/5 border border-white/10 p-3 text-center">
               <div className="text-[11px] text-white/60">Payouts</div>
-              <div className="text-base font-semibold">{loadingStats ? '—' : (stats?.payouts ?? 0)}</div>
+              <div className="text-base font-semibold">{loadingStats ? '—' : (stats?.totalPayouts ?? 0)}</div>
             </div>
             <div className="rounded-lg bg-white/5 border border-white/10 p-3 text-center">
               <div className="text-[11px] text-white/60">Workers</div>
@@ -174,7 +184,7 @@ export default function FairbrixMiningPage() {
             </div>
           </div>
           <a
-            href={`https://fairbrixscan.com/address/${address || "fSezdqhWyh6FTznBxcGroVvgkvRyrsEquf"}`}
+            href={`https://fairbrixscan.com/address/${(fairbrixAddr || "fSezdqhWyh6FTznBxcGroVvgkvRyrsEquf").trim()}`}
             target="_blank"
             rel="noreferrer"
             className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg font-semibold transition"

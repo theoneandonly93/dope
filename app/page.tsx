@@ -28,6 +28,7 @@ function formatTokenAmount(amount: number | null, symbol: string): string {
 }
 
 import ManageTokensModal from "../components/ManageTokensModal";
+import { fetchFairbrixStats, getStoredFairbrixAddress } from "../lib/fairbrix";
 
 export default function Home() {
   const [activeChain, setActiveChain] = useState<'solana'|'eth'|'btc'|'ape'|'bnb'|'sei'>('solana');
@@ -95,6 +96,28 @@ export default function Home() {
   const [showSwapConfirm, setShowSwapConfirm] = useState(false);
   const [quoteOutUi, setQuoteOutUi] = useState<string>("");
   const [quotePriceImpact, setQuotePriceImpact] = useState<number|null>(null);
+  // Fairbrix read-only stats
+  const [fairbrixAddr, setFairbrixAddr] = useState<string>("");
+  const [fairbrixStats, setFairbrixStats] = useState<{ unpaid?: number; totalPayouts?: number; workers?: number; updated?: number } | null>(null);
+  const [fairbrixLoading, setFairbrixLoading] = useState(false);
+
+  useEffect(() => {
+    try { const fa = getStoredFairbrixAddress(); if (fa) setFairbrixAddr(fa); } catch {}
+  }, []);
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const addr = fairbrixAddr?.trim();
+      if (!addr) { setFairbrixStats(null); return; }
+      setFairbrixLoading(true);
+      const s = await fetchFairbrixStats(addr);
+      if (!cancelled) setFairbrixStats(s);
+      if (!cancelled) setFairbrixLoading(false);
+    }
+    load();
+    const iv = setInterval(load, 60_000);
+    return () => { cancelled = true; clearInterval(iv); };
+  }, [fairbrixAddr]);
 
   useEffect(() => {
     fetch("/tokenlist.json")
@@ -463,6 +486,35 @@ export default function Home() {
         </div>
 
         {React.createElement(require('../components/SupportChatCard').default)}
+
+        {/* Fairbrix (read-only) card */}
+        {fairbrixAddr && (
+          <div className="glass rounded-2xl p-4 border border-white/10 w-full">
+            <div className="flex items-center justify-between mb-2">
+              <div className="font-semibold">Fairbrix (Read-only)</div>
+              <Link href="/fairbrix" className="text-xs underline text-white/60 hover:text-white">Configure</Link>
+            </div>
+            <div className="text-[11px] text-white/50 font-mono truncate">{fairbrixAddr}</div>
+            <div className="grid grid-cols-3 gap-2 mt-3">
+              <div className="rounded-lg bg-white/5 border border-white/10 p-3 text-center">
+                <div className="text-[11px] text-white/60">Unpaid</div>
+                <div className="text-base font-semibold">{fairbrixLoading ? '—' : (fairbrixStats?.unpaid ?? 0)}</div>
+              </div>
+              <div className="rounded-lg bg-white/5 border border-white/10 p-3 text-center">
+                <div className="text-[11px] text-white/60">Payouts</div>
+                <div className="text-base font-semibold">{fairbrixLoading ? '—' : (fairbrixStats?.totalPayouts ?? 0)}</div>
+              </div>
+              <div className="rounded-lg bg-white/5 border border-white/10 p-3 text-center">
+                <div className="text-[11px] text-white/60">Workers</div>
+                <div className="text-base font-semibold">{fairbrixLoading ? '—' : (fairbrixStats?.workers ?? 0)}</div>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-3">
+              <a className="btn text-xs" href={`https://fairbrixscan.com/address/${encodeURIComponent(fairbrixAddr)}`} target="_blank" rel="noreferrer">FairbrixScan</a>
+              <Link href="/fairbrix" className="btn text-xs">Open Mining</Link>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 w-full">
           <button className="btn text-center px-2 py-2 text-xs sm:text-base" onClick={() => setShowSendModal(true)}>Send</button>
