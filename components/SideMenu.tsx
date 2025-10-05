@@ -9,6 +9,7 @@ import {
   changePassword,
   setPasswordForDeviceWallet,
 } from "../lib/wallet";
+import { copyText, hapticLight } from "../lib/clipboard";
 
 export default function SideMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter();
@@ -32,7 +33,8 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
   }, [open]);
 
   const doCopy = async () => {
-    try { await navigator.clipboard.writeText(address || ""); setMsg("Address copied"); setTimeout(()=>setMsg(""), 1500);} catch {}
+    const ok = await copyText(address || "");
+    if (ok) { hapticLight(); setMsg("Address copied"); setTimeout(()=>setMsg(""), 1500); }
   };
 
   const applyPasswordChange = async () => {

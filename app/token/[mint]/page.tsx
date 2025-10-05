@@ -18,6 +18,7 @@ import { getConnection } from "../../../lib/wallet";
 import dynamic from "next/dynamic";
 const PhantomSwapModal = dynamic(() => import("../../../components/PhantomSwapModal"), { ssr: false });
 import TrendingTokens from "../../../components/browser/TrendingTokens";
+import { copyText, hapticLight } from "../../../lib/clipboard";
 
 const ACCENT = "#A78BFA";
 
@@ -158,18 +159,6 @@ export default function TokenDetailPage() {
             <button key={t} onClick={() => setTab(t)} className={`text-xs px-2.5 py-1 rounded-full border ${tab===t?"bg-white/15 border-white/30":"bg-white/5 border-white/10 text-white/70"}`}>{t}</button>
           ))}
         </div>
-
-        {/* Chart */}
-        <div className="mt-3 h-48">
-          <Line data={chartData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: true } }, scales: { x: { ticks: { color: "#9CA3AF", maxTicksLimit: 6 }, grid: { display: false } }, y: { ticks: { color: "#9CA3AF" }, grid: { color: "rgba(255,255,255,0.05)" } } } }} />
-        </div>
-        {/* Tabs */}
-        <div className="flex items-center gap-2 mt-4">
-          {(["1H","1D","1W","1M","YTD","ALL"] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)} className={`text-xs px-2.5 py-1 rounded-full border ${tab===t?"bg-white/15 border-white/30":"bg-white/5 border-white/10 text-white/70"}`}>{t}</button>
-          ))}
-        </div>
-
         {/* Chart */}
         <div className="mt-3 h-48">
           <Line data={chartData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: true } }, scales: { x: { ticks: { color: "#9CA3AF", maxTicksLimit: 6 }, grid: { display: false } }, y: { ticks: { color: "#9CA3AF" }, grid: { color: "rgba(255,255,255,0.05)" } } } }} />
@@ -203,7 +192,7 @@ export default function TokenDetailPage() {
         {/* Social bar */}
         <div className="flex items-center gap-3 mt-4 text-white/70">
           <button title="Share" className="px-3 py-2 rounded-lg bg-white/5 border border-white/10">Share</button>
-          <button title="Copy Mint" className="px-3 py-2 rounded-lg bg-white/5 border border-white/10" onClick={() => { try { navigator.clipboard.writeText(mint); } catch {} }}>Copy</button>
+          <button title="Copy Mint" className="px-3 py-2 rounded-lg bg-white/5 border border-white/10" onClick={async () => { if (await copyText(mint)) hapticLight(); }}>Copy</button>
           <button title="QR" className="px-3 py-2 rounded-lg bg-white/5 border border-white/10">QR</button>
         </div>
 

@@ -448,9 +448,7 @@ export default function Home() {
         )}
 
         <div className="glass rounded-2xl p-4 sm:p-5 border border-white/5 w-full">
-          <div className="text-xs text-white/60">Address</div>
-          <div className="font-mono break-all text-sm">{address || "No address set"}</div>
-          <div className="mt-4 text-xs text-white/60">Balance</div>
+          <div className="text-xs text-white/60">Balance</div>
           <div className="text-3xl font-bold">
             {balances[activeChain] === null ? "—" : balances[activeChain]?.toFixed(4)}
             <span className="text-base font-medium text-white/60"> {activeChain.toUpperCase()}</span>

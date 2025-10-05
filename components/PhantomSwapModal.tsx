@@ -81,7 +81,19 @@ export default function PhantomSwapModal({ open, onClose, initialFromMint, initi
       const inDec = await getTokenDecimals(normalizeMint(fromMint));
       const outDec = await getTokenDecimals(normalizeMint(toMint));
       // Use Pump.fun quote endpoint (amount in UI units)
-      const q = await pumpQuote(normalizeMint(fromMint), normalizeMint(toMint), n, settingsToOpts());
+      let q = await pumpQuote(normalizeMint(fromMint), normalizeMint(toMint), n, settingsToOpts());
+      // Fallback to Jupiter v6 via our server route if Pump.fun has no route
+      if (!q) {
+        const amountAtomic = Math.floor(n * Math.pow(10, inDec));
+        const p = new URLSearchParams({ in: normalizeMint(fromMint), out: normalizeMint(toMint), amountAtomic: String(amountAtomic) });
+        try {
+          const jr = await fetch(`/api/swap/quote?${p.toString()}`, { cache: 'no-store' });
+          const jj = await jr.json();
+          if (jr.ok && jj && jj.outAmount) {
+            q = { outAmountAtomic: jj.outAmount, priceImpactPct: jj.priceImpactPct ?? 0 } as any;
+          }
+        } catch {}
+      }
       if (!q) throw new Error('No route');
       const outRaw = q?.outAmountAtomic || q?.outAmount || 0;
       setAmountOut((outRaw/Math.pow(10, outDec)).toLocaleString(undefined,{ maximumFractionDigits: 6 }));
@@ -134,7 +146,7 @@ export default function PhantomSwapModal({ open, onClose, initialFromMint, initi
       setSearching(true);
       const id = setTimeout(async () => {
         try {
-          const r = await searchTokens(q, 8);
+          const r = await searchTokens(q, { limit: 8 });
           setResults(r || []);
         } finally { setSearching(false); }
       }, 200);
@@ -142,7 +154,7 @@ export default function PhantomSwapModal({ open, onClose, initialFromMint, initi
     }, [query, show]);
 
     function short(m: string) { return m?.length > 10 ? `${m.slice(0,4)}…${m.slice(-4)}` : m; }
-    const handleSelect = (m: string) => { onChange(m); setShow(false); };
+    const handleSelect = (m: string) => { onChange(normalizeMint(m)); setShow(false); };
     const onKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
       if (e.key === 'Enter') {
         if (isValidBase58(query)) return handleSelect(query.trim());
@@ -161,7 +173,12 @@ export default function PhantomSwapModal({ open, onClose, initialFromMint, initi
                 onChange={(e)=>setQuery(e.target.value)}
                 onKeyDown={onKeyDown}
                 placeholder="Search name or paste mint"
-                className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-[12px] outline-none" />
+                type="search"
+                inputMode="search"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+                className="flex-1 bg-black/40 border border-white/10 rounded px-3 py-3 text-base outline-none min-h-[44px]" />
               <button className="btn btn-xs" onClick={()=>setShow(false)}>Done</button>
             </div>
             {(searching || results.length>0 || isValidBase58(query)) && (
@@ -217,19 +234,19 @@ export default function PhantomSwapModal({ open, onClose, initialFromMint, initi
                 <label className="text-xs text-white/60">Slippage tolerance (%)</label>
                 <input type="number" min={0} step={0.1} value={slippagePct}
                   onChange={(e)=>{ const v = parseFloat(e.target.value); setSlippagePct(isNaN(v)?0:v); if (amountIn) handleQuote(amountIn); }}
-                  className="mt-1 w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-sm outline-none" />
+                  className="mt-1 w-full bg-black/40 border border-white/10 rounded px-3 py-3 text-base sm:text-sm outline-none min-h-[44px]" />
               </div>
               <div>
                 <label className="text-xs text-white/60">Priority fee (µ-lamports/CU)</label>
                 <input type="number" min={0} step={100} value={priorityFee}
                   onChange={(e)=>{ const v = parseFloat(e.target.value); setPriorityFee(isNaN(v)?0:v); }}
-                  className="mt-1 w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-sm outline-none" />
+                  className="mt-1 w-full bg-black/40 border border-white/10 rounded px-3 py-3 text-base sm:text-sm outline-none min-h-[44px]" />
               </div>
               <div>
                 <label className="text-xs text-white/60">Tip (SOL)</label>
                 <input type="number" min={0} step={0.001} value={tipSol}
                   onChange={(e)=>{ const v = parseFloat(e.target.value); setTipSol(isNaN(v)?0:v); }}
-                  className="mt-1 w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-sm outline-none" />
+                  className="mt-1 w-full bg-black/40 border border-white/10 rounded px-3 py-3 text-base sm:text-sm outline-none min-h-[44px]" />
               </div>
             </div>
           </div>

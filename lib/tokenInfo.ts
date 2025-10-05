@@ -119,33 +119,75 @@ export async function getTokenInfo(mint: string): Promise<TokenInfo | null> {
   return cache.get(mm) || null;
 }
 
-export async function searchTokens(query: string, limit = 8): Promise<TokenInfo[]> {
-  const q = (query || "").trim().toLowerCase();
-  if (!q) return [];
-  hydrateFromProjectList();
-  const results: TokenInfo[] = [];
-  const seen = new Set<string>();
+// In-memory cache for public token list (served from /public)
+let publicListLoaded = false;
+let publicList: TokenInfo[] = [];
 
-  function push(t: TokenInfo) {
-    if (!seen.has(t.mint)) { results.push(t); seen.add(t.mint); }
+async function ensurePublicList() {
+  if (publicListLoaded) return publicList;
+  publicListLoaded = true;
+  try {
+    const res = await fetch('/tokenlist.json', { cache: 'force-cache' });
+    if (res.ok) {
+      const list = await res.json();
+      if (Array.isArray(list)) {
+        publicList = list.map((t: any) => ({
+          mint: t.mint,
+          symbol: t.symbol || t.ticker || 'TOK',
+          name: t.name || t.symbol || 'Token',
+          logo: t.logo || t.logoURI || '/logo-192.png',
+        }));
+        for (const t of publicList) {
+          if (!cache.has(t.mint)) cache.set(t.mint, t);
+        }
+      }
+    }
+  } catch {
+    // ignore
   }
-
-  // Search built-ins
-  for (const k of Object.keys(BUILT_INS)) {
-    const t = BUILT_INS[k];
-    const hay = `${t.symbol} ${t.name} ${t.mint}`.toLowerCase();
-    if (hay.includes(q)) push(t);
-  }
-  // Search cache/project list
-  for (const [_m, t] of Array.from(cache.entries())) {
-    const hay = `${t.symbol} ${t.name} ${t.mint}`.toLowerCase();
-    if (hay.includes(q)) push(t);
-    if (results.length >= limit) break;
-  }
-  // If user typed common aliases like 'sol', normalize mapping
-  if (results.length === 0) {
-    const norm = normalizeMint(query);
-    if (BUILT_INS[norm]) push(BUILT_INS[norm]);
-  }
-  return results.slice(0, limit);
+  return publicList;
 }
+
+export async function searchTokens(query: string, options?: { limit?: number }): Promise<TokenInfo[]> {
+  const q = (query || '').trim();
+  const limit = options?.limit ?? 10;
+  if (!q) return [];
+  // hydrate sources
+  hydrateFromProjectList();
+  await ensurePublicList();
+  const qLower = q.toLowerCase();
+  const universe: TokenInfo[] = [
+    ...Object.values(BUILT_INS),
+    ...Array.from(cache.values()),
+    ...publicList,
+  ];
+  // de-duplicate by mint
+  const byMint = new Map<string, TokenInfo>();
+  for (const t of universe) {
+    if (!t?.mint) continue;
+    if (!byMint.has(t.mint)) byMint.set(t.mint, t);
+  }
+  const items = Array.from(byMint.values());
+  // score: exact symbol > prefix > substring in name > substring in mint
+  const scored = items
+    .map((t) => {
+      const sym = (t.symbol || '').toLowerCase();
+      const name = (t.name || '').toLowerCase();
+      const mint = (t.mint || '').toLowerCase();
+      let score = -Infinity;
+      if (sym === qLower) score = 1000;
+      else if (sym.startsWith(qLower)) score = 800 - (sym.length - qLower.length);
+      else if (name.startsWith(qLower)) score = 700 - (name.length - qLower.length);
+      else if (name.includes(qLower)) score = 500 - (name.indexOf(qLower) || 0);
+      else if (mint.startsWith(qLower)) score = 400;
+      else if (mint.includes(qLower)) score = 300;
+      return { t, score };
+    })
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((s) => s.t);
+  return scored;
+}
+
+// end of file

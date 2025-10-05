@@ -1,16 +1,20 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { useWallet } from "../../../components/WalletProvider";
+import { copyText, hapticLight } from "../../../lib/clipboard";
 
 export default function ReceivePage() {
   const { address } = useWallet();
+  const [copied, setCopied] = useState(false);
 
   const copy = async () => {
     if (!address) return;
-    try {
-      await navigator.clipboard.writeText(address);
-      alert("Address copied");
-    } catch {}
+    const ok = await copyText(address);
+    if (ok) {
+      hapticLight();
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }
   };
 
   return (
@@ -32,7 +36,7 @@ export default function ReceivePage() {
           </div>
         </div>
       )}
-      <button onClick={copy} className="w-full btn">Copy</button>
+      <button onClick={copy} className="w-full btn">{copied ? 'Copied!' : 'Copy'}</button>
       <div className="text-xs text-white/50">Tip: Share this address to receive SOL or tokens.</div>
     </div>
   );

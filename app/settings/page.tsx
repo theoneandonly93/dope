@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
+import { copyText, hapticLight } from "../../lib/clipboard";
 import { useRouter } from "next/navigation";
 import { useWallet } from "../../components/WalletProvider";
 import bs58 from "bs58";
@@ -91,7 +92,7 @@ export default function SettingsPage() {
 
   const copy = async (text: string | null) => {
     if (!text) return;
-    try { await navigator.clipboard.writeText(text); setMsg("Copied"); setTimeout(()=>setMsg(""), 1200); } catch {}
+    if (await copyText(text)) { hapticLight(); setMsg("Copied"); setTimeout(()=>setMsg(""), 1200); }
   };
 
   const onUploadFile = async (file: File) => {

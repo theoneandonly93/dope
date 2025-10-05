@@ -6,6 +6,12 @@
     "logo": "/logo-192.png"
   },
   {
+    "symbol": "DWT",
+    "name": "Dope Wallet Token",
+    "mint": "4R7zJ4JgMz14JCw1JGn81HVrFCAfd2cnCfWvsmqv6xts",
+    "logo": "/logo-192.png"
+  },
+  {
     "symbol": "DOPE",
     "name": "Dope Token",
     "mint": "FGiXdp7TAggF1Jux4EQRGoSjdycQR1jwYnvFBWbSLX33",
