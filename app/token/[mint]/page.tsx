@@ -67,7 +67,7 @@ export default function TokenDetailPage() {
     return () => { cancelled = true; };
   }, [mint, address]);
 
-  // Market data
+  // Market data (price + 24h change + default sparkline)
   useEffect(() => {
     if (!mint) return;
     let cancelled = false;
@@ -81,6 +81,24 @@ export default function TokenDetailPage() {
     })();
     return () => { cancelled = true; };
   }, [mint]);
+
+  // Price history for selected timeframe
+  useEffect(() => {
+    if (!mint) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch(`/api/price-history?mint=${encodeURIComponent(mint)}&tf=${tab}`);
+        const j = await r.json();
+        if (cancelled) return;
+        if (Array.isArray(j?.timestamps) && Array.isArray(j?.prices) && j.timestamps.length === j.prices.length && j.timestamps.length > 0) {
+          const pts = j.timestamps.map((t:number, i:number) => ({ t: t*1000, p: j.prices[i] }));
+          setSpark(pts);
+        }
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [mint, tab]);
 
   const chartData = useMemo(() => {
     const points = spark || [];

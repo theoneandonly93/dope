@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { PublicKey, Connection } from "@solana/web3.js";
 import { getQuote, swap, SOL_MINT } from "../lib/raydiumSwap";
 import Link from "next/link";
-import TokenDetailModal from "./TokenDetailModal";
+// import TokenDetailModal from "./TokenDetailModal"; // replaced by dynamic route /token/[mint]
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { useRouter } from "next/navigation";
 import { useWallet } from "../components/WalletProvider";
@@ -65,17 +65,17 @@ export default function Home() {
 
   // Move swap UI state hooks to top level
   const [showSwap, setShowSwap] = useState(false);
-  const [showTokenInfo, setShowTokenInfo] = useState<{mint: string, name: string, intent?: string} | null>(null);
+  // const [showTokenInfo, setShowTokenInfo] = useState<{mint: string, name: string, intent?: string} | null>(null);
   // Listen for suggested token events
   useEffect(() => {
     const handler = (e: any) => {
       const d = e.detail || {};
       if (!d.mint) return;
-      setShowTokenInfo({ mint: d.mint, name: d.name || d.mint, intent: d.intent });
+      try { router.push(`/token/${encodeURIComponent(d.mint)}`); } catch {}
     };
     window.addEventListener('dope:token-detail', handler as any);
     return () => window.removeEventListener('dope:token-detail', handler as any);
-  }, []);
+  }, [router]);
   const [swapAmount, setSwapAmount] = useState(0);
   const [swapResult, setSwapResult] = useState<string>("");
   const [swapError, setSwapError] = useState<string>("");
@@ -565,7 +565,7 @@ export default function Home() {
                     <div
                       key={token.mint}
                       className={`flex items-center justify-between py-2${idx > 0 ? " border-t border-white/10 mt-2 pt-2" : ""} cursor-pointer`}
-                      onClick={() => setShowTokenInfo({ mint: token.mint, name: `${token.name} (${token.symbol})` })}
+                      onClick={() => { try { router.push(`/token/${encodeURIComponent(token.mint)}`); } catch {} }}
                     >
                       <div className="flex items-center gap-3">
                         <img src={logoSrc} alt={token.symbol} className={`${logoSize} rounded-full`} />
@@ -581,17 +581,7 @@ export default function Home() {
                   );
                 });
               })()}
-              {showTokenInfo && (
-                <TokenDetailModal
-                  mint={showTokenInfo.mint}
-                  name={showTokenInfo.name}
-                  address={address}
-                  keypair={keypair}
-                  balance={showTokenInfo.mint === "So11111111111111111111111111111111111111112" ? balances['solana'] : dopeSpl}
-                  initialSwapMode={showTokenInfo.intent === 'buy' ? 'buy' : (showTokenInfo.intent === 'sell' ? 'sell' : undefined)}
-                  onClose={() => setShowTokenInfo(null)}
-                />
-              )}
+              {/* Token detail now handled by /token/[mint] route */}
             </>
           )}
           {activeTab === 'nfts' && (

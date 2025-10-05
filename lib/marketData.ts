@@ -23,6 +23,11 @@ const MINT_TO_COINGECKO: Record<string, string> = {
   'bnb': 'binancecoin'
 };
 
+// Export a safe getter for server routes
+export function mintToCoinGeckoId(mint: string): string | null {
+  return MINT_TO_COINGECKO[mint] || null;
+}
+
 // In-memory cache (per serverless runtime instance / client session)
 // Keyed by joined sorted ids for bulk market fetch and by coin id for sparkline.
 const marketCache: Record<string, { data: any; ts: number }> = {};

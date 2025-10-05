@@ -170,10 +170,11 @@ export default function TokensListingPage() {
                   className="text-[10px] text-red-400 hover:text-red-300 underline"
                   onClick={() => { try { window.dispatchEvent(new CustomEvent('dope:token-detail', { detail: { mint: tok.mint, name: tok.name || tok.symbol, intent: 'sell' } })); } catch {} }}
                 >Sell</button>
-                <button
+                <Link
+                  href={`/token/${encodeURIComponent(tok.mint)}`}
                   className="text-[10px] text-white/70 hover:text-white underline"
-                  onClick={() => { try { window.dispatchEvent(new CustomEvent('dope:token-detail', { detail: { mint: tok.mint, name: tok.name || tok.symbol } })); } catch {} }}
-                >Details</button>
+                  prefetch
+                >Details</Link>
               </div>
             </li>
           );
