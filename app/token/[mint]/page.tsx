@@ -17,7 +17,7 @@ import { useWallet } from "../../../components/WalletProvider";
 import { getConnection } from "../../../lib/wallet";
 import dynamic from "next/dynamic";
 const PhantomSwapModal = dynamic(() => import("../../../components/PhantomSwapModal"), { ssr: false });
-import TrendingTokens from "../../../components/browser/TrendingTokens";
+const BuySellModal = dynamic(() => import("../../../components/BuySellModal"), { ssr: false });
 import TxList from "../../../components/TxList";
 import { copyText, hapticLight } from "../../../lib/clipboard";
 
@@ -158,10 +158,7 @@ export default function TokenDetailPage() {
             />
           )}
         </div>
-        {/* Trending Tokens under the top panel */}
-        <div className="mt-4">
-          <TrendingTokens onOpenToken={(m:string)=>{ try { router.push(`/token/${encodeURIComponent(m)}`); } catch {} }} />
-        </div>
+        {/* Trending tokens section removed per spec */}
 
         {/* Price */}
         <div className="mt-6">
@@ -218,15 +215,18 @@ export default function TokenDetailPage() {
           <TxList address={address} tokenMint={mint} />
         </div>
 
-        {/* Swap modal for Buy/Sell intents */}
+        {/* Buy/Sell modal with numeric keypad when launched from holdings */}
         {swapOpen && (
-          <PhantomSwapModal
+          <BuySellModal
             open={true}
+            mode={swapOpen}
+            mint={mint}
             onClose={() => setSwapOpen(false)}
-            initialFromMint={swapOpen === "buy" ? "So11111111111111111111111111111111111111112" : mint}
-            initialToMint={swapOpen === "buy" ? mint : "So11111111111111111111111111111111111111112"}
-            variant="modal"
-            showTrending={false}
+            onConfirm={(usd, ctx) => {
+              // Placeholder confirmation flow; close and potentially navigate to swap with prefilled amount later
+              try { console.log("confirm", usd, ctx); } catch {}
+              setSwapOpen(false);
+            }}
           />
         )}
         

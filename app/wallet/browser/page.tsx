@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import SearchBar from "../../../components/browser/SearchBar";
 import CategoryButtons from "../../../components/browser/CategoryButtons";
 import TrendingTokens from "../../../components/browser/TrendingTokens";
+import SafeDappList from "../../../components/SafeDappList";
 import TokensForYou from "../../../components/browser/TokensForYou";
 import TopLists from "../../../components/browser/TopLists";
 import TopTraders from "../../../components/browser/TopTraders";
@@ -32,7 +33,9 @@ export default function BrowserPage() {
           <div className="text-lg font-semibold">Browser</div>
           <div className="text-xs text-white/60">Dope Wallet</div>
         </div>
-        <SearchBar onSubmit={openUrl} />
+  <SearchBar onSubmit={openUrl} />
+  {/* Recommended safe dapps for one-tap open */}
+  <SafeDappList onSelect={openUrl} />
         <CategoryButtons active={active} onChange={setActive} />
 
         {active === 'tokens' && <TrendingTokens onOpenToken={openToken} />}

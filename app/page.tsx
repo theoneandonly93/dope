@@ -388,49 +388,14 @@ export default function Home() {
   return (
     <ErrorBoundary>
       <div className="pb-24 space-y-6 w-full max-w-md mx-auto px-2 sm:px-0">
-        <div className="flex items-center justify-between pt-2">
-          <div />
-          <button
-            type="button"
-            aria-label="History"
-            className="p-2 rounded-full bg-white/5 border border-white/10 text-white/70 hover:text-white"
-            onClick={()=>{ try { router.push('/transactions'); } catch {} }}
-            title="History"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 8v5l3 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M3 12a9 9 0 1 0 9-9" stroke="currentColor" strokeWidth="2" fill="none"/>
-              <path d="M3 5v4h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-        </div>
+        {/* Header actions moved to global header */}
+        <div className="pt-2" />
         {/* One-time reveal modal after account creation */}
         {revealOpen && (
           // @ts-ignore dynamic import type
           React.createElement(require('../components/RevealSecretsModal').default, { open: revealOpen, mnemonic: newSeed, secretBase58: newSk58, onClose: () => setRevealOpen(false) })
         )}
-        {/* Chain Switcher Dropdown with label and status light */}
-        <div className="flex items-center justify-center py-2 gap-3">
-          <span className="text-white/70 text-sm font-semibold">Chains</span>
-          <select
-            className="bg-black/80 border border-white/10 rounded-lg px-4 py-2 text-white text-sm font-semibold"
-            value={activeChain}
-            onChange={e => setActiveChain(e.target.value as any)}
-          >
-            <option value="solana">Solana</option>
-            <option value="eth">Ethereum</option>
-            <option value="btc">Bitcoin</option>
-            <option value="ape">Ape Chain</option>
-            <option value="bnb">BNB</option>
-            <option value="sei">Sei Network</option>
-            <option value="base">Base</option>
-          </select>
-          {/* Connection status light */}
-          <span
-            className={`ml-2 w-3 h-3 rounded-full border border-white/20 ${balances[activeChain] !== null ? 'bg-green-500' : 'bg-red-500'}`}
-            title={balances[activeChain] !== null ? 'Connected' : 'Not Connected'}
-          />
-        </div>
+        {/* Multichain selector removed per spec */}
         {showRpcError && fatalError && (
           <div className="fixed top-0 left-0 w-full z-50 flex justify-center">
             <div className="bg-yellow-900 text-yellow-200 border border-yellow-400 rounded-xl px-4 py-3 mt-4 shadow-lg max-w-md w-full flex items-center justify-between">
@@ -448,8 +413,15 @@ export default function Home() {
         )}
 
         <div className="glass rounded-2xl p-4 sm:p-5 border border-white/5 w-full">
-          <div className="text-xs text-white/60">Balance</div>
-          <div className="text-3xl font-bold">
+          <div className="flex items-center justify-between">
+            <div className="text-xs text-white/60">Balance</div>
+            {/* Network status dot */}
+            <span
+              className={`inline-block w-2.5 h-2.5 rounded-full border border-white/20 ${balances[activeChain] !== null ? 'bg-green-500' : 'bg-red-500'}`}
+              title={balances[activeChain] !== null ? 'Connected' : 'Not Connected'}
+            />
+          </div>
+          <div className="text-3xl font-bold mt-1">
             {balances[activeChain] === null ? "—" : balances[activeChain]?.toFixed(4)}
             <span className="text-base font-medium text-white/60"> {activeChain.toUpperCase()}</span>
           </div>
@@ -630,10 +602,7 @@ export default function Home() {
             />
           )}
         </div>
-        {/* Trending Tokens under tokens card holder */}
-        <div className="mt-4">
-          <TrendingTokens onOpenToken={(mint:string)=>{ try { router.push(`/token/${encodeURIComponent(mint)}`); } catch {} }} />
-        </div>
+        {/* Trending tokens removed per spec */}
     {/* Suggested Tokens */}
     <SuggestedTokens />
       </div>
