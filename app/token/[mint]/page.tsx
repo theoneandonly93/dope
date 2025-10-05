@@ -130,23 +130,39 @@ export default function TokenDetailPage() {
           <button className="text-white/70" onClick={() => router.back()}>← Back</button>
           <div className="text-white/60 text-xs">Solana</div>
         </div>
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={meta?.logo || "/logo-192.png"} alt={meta?.symbol || "token"} className="w-12 h-12 rounded-full" />
-          <div className="min-w-0">
-            <div className="text-lg font-semibold truncate">{meta?.name || "Token"}</div>
-            <div className="text-xs text-white/60">{meta?.symbol || "SPL"}</div>
-          </div>
-          <button className="ml-auto text-xs px-3 py-1 rounded-full border border-white/10 bg-white/10 hover:bg-white/20">Follow</button>
+        {/* Inline Swap like Phantom (top of page) */}
+        <div className="mt-4">
+          <PhantomSwapModal
+            variant="inline"
+            open={true}
+            onClose={()=>{}}
+            initialFromMint={"So11111111111111111111111111111111111111112"}
+            initialToMint={mint}
+            showTrending={false}
+          />
+        </div>
+        {/* Trending Tokens under the swap panel */}
+        <div className="mt-4">
+          <TrendingTokens onOpenToken={(m:string)=>{ try { router.push(`/token/${encodeURIComponent(m)}`); } catch {} }} />
         </div>
 
         {/* Price */}
-        <div className="mt-4">
+        <div className="mt-6">
           <div className="text-3xl font-bold">{price != null ? `$${price.toLocaleString(undefined, { maximumFractionDigits: 4 })}` : "—"}</div>
           <div className={`text-xs ${changeColor}`}>{change24h != null ? `${change24h.toFixed(2)}% (24h)` : "—"}</div>
         </div>
 
+        {/* Tabs */}
+        <div className="flex items-center gap-2 mt-4">
+          {(["1H","1D","1W","1M","YTD","ALL"] as const).map(t => (
+            <button key={t} onClick={() => setTab(t)} className={`text-xs px-2.5 py-1 rounded-full border ${tab===t?"bg-white/15 border-white/30":"bg-white/5 border-white/10 text-white/70"}`}>{t}</button>
+          ))}
+        </div>
+
+        {/* Chart */}
+        <div className="mt-3 h-48">
+          <Line data={chartData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: true } }, scales: { x: { ticks: { color: "#9CA3AF", maxTicksLimit: 6 }, grid: { display: false } }, y: { ticks: { color: "#9CA3AF" }, grid: { color: "rgba(255,255,255,0.05)" } } } }} />
+        </div>
         {/* Tabs */}
         <div className="flex items-center gap-2 mt-4">
           {(["1H","1D","1W","1M","YTD","ALL"] as const).map(t => (
@@ -191,21 +207,7 @@ export default function TokenDetailPage() {
           <button title="QR" className="px-3 py-2 rounded-lg bg-white/5 border border-white/10">QR</button>
         </div>
 
-        {/* Inline Swap like Phantom */}
-        <div className="mt-6">
-          <PhantomSwapModal
-            variant="inline"
-            open={true}
-            onClose={()=>{}}
-            initialFromMint={"So11111111111111111111111111111111111111112"}
-            initialToMint={mint}
-            showTrending={false}
-          />
-        </div>
-        {/* Trending Tokens under the swap panel */}
-        <div className="mt-6">
-          <TrendingTokens onOpenToken={(m:string)=>{ try { router.push(`/token/${encodeURIComponent(m)}`); } catch {} }} />
-        </div>
+        
       </div>
     </div>
   );

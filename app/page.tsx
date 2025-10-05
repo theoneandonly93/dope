@@ -16,6 +16,7 @@ import SendTokenForm from "../components/SendTokenForm";
 import SuggestedTokens from "../components/SuggestedTokens";
 import SelectTokenModal from "../components/SelectTokenModal";
 import dynamic from "next/dynamic";
+import TrendingTokens from "../components/browser/TrendingTokens";
 const PhantomSwapModal = dynamic(() => import('../components/PhantomSwapModal'), { ssr: false });
 
 function formatTokenAmount(amount: number | null, symbol: string): string {
@@ -631,8 +632,12 @@ export default function Home() {
             />
           )}
         </div>
-  {/* Suggested Tokens */}
-  <SuggestedTokens />
+        {/* Trending Tokens under tokens card holder */}
+        <div className="mt-4">
+          <TrendingTokens onOpenToken={(mint:string)=>{ try { router.push(`/token/${encodeURIComponent(mint)}`); } catch {} }} />
+        </div>
+        {/* Suggested Tokens */}
+        <SuggestedTokens />
   {/* Standalone Recent Activity card */}
         <TxList address={address || undefined} key={address + '-recent'} limit={4} showSeeMore />
       </div>
