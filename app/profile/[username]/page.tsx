@@ -62,7 +62,25 @@ export default function PublicProfileByUsername() {
     return () => { cancelled = true; };
   }, [username, myAddress]);
 
-  const joinDate = useMemo(() => profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : "", [profile]);
+  const joinDate = useMemo(() => {
+    if (!profile?.created_at) return "";
+    const d = new Date(profile.created_at);
+    return d.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+  }, [profile]);
+
+  const shortAddr = useMemo(() => profile?.wallet_address ? `${profile.wallet_address.slice(0,4)}…${profile.wallet_address.slice(-4)}` : "", [profile]);
+
+  const doShare = async () => {
+    try {
+      const url = typeof window !== 'undefined' ? window.location.href : '';
+      if (navigator.share) {
+        await navigator.share({ title: `@${profile?.username} on DopeWallet`, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        alert('Profile link copied');
+      }
+    } catch {}
+  };
 
   const toggleFollow = async () => {
     if (!profile || !myAddress) return;
@@ -110,27 +128,44 @@ export default function PublicProfileByUsername() {
       )}
       {profile && (
         <>
-          <div className="flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={profile.avatar_url || `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(profile.username||"dope")}`} alt="avatar" className="w-12 h-12 rounded-full border border-white/10 bg-white/5" />
-            <div>
-              <div className="text-xl font-semibold">@{profile.username}</div>
-              <div className="text-xs text-white/60">Joined {joinDate}</div>
+          {/* Header */}
+          <div className="flex flex-col items-center text-center mt-2">
+            <div className="relative">
+              {/* gradient ring */}
+              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-purple-600 via-fuchsia-500 to-emerald-400 blur opacity-70 scale-110" aria-hidden="true"></div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={profile.avatar_url || `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(profile.username||"dope")}`}
+                alt="avatar"
+                className="relative w-20 h-20 rounded-full border-2 border-white/20 bg-white/5"
+              />
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {isOwner ? (
-              <Link href="/settings" className="btn btn-sm">Edit Profile</Link>
-            ) : (
-              <button className="btn btn-sm" onClick={toggleFollow}>{isFollowing ? "Following" : "Follow"}</button>
-            )}
-            <a href={`https://solscan.io/account/${encodeURIComponent(profile.wallet_address)}?cluster=mainnet`} className="btn btn-sm" target="_blank" rel="noreferrer">Solscan</a>
-          </div>
-          <div className="flex items-center gap-4 text-sm text-white/80">
-            <button className="underline decoration-white/30 hover:decoration-white" onClick={()=>{ setShowFollowers(true); loadFollowers(); }}>
-              <span className="font-semibold">{followersCount}</span> Followers
-            </button>
-            <div><span className="font-semibold">{followingCount}</span> Following</div>
+            <div className="mt-3">
+              <div className="text-xl font-bold">@{profile.username}</div>
+              <div className="text-xs text-white/60 mt-1 font-mono">{shortAddr}</div>
+            </div>
+            {/* meta row */}
+            <div className="mt-3 flex items-center gap-4 text-sm text-white/80">
+              <button className="hover:underline" onClick={()=>{ setShowFollowers(true); loadFollowers(); }}>
+                <span className="font-semibold">{followersCount}</span> Followers
+              </button>
+              <div><span className="font-semibold">{followingCount}</span> Following</div>
+              <div className="text-white/60">Joined {joinDate}</div>
+            </div>
+            {/* actions */}
+            <div className="mt-4 flex gap-2">
+              {isOwner ? (
+                <>
+                  <Link href="/settings" className="bg-purple-600 hover:bg-purple-500 text-white font-semibold px-4 py-2 rounded-xl">Edit Profile</Link>
+                  <button onClick={doShare} className="bg-gray-800 hover:bg-gray-700 text-white font-semibold px-4 py-2 rounded-xl">Share Profile</button>
+                </>
+              ) : (
+                <>
+                  <button className="bg-purple-600 hover:bg-purple-500 text-white font-semibold px-4 py-2 rounded-xl" onClick={toggleFollow}>{isFollowing ? "Following" : "Follow"}</button>
+                  <button onClick={doShare} className="bg-gray-800 hover:bg-gray-700 text-white font-semibold px-4 py-2 rounded-xl">Share Profile</button>
+                </>
+              )}
+            </div>
           </div>
 
           {showFollowers && (
@@ -159,9 +194,10 @@ export default function PublicProfileByUsername() {
               </div>
             </div>
           )}
-          <div className="glass rounded-xl p-3 border border-white/10">
-            <div className="text-sm text-white/80">Following Tokens</div>
-            <div className="mt-2">
+          {/* Following feed */}
+          <div className="glass rounded-2xl p-4 border border-white/10">
+            <div className="text-sm text-white/80 font-semibold">Following Tokens</div>
+            <div className="mt-3">
               <TrendingTokens onOpenToken={(mint)=> router.push(`/token/${mint}`)} />
             </div>
           </div>

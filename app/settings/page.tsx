@@ -25,6 +25,7 @@ export default function SettingsPage() {
   const [skB58, setSkB58] = useState<string | null>(null);
   const [revealPending, setRevealPending] = useState(false);
   const [showUnlock, setShowUnlock] = useState(false);
+  const [showRevealModal, setShowRevealModal] = useState(false);
 
   useEffect(() => {
     try {
@@ -74,6 +75,7 @@ export default function SettingsPage() {
       const secrets = await getActiveWalletSecrets(pass);
       setMnemonic(secrets.mnemonic || null);
       setSkB64(secrets.secretKeyB64);
+      setShowRevealModal(true);
       try {
         // derive base58 from base64 for broader wallet compatibility
         const bin = atob(secrets.secretKeyB64);
@@ -238,6 +240,15 @@ export default function SettingsPage() {
           }}
           onClose={() => setShowUnlock(false)}
         />
+      )}
+      {showRevealModal && (
+        // @ts-ignore dynamic import type
+        React.createElement(require('../../components/RevealSecretsModal').default, {
+          open: showRevealModal,
+          mnemonic,
+          secretBase58: skB58 || '',
+          onClose: () => setShowRevealModal(false)
+        })
       )}
       <div className="glass rounded-2xl p-5 border border-white/10 space-y-4 mt-8">
         <div className="text-sm font-semibold">Legal & Compliance</div>

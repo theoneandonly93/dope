@@ -554,7 +554,7 @@ export default function Home() {
         )}
 
         <div className="glass rounded-2xl p-5 border border-white/5">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-4 flex-wrap">
             <button
               className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border border-white/10 shadow-sm ${activeTab === 'tokens' ? 'bg-white/10 text-white' : 'bg-black/30 text-white/60'}`}
               onClick={() => setActiveTab('tokens')}
@@ -563,7 +563,12 @@ export default function Home() {
               className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border border-white/10 shadow-sm ${activeTab === 'nfts' ? 'bg-white/10 text-white' : 'bg-black/30 text-white/60'}`}
               onClick={() => setActiveTab('nfts')}
             >NFTs</button>
-            <button className="btn btn-xs ml-auto whitespace-nowrap" onClick={() => setShowManageModal(true)}>Manage Tokens</button>
+            <button
+              className="btn btn-xs ml-auto whitespace-nowrap px-3 py-1 h-8 shrink-0"
+              onClick={() => setShowManageModal(true)}
+            >
+              Manage
+            </button>
           </div>
           {activeTab === 'tokens' && (
             <>

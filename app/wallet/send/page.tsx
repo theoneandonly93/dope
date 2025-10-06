@@ -29,7 +29,13 @@ export default function SendPage() {
     try { new PublicKey(to.trim()); setValidTo(true); } catch { setValidTo(false); return setError("Invalid recipient address"); }
     setPending(true);
     try {
-      const tx = await sendSol(keypair, to.trim(), amt);
+      const withTimeout = async <T,>(p: Promise<T>, ms = 20000): Promise<T> => {
+        return await Promise.race([
+          p,
+          new Promise<T>((_, reject) => setTimeout(() => reject(new Error("Network timeout while sending. Please try again.")), ms))
+        ]) as T;
+      };
+      const tx = await withTimeout(sendSol(keypair, to.trim(), amt));
       setSig(tx);
     } catch (e: any) {
       setError(e?.message || "Failed to send");

@@ -73,12 +73,19 @@ export default function SendTokenForm({ mint, balance, keypair, requireUnlock = 
     setSending(true);
     setStatus("Signing and sending transaction...");
     logLocalTx({ signature: '', status: 'pending', time: Date.now()/1000, change: null });
+    // Helper to prevent hanging forever on slow RPCs
+    const withTimeout = async <T,>(p: Promise<T>, ms = 20000): Promise<T> => {
+      return await Promise.race([
+        p,
+        new Promise<T>((_, reject) => setTimeout(() => reject(new Error("Network timeout while sending. Please try again.")), ms))
+      ]) as T;
+    };
     try {
       const { getConnection } = await import("../lib/wallet");
       const connection = getConnection();
       let txidVal = "";
       if (mint === "So11111111111111111111111111111111111111112") {
-        txidVal = await sendSol(keypair, toAddress, Number(amount));
+        txidVal = await withTimeout(sendSol(keypair, toAddress, Number(amount)));
       } else {
         // SPL token send
         const mintPubkey = new PublicKey(mint);
@@ -129,7 +136,8 @@ export default function SendTokenForm({ mint, balance, keypair, requireUnlock = 
         );
         const { Transaction } = await import("@solana/web3.js");
         const tx = new Transaction().add(ix);
-        txidVal = await connection.sendTransaction(tx, [keypair]);
+        // Use a shorter preflight to speed up UX and wrap with timeout to avoid hanging
+        txidVal = await withTimeout(connection.sendTransaction(tx, [keypair]));
       }
       setTxid(txidVal);
       // Robust post-send check: fetch transaction and check status
