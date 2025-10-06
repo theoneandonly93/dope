@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Argon2d1000",
+    "suggestedPriceBTC": 0.00000075,
+    "unit": "MH",
+    "badges": ["new"]
+  },
+  {
+    "name": "Astrixhash",
+    "suggestedPriceBTC": 0.0000034,
+    "unit": "GH",
+    "badges": ["hot"]
+  },
+  {
+    "name": "Blake3",
+    "suggestedPriceBTC": 0.00000042,
+    "unit": "GH",
+    "badges": []
+  },
+  {
+    "name": "DpowHash",
+    "suggestedPriceBTC": 0.0000012,
+    "unit": "MH",
+    "badges": ["hot", "new"]
+  },
+  {
+    "name": "KeccakC",
+    "suggestedPriceBTC": 0.00000009,
+    "unit": "GH",
+    "badges": []
+  },
+  {
+    "name": "Yespower-1.0",
+    "suggestedPriceBTC": 0.0000021,
+    "unit": "KH",
+    "badges": []
+  },
+  {
+    "name": "RandomARQ",
+    "suggestedPriceBTC": 0.00000185,
+    "unit": "KH",
+    "badges": ["new"]
+  }
+]

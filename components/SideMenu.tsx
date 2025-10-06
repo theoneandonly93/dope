@@ -89,8 +89,18 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
                 <div className="text-xs text-white/60">Active Address</div>
                 <div className="font-mono text-sm break-all">{address}</div>
                 <div className="mt-2 flex gap-2">
-                  <button className="btn" onClick={doCopy}>Copy</button>
-                  <button className="btn" onClick={() => { logout(); onClose(); }}>Logout</button>
+                  <button
+                    className="px-2.5 py-1.5 text-xs rounded-md border border-white/10 bg-white/5 hover:bg-white/10 active:bg-white/15 transition-colors"
+                    onClick={doCopy}
+                  >
+                    Copy
+                  </button>
+                  <button
+                    className="px-2.5 py-1.5 text-xs rounded-md border border-red-500/20 bg-red-500/10 hover:bg-red-500/15 active:bg-red-500/20 text-red-200 transition-colors"
+                    onClick={() => { logout(); onClose(); }}
+                  >
+                    Logout
+                  </button>
                 </div>
                 {msg && <div className="text-xs text-green-400 mt-2">{msg}</div>}
               </div>

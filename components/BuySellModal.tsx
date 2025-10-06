@@ -15,21 +15,23 @@ export default function BuySellModal({
   mode: Mode;
   mint: string;
   onClose: () => void;
-  onConfirm?: (amountUsd: number, ctx: { mode: Mode; mint: string }) => void;
+  onConfirm?: (amount: number, ctx: { mode: Mode; mint: string; currency: 'USD' | 'SOL' }) => void;
 }) {
   const [amount, setAmount] = useState<string>("");
+  const [currency, setCurrency] = useState<'USD' | 'SOL'>("USD"); // For buy: pay with; For sell: receive in
 
   useEffect(() => {
     if (!open) setAmount("");
   }, [open]);
 
   const pretty = useMemo(() => {
-    // Normalize string to max 2 decimals for USD display
+    // Normalize decimals based on currency/mode
     const [i, d] = amount.split(".");
     const ii = i.replace(/^0+(\d)/, "$1");
-    const dd = (d || "").slice(0, 2);
+    const maxDec = mode === 'buy' ? (currency === 'USD' ? 2 : 9) : 6; // sell amount is in token units
+    const dd = (d || "").slice(0, maxDec);
     return dd ? `${ii || "0"}.${dd}` : (ii || "0");
-  }, [amount]);
+  }, [amount, currency, mode]);
 
   function press(key: string) {
     hapticLight();
@@ -44,7 +46,7 @@ export default function BuySellModal({
       // prevent leading zeros like 000
       if (!prev) return key;
       // Cap to reasonable length (7 digits + 1 dot + 2 decimals)
-      if (prev.length >= 10) return prev;
+      if (prev.length >= 18) return prev;
       return prev + key;
     });
   }
@@ -66,13 +68,28 @@ export default function BuySellModal({
         aria-label={`${mode} token`}
       >
         <div className="p-4 border-b border-white/10 flex items-center justify-between">
-          <div className="text-sm font-semibold capitalize">{mode} {mode === "buy" ? "with USD" : "for USD"}</div>
+          <div className="text-sm font-semibold capitalize">
+            {mode === 'buy' ? 'Buy' : 'Sell'}
+          </div>
           <button className="text-white/60 hover:text-white" onClick={onClose}>Close</button>
         </div>
         {/* Scrollable content area */}
         <div className="p-5 pt-6 flex-1 overflow-y-auto">
-          <div className="text-xs text-white/60 mb-1">Amount (USD)</div>
-          <div className="text-4xl font-bold tracking-tight">${pretty}</div>
+          {/* Currency / Settlement toggle */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-xs text-white/60">
+              {mode === 'buy' ? 'Pay with' : 'Receive in'}
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-lg p-1 flex gap-1">
+              {(['USD','SOL'] as const).map(c => (
+                <button key={c} onClick={()=>setCurrency(c)} className={`px-2 py-1 rounded-md text-xs ${currency===c ? 'bg-white text-black font-semibold' : 'text-white/80'}`}>{c}</button>
+              ))}
+            </div>
+          </div>
+          <div className="text-xs text-white/60 mb-1">
+            {mode === 'buy' ? (currency === 'USD' ? 'Amount (USD)' : 'Amount (SOL)') : 'Amount (token)'}
+          </div>
+          <div className="text-4xl font-bold tracking-tight">{mode==='buy' && currency==='USD' ? '$' : ''}{pretty}</div>
           <div className="text-xs text-white/50 mt-2">Mint: <span className="font-mono text-[11px]">{mint}</span></div>
         </div>
         {/* Keypad (fixed height) */}
@@ -98,9 +115,9 @@ export default function BuySellModal({
           <button
             className="btn w-full min-h-12 text-base"
             disabled={parsed <= 0}
-            onClick={() => onConfirm?.(parsed, { mode, mint })}
+            onClick={() => onConfirm?.(parsed, { mode, mint, currency })}
           >
-            {mode === "buy" ? "Buy" : "Sell"} ${parsed.toFixed(2)}
+            {mode === "buy" ? "Continue" : "Continue"}
           </button>
           <div className="text-[11px] text-white/50 mt-2 text-center">This will use the best available route when you confirm.</div>
         </div>

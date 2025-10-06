@@ -12,6 +12,7 @@ type Props = {
   onClose: () => void;
   initialFromMint?: string;
   initialToMint?: string;
+  initialAmountIn?: string;
   variant?: 'modal' | 'inline';
   showTrending?: boolean; // control embedded trending list visibility
 };
@@ -20,7 +21,7 @@ type Props = {
 
 function isValidBase58(m: string) { try { new PublicKey(m); return true; } catch { return false; } }
 
-export default function PhantomSwapModal({ open, onClose, initialFromMint, initialToMint, variant='modal', showTrending=true }: Props) {
+export default function PhantomSwapModal({ open, onClose, initialFromMint, initialToMint, initialAmountIn, variant='modal', showTrending=true }: Props) {
   const { keypair, unlocked, unlock, tryBiometricUnlock } = useWallet() as any;
   const [fromMint, setFromMint] = useState<string>('So11111111111111111111111111111111111111112'); // SOL
   const [toMint, setToMint] = useState<string>('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'); // USDC
@@ -55,8 +56,13 @@ export default function PhantomSwapModal({ open, onClose, initialFromMint, initi
     if (!open) return;
     if (initialFromMint && isValidBase58(normalizeMint(initialFromMint))) setFromMint(initialFromMint);
     if (initialToMint && isValidBase58(normalizeMint(initialToMint))) setToMint(initialToMint);
-    // re-quote if amount set
-    if (amountIn) handleQuote(amountIn);
+    // set initial amount if provided
+    if (initialAmountIn && initialAmountIn !== amountIn) {
+      setAmountIn(initialAmountIn);
+      handleQuote(initialAmountIn);
+    } else if (amountIn) {
+      handleQuote(amountIn);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialFromMint, initialToMint]);
 

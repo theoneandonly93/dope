@@ -4,6 +4,8 @@ import { useWallet } from './WalletProvider';
 import { getConnection } from '../lib/wallet';
 import { getTokenDecimals } from '../lib/tokenMetadataCache';
 import { PublicKey } from '@solana/web3.js';
+import TokenChart from './TokenChart';
+import FullChartModal from './FullChartModal';
 
 interface SwapModalProps {
   inputMint: string; // initial token mint (from context / token detail)
@@ -44,6 +46,7 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
   const [maxAccounts, setMaxAccounts] = useState<number | ''>('');
   const [restrictDexes, setRestrictDexes] = useState('');
   const [preferPumpFun, setPreferPumpFun] = useState(false);
+  const [showFullChart, setShowFullChart] = useState(false);
   const platformFeeBps = Number(process.env.NEXT_PUBLIC_JUPITER_PLATFORM_FEE_BPS || 0);
   const feeAccount = process.env.NEXT_PUBLIC_JUPITER_FEE_ACCOUNT as string | undefined;
   const [editInputToken, setEditInputToken] = useState(false);
@@ -402,6 +405,22 @@ export default function SwapModal({ inputMint, inputSymbol, balance, onClose, on
           onBiometricUnlock={async () => { if (!tryBiometricUnlock) return false; const ok = await tryBiometricUnlock(); if (ok) setShowUnlock(false); return ok; }}
           onClose={() => setShowUnlock(false)}
         />
+      )}
+      {/* Token analytics chart below the swap UI */}
+      {outputMint && (
+        <div className="mt-2">
+          <TokenChart tokenAddress={outputMint} />
+          <button
+            type="button"
+            onClick={() => setShowFullChart(true)}
+            className="mt-2 text-xs text-blue-400 underline hover:text-blue-300"
+          >
+            View full chart
+          </button>
+        </div>
+      )}
+      {showFullChart && (
+        <FullChartModal tokenAddress={outputMint} onClose={() => setShowFullChart(false)} />
       )}
     </div>
   );

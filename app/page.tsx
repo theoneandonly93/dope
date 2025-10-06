@@ -485,7 +485,13 @@ export default function Home() {
           )}
         </div>
 
-        {React.createElement(require('../components/SupportChatCard').default)}
+  {React.createElement(require('../components/SupportChatCard').default)}
+
+  {React.createElement(require('../components/BalanceCard').default)}
+
+  {React.createElement(require('../components/FamilyCard').default)}
+
+  {React.createElement(require('../components/MoneyOptions').default)}
 
         {/* Fairbrix (read-only) card */}
         {fairbrixAddr && (
@@ -656,8 +662,8 @@ export default function Home() {
           )}
         </div>
         {/* Trending tokens removed per spec */}
-    {/* Suggested Tokens */}
-    <SuggestedTokens />
+  {/* Suggested Tokens */}
+  <SuggestedTokens />
       </div>
     </ErrorBoundary>
   );

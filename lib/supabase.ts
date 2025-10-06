@@ -12,6 +12,18 @@ export type Database = {
         Update: { email?: string; id?: string; created_at?: string };
         Relationships: [];
       };
+      cash_balances: {
+        Row: { wallet_address: string; amount: number; updated_at: string };
+        Insert: { wallet_address: string; amount?: number; updated_at?: string };
+        Update: { wallet_address?: string; amount?: number; updated_at?: string };
+        Relationships: [];
+      };
+      family_accounts: {
+        Row: { id: string; parent_wallet: string; child_wallet: string; child_username: string; relationship?: string | null; approved: boolean; created_at?: string };
+        Insert: { id?: string; parent_wallet: string; child_wallet: string; child_username: string; relationship?: string | null; approved?: boolean; created_at?: string };
+        Update: { id?: string; parent_wallet?: string; child_wallet?: string; child_username?: string; relationship?: string | null; approved?: boolean; created_at?: string };
+        Relationships: [];
+      };
     };
     Views: { [key: string]: never };
     Functions: { [key: string]: never };

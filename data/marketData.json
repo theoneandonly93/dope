@@ -1,0 +1,62 @@
+[
+  {
+    "name": "Argon2d1000",
+    "price": "0.00021379",
+    "unit": "per MH",
+    "tags": ["new"],
+    "stats": {
+      "availability": 8,
+      "hashrate": "94.7 MH/s",
+      "earnings": "0.0012 BTC/day",
+      "topPool": "DopePool Alpha"
+    }
+  },
+  {
+    "name": "Flex",
+    "price": "0.00363795",
+    "unit": "per MH",
+    "tags": ["hot", "new"],
+    "stats": {
+      "availability": 15,
+      "hashrate": "201.8 MH/s",
+      "earnings": "0.0043 BTC/day",
+      "topPool": "DopePool Prime"
+    }
+  },
+  {
+    "name": "Astrixhash",
+    "price": "0.00004510",
+    "unit": "per GH",
+    "tags": ["hot"],
+    "stats": {
+      "availability": 12,
+      "hashrate": "3.4 GH/s",
+      "earnings": "0.0021 BTC/day",
+      "topPool": "DopePool Beta"
+    }
+  },
+  {
+    "name": "Blake3",
+    "price": "0.00000090",
+    "unit": "per KH",
+    "tags": [],
+    "stats": {
+      "availability": 6,
+      "hashrate": "780.0 KH/s",
+      "earnings": "0.0005 BTC/day",
+      "topPool": "DopePool Gamma"
+    }
+  },
+  {
+    "name": "DpowHash",
+    "price": "0.00001234",
+    "unit": "per MH",
+    "tags": [],
+    "stats": {
+      "availability": 10,
+      "hashrate": "120.2 MH/s",
+      "earnings": "0.0018 BTC/day",
+      "topPool": "DopePool Delta"
+    }
+  }
+]

@@ -14,6 +14,24 @@ export default function TopupPage() {
   const [pending, setPending] = useState(false);
   const [msg, setMsg] = useState<string>("");
   const [err, setErr] = useState<string>("");
+  const [showFiatStub, setShowFiatStub] = useState(false);
+  const onramperKey = (typeof window !== 'undefined') ? (process.env.NEXT_PUBLIC_ONRAMPER_API_KEY as string | undefined) : undefined;
+  const onramperSrc = useMemo(() => {
+    if (!onramperKey || !address) return null;
+    const params = new URLSearchParams({
+      apiKey: onramperKey,
+      onlyCryptos: 'USDC_SOL',
+      onlyNetworks: 'SOL',
+      defaultCrypto: 'USDC_SOL',
+      defaultFiat: 'USD',
+      isAddressEditable: 'false',
+      supportSell: 'false',
+      themeName: 'black',
+      colorMode: 'dark',
+      wallets: `USDC_SOL:${address}`,
+    });
+    return `https://widget.onramper.com?${params.toString()}`;
+  }, [onramperKey, address]);
 
   useEffect(() => {
     const a = Number(amount);
@@ -86,24 +104,50 @@ export default function TopupPage() {
           </>
         ) : (
           <>
-            <div className="text-xs text-white/60">Amount (USD)</div>
-            <input
-              inputMode="decimal"
-              value={usd}
-              onChange={(e)=>setUsd(e.target.value.replace(/[^0-9.]/g,'').replace(/(\..*?)\..*/,'$1'))}
-              placeholder="0.00"
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-3 outline-none text-lg"
-            />
-            <div className="text-xs text-white/60">Charged via Apple Pay / Google Pay, credited as USDC to your card (minus ~1.5% fee).</div>
+            {onramperSrc && !showFiatStub ? (
+              <div className="space-y-3">
+                <iframe
+                  src={onramperSrc}
+                  title="Onramper"
+                  allow="accelerometer; autoplay; camera; gyroscope; payment"
+                  className="w-full rounded-xl border border-white/10 bg-black"
+                  style={{ height: 720 }}
+                />
+                <div className="text-[11px] text-white/50">
+                  Having issues? <button className="underline" onClick={()=>setShowFiatStub(true)}>Use dev credit flow</button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-white/60">Amount (USD)</div>
+                  {onramperSrc && (
+                    <button className="text-[11px] underline" onClick={()=>setShowFiatStub(false)}>Back to Onramper</button>
+                  )}
+                </div>
+                <input
+                  inputMode="decimal"
+                  value={usd}
+                  onChange={(e)=>setUsd(e.target.value.replace(/[^0-9.]/g,'').replace(/(\..*?)\..*/,'$1'))}
+                  placeholder="0.00"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-3 outline-none text-lg"
+                />
+                <div className="text-xs text-white/60">Charged via Apple Pay / Google Pay, credited as USDC to your card (minus ~1.5% fee).</div>
+                {err && <div className="text-xs text-red-400">{err}</div>}
+                {msg && <div className="text-xs text-green-400">{msg}</div>}
+                <button className="btn w-full" onClick={submit} disabled={pending || !usd}>{pending ? 'Processing...' : 'Dev Credit (stub)'}</button>
+              </>
+            )}
           </>
         )}
-        {err && <div className="text-xs text-red-400">{err}</div>}
-        {msg && <div className="text-xs text-green-400">{msg}</div>}
-        <button className="btn w-full" onClick={submit} disabled={pending || (tab==='crypto' ? !amount : !usd)}>{pending ? 'Processing...' : 'Top Up Card'}</button>
         {tab === 'crypto' ? (
           <div className="text-xs text-white/60">This is a development stub. In production, this will require a DOPE token transfer to the CardVault program and on-chain swap to USDC with slippage protection.</div>
         ) : (
-          <div className="text-xs text-white/60">Apple/Google Pay requires merchant configuration. This call is currently stubbed to credit your demo card balance.</div>
+          <div className="text-xs text-white/60">
+            {onramperSrc && !showFiatStub
+              ? 'Card top-ups are processed by Onramper and partners. Complete the flow above to fund your card with USDC.'
+              : 'Apple/Google Pay requires merchant configuration. This call is currently stubbed to credit your demo card balance.'}
+          </div>
         )}
       </div>
       <div className="text-[11px] text-white/60 bg-black/20 border border-white/10 rounded p-2">

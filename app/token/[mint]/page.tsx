@@ -39,6 +39,7 @@ export default function TokenDetailPage() {
   const [spark, setSpark] = useState<Array<{ t: number; p: number }> | null>(null);
   const [tab, setTab] = useState<"1H" | "1D" | "1W" | "1M" | "YTD" | "ALL">("1D");
   const [swapOpen, setSwapOpen] = useState<false | "buy" | "sell">(false);
+  const [prefill, setPrefill] = useState<{ from?: string; to?: string; amount?: string } | null>(null);
 
   // Fetch token metadata (basic) and balance
   useEffect(() => {
@@ -224,11 +225,28 @@ export default function TokenDetailPage() {
             mode={(swapOpen || intent || 'buy') as any}
             mint={mint}
             onClose={() => setSwapOpen(false)}
-            onConfirm={(usd, ctx) => {
-              // Placeholder confirmation flow; close and potentially navigate to swap with prefilled amount later
-              try { console.log("confirm", usd, ctx); } catch {}
+            onConfirm={(amount, ctx) => {
+              // Determine route based on currency
+              const isBuy = ctx.mode === 'buy';
+              const payMint = ctx.currency === 'SOL' ? 'So11111111111111111111111111111111111111112' : 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+              const from = isBuy ? payMint : mint; // selling token -> from token
+              const to = isBuy ? mint : (ctx.currency === 'SOL' ? 'So11111111111111111111111111111111111111112' : 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
+              setPrefill({ from, to, amount: String(amount) });
               setSwapOpen(false);
             }}
+          />
+        )}
+
+        {/* Launch swap modal with prefilled params when coming from Buy/Sell */}
+        {prefill && (
+          <PhantomSwapModal
+            open={true}
+            onClose={()=>setPrefill(null)}
+            initialFromMint={prefill.from}
+            initialToMint={prefill.to}
+            initialAmountIn={prefill.amount}
+            variant="modal"
+            showTrending={false}
           />
         )}
         
