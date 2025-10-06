@@ -5,6 +5,7 @@ import UnlockModal from './UnlockModal';
 import { getConnection, getSolBalance } from '../lib/wallet';
 import { getTokenDecimals } from '../lib/tokenMetadataCache';
 import { PublicKey, VersionedTransaction } from '@solana/web3.js';
+import { getAggregatedQuote, executeAggregatedSwap } from '../lib/aggregatorSwap';
 
 type Props = {
   defaultFromMint?: string;
@@ -76,12 +77,10 @@ export default function SimpleSwap({ defaultFromMint = WSOL, defaultToMint = USD
     if (!(amountAtomic > 0)) { setStatus('Enter amount'); return; }
     setLoading(true);
     try {
-      const qs = new URLSearchParams({ in: nFrom, out: nTo, amountAtomic: String(amountAtomic), swapMode: 'ExactIn' });
-      const r = await fetch(`/api/swap/quote?${qs.toString()}`, { cache: 'no-store' });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j?.error || 'Quote failed');
-      setQuote(j);
-      setStatus('Quote ready');
+      const { best } = await getAggregatedQuote(nFrom, nTo, Number(amount));
+      if (!best) throw new Error('No route');
+      setQuote({ outAmount: best.outAmountAtomic, priceImpactPct: best.priceImpactPct, marketInfos: [] });
+      setStatus('Best route ready');
     } catch (e:any) {
       setStatus(e?.message || 'Quote failed');
     } finally { setLoading(false); }
@@ -99,26 +98,8 @@ export default function SimpleSwap({ defaultFromMint = WSOL, defaultToMint = USD
     if (!canSwap) { setShowUnlock(true); return; }
     setSigning(true); setStatus('Preparing swap…');
     try {
-      const body: any = {
-        inputMint: normalizeMint(fromMint),
-        outputMint: normalizeMint(toMint),
-        amountAtomic,
-        slippageBps: 50,
-        userPublicKey: keypair.publicKey.toString(),
-        swapMode: 'ExactIn',
-      };
-      const r = await fetch('/api/swap/prepare', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j?.error || 'Prepare failed');
-      const b64 = j?.swapTransaction as string;
-      if (!b64) throw new Error('No transaction');
-      const raw = Buffer.from(b64, 'base64');
-      const tx = VersionedTransaction.deserialize(raw);
-      tx.sign([keypair]);
-      const conn = getConnection();
-      const sig = await conn.sendRawTransaction(tx.serialize());
-      await conn.confirmTransaction(sig, 'confirmed');
-      setStatus('Swap successful');
+      const sig = await executeAggregatedSwap({ signer: { publicKey: keypair.publicKey, signTransaction: async (tx:any) => { tx.sign([keypair]); return tx; } }, fromMint: normalizeMint(fromMint), toMint: normalizeMint(toMint), amountUi: Number(amount), opts: { slippageBps: 50 } });
+      setStatus(`Swap successful: ${sig}`);
       onSwapped?.();
     } catch (e:any) {
       setStatus(e?.message || 'Swap failed');

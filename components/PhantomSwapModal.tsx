@@ -4,7 +4,8 @@ import { useWallet } from "./WalletProvider";
 import { getConnection } from "../lib/wallet";
 import { getTokenDecimals } from "../lib/tokenMetadataCache";
 import { getTokenInfo, normalizeMint, searchTokens } from "../lib/tokenInfo";
-import { getQuote as pumpQuote, executeSwap as pumpExecute, PumpQuoteOptions } from "../lib/pumpfunSwap";
+import { PumpQuoteOptions } from "../lib/pumpfunSwap";
+import { getAggregatedQuote, executeAggregatedSwap } from "../lib/aggregatorSwap";
 import { PublicKey, VersionedTransaction } from "@solana/web3.js";
 
 type Props = {
@@ -86,24 +87,11 @@ export default function PhantomSwapModal({ open, onClose, initialFromMint, initi
     try {
       const inDec = await getTokenDecimals(normalizeMint(fromMint));
       const outDec = await getTokenDecimals(normalizeMint(toMint));
-      // Use Pump.fun quote endpoint (amount in UI units)
-      let q = await pumpQuote(normalizeMint(fromMint), normalizeMint(toMint), n, settingsToOpts());
-      // Fallback to Jupiter v6 via our server route if Pump.fun has no route
-      if (!q) {
-        const amountAtomic = Math.floor(n * Math.pow(10, inDec));
-        const p = new URLSearchParams({ in: normalizeMint(fromMint), out: normalizeMint(toMint), amountAtomic: String(amountAtomic) });
-        try {
-          const jr = await fetch(`/api/swap/quote?${p.toString()}`, { cache: 'no-store' });
-          const jj = await jr.json();
-          if (jr.ok && jj && jj.outAmount) {
-            q = { outAmountAtomic: jj.outAmount, priceImpactPct: jj.priceImpactPct ?? 0 } as any;
-          }
-        } catch {}
-      }
-      if (!q) throw new Error('No route');
-      const outRaw = q?.outAmountAtomic || q?.outAmount || 0;
+      const { best } = await getAggregatedQuote(normalizeMint(fromMint), normalizeMint(toMint), n, settingsToOpts());
+      if (!best) throw new Error('No route');
+      const outRaw = best.outAmountAtomic || 0;
       setAmountOut((outRaw/Math.pow(10, outDec)).toLocaleString(undefined,{ maximumFractionDigits: 6 }));
-      const pi = q?.priceImpactPct ?? q?.priceImpact ?? null;
+  const pi = best?.priceImpactPct ?? null;
       if (pi != null) setPriceImpact(((Number(pi)||0)*100).toFixed(2)+"%");
       // Minimum received: apply slippage
       const outUi = outRaw/Math.pow(10, outDec);
@@ -118,7 +106,7 @@ export default function PhantomSwapModal({ open, onClose, initialFromMint, initi
     if (!unlocked || !keypair) { setShowUnlock(true); return; }
     setLoading(true); setErr("");
     try {
-      const sig = await pumpExecute({ publicKey: keypair.publicKey, signTransaction: async (tx:any) => { tx.sign([keypair]); return tx; } }, normalizeMint(fromMint), normalizeMint(toMint), Number(amountIn), settingsToOpts());
+  const sig = await executeAggregatedSwap({ signer: { publicKey: keypair.publicKey, signTransaction: async (tx:any) => { tx.sign([keypair]); return tx; } }, fromMint: normalizeMint(fromMint), toMint: normalizeMint(toMint), amountUi: Number(amountIn), opts: settingsToOpts() });
       try { window.dispatchEvent(new CustomEvent('swap-complete', { detail: { fromMint, toMint, amount: Number(amountIn), signature: sig } })); } catch {}
       onClose();
     } catch (e:any) {
