@@ -393,58 +393,38 @@ export function setSelectedNetwork(n: NetworkChoice) {
 //  2. NEXT_PUBLIC_RPC_URL / RPC_URL / SOLANA_RPC_URL (single)
 //  3. Built-in default QuickNode (primary) + api.mainnet-beta fallback.
 export function getRpcEndpoints(): string[] {
-  // Prefer routing through our API proxy when running in the browser to centralize auth/fallback handling
-  const proxyBase = (typeof window !== 'undefined') ? '/api/rpc' : '';
-  const primaryRaw =
-    process.env.NEXT_PUBLIC_RPC_URLS ||
-    process.env.RPC_URLS ||
-    process.env.NEXT_PUBLIC_RPC_URL ||
-    process.env.RPC_URL ||
-    process.env.SOLANA_RPC_URL || "";
+  // Build a sanitized, whitelisted list of endpoints: only QuickNode (if provided) and api.mainnet-beta
+  const allowed: string[] = [];
+  const qn = (process.env.NEXT_PUBLIC_RPC_URL || process.env.RPC_URL || "").trim();
+  const mainnet = (process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com").trim();
 
-  const fallbacksRaw =
-    process.env.DOPE_RPC_FALLBACKS ||
-    process.env.FALLBACK_RPC_URL || "";
-
-  let endpoints: string[] = [];
-  if (primaryRaw.includes(",")) {
-    endpoints = primaryRaw.split(",");
-  } else if (primaryRaw.trim().length > 0) {
-    endpoints = [primaryRaw];
-  }
-  if (fallbacksRaw) {
-    if (fallbacksRaw.includes(",")) endpoints.push(...fallbacksRaw.split(","));
-    else if (fallbacksRaw.trim().length > 0) endpoints.push(fallbacksRaw);
+  function norm(u: string) {
+    if (!u) return "";
+    let x = u.trim();
+    // collapse multiple trailing slashes to single
+    x = x.replace(/\/{2,}$/,'/');
+    return x;
   }
 
-  // Always ensure we have at least a stable public endpoint fallback
-  const defaults = [
-    // Prefer public, widely-available endpoints by default
-    "https://api.mainnet-beta.solana.com",
-    "https://solana-rpc.publicnode.com",
-    "https://rpc.ankr.com/solana",
-  ];
+  const qnN = norm(qn);
+  const mnN = norm(mainnet);
+  if (qnN) allowed.push(qnN);
+  if (!allowed.includes(mnN)) allowed.push(mnN);
 
-  // Merge user provided + defaults (avoid duplicates, keep user priority)
-  const seen = new Set<string>();
-  const out: string[] = [];
-  const allUps = [...endpoints, ...defaults];
   const selectedNet: NetworkChoice = (() => {
     try { return getSelectedNetwork(); } catch { return 'mainnet'; }
   })();
-  for (const e of allUps) {
-    const trimmed = e.trim();
-    if (!trimmed) continue;
-    const norm = trimmed.replace(/\/{2,}$/,'/'); // collapse excessive trailing slashes
-    if (seen.has(norm)) continue;
-    seen.add(norm);
-    if (proxyBase) {
-      // Encode explicit upstream so proxy can rotate across different providers despite same path
-      const u = `${proxyBase}?net=${encodeURIComponent(selectedNet)}&up=${encodeURIComponent(norm)}`;
-      out.push(u);
-    } else {
-      out.push(norm);
+
+  // When in browser, use absolute proxy URL to avoid web3.js scheme errors; SSR uses direct upstreams
+  const out: string[] = [];
+  if (typeof window !== 'undefined') {
+    const origin = window.location.origin;
+    for (const upstream of allowed) {
+      const proxied = `${origin}/api/rpc?net=${encodeURIComponent(selectedNet)}&up=${encodeURIComponent(upstream)}`;
+      out.push(proxied);
     }
+  } else {
+    out.push(...allowed);
   }
   return out;
 }

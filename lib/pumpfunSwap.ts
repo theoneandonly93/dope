@@ -4,11 +4,8 @@ import { getRpcEndpoints } from "./wallet";
 const PUMP_FUN_BASE = "https://pumpportal.fun/api"; // base; quote assumed at /swap/quote
 
 function getRpcUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_SOLANA_RPC ||
-    (Array.isArray(getRpcEndpoints()) && getRpcEndpoints()[0]) ||
-    "https://api.mainnet-beta.solana.com"
-  );
+  // Only use allowed endpoints
+  return process.env.NEXT_PUBLIC_SOLANA_RPC || "https://api.mainnet-beta.solana.com";
 }
 
 export type PumpQuoteOptions = {
