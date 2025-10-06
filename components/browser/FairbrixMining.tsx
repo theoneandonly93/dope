@@ -135,6 +135,13 @@ export default function FairbrixMining() {
         <div className="flex gap-2 mt-3 flex-wrap">
           <button className="btn text-xs" onClick={onCopy}>Copy command</button>
           <a className="btn text-xs" href={`https://www.miningrigrentals.com/?ref=2713785`} target="_blank" rel="noreferrer">Open MRR</a>
+          <a
+            href="#"
+            onClick={(e) => { e.preventDefault(); try { const url = `/rig-rentals${address ? `?wallet=${encodeURIComponent(address)}` : ""}`; (window as any).next?.router?.push?.(url); } catch { window.location.href = `/rig-rentals${address ? `?wallet=${encodeURIComponent(address)}` : ""}`; } }}
+            className="bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500 text-black font-semibold rounded-lg px-3 py-2 text-xs hover:scale-[1.02] active:scale-100 transition-all shadow-[0_0_20px_rgba(16,185,129,0.25)]"
+          >
+            ⛏️ Manage Rig
+          </a>
         </div>
       </div>
       <div className="text-[11px] text-white/50 mt-2">

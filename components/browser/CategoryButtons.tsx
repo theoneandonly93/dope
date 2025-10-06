@@ -8,6 +8,7 @@ const cats = [
   { key: "traders", label: "Top Traders" },
   { key: "sites", label: "Trending Sites" },
   { key: "learn", label: "Learn" },
+  { key: "rig", label: "Rig Rentals" },
 ];
 
 export default function CategoryButtons({ active, onChange }: { active: string; onChange: (k: string)=>void }) {

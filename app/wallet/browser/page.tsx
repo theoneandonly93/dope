@@ -55,6 +55,18 @@ export default function BrowserPage() {
           <p className="text-sm text-white/60 mb-2">Use your Solana wallet as the username for miners. Add a Fairbrix payout address in Configure to track rewards.</p>
           <div className="flex gap-2 flex-wrap">
             <button onClick={() => setActive('mining')} className="btn">Fairbrix Mining Pool</button>
+            {/* Manage Rig: routes to in-app Rig Rentals with wallet prefilled if available */}
+            <button
+              onClick={() => {
+                try {
+                  const url = address ? `/rig-rentals?wallet=${encodeURIComponent(address)}` : "/rig-rentals";
+                  router.push(url);
+                } catch {}
+              }}
+              className="bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500 text-black font-semibold rounded-lg px-3 py-2 text-sm hover:scale-[1.02] active:scale-100 transition-all shadow-[0_0_20px_rgba(16,185,129,0.25)]"
+            >
+              ⛏️ Manage Rig
+            </button>
             <a href="https://www.miningrigrentals.com/?ref=2713785" target="_blank" rel="noreferrer" className="btn">Mining Rig Rentals</a>
             {address && (
               <button
@@ -64,7 +76,19 @@ export default function BrowserPage() {
             )}
           </div>
         </div>
-        <CategoryButtons active={active} onChange={setActive} />
+        <CategoryButtons
+          active={active}
+          onChange={(k) => {
+            if (k === "rig") {
+              try {
+                const url = address ? `/rig-rentals?wallet=${encodeURIComponent(address)}` : "/rig-rentals";
+                router.push(url);
+              } catch {}
+            } else {
+              setActive(k);
+            }
+          }}
+        />
 
         {active === 'tokens' && <TrendingTokens onOpenToken={openToken} />}
         {active === 'foryou' && <TokensForYou onOpenToken={openToken} />}
