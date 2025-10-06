@@ -23,13 +23,20 @@ export async function POST(req: Request) {
   const extra = extraHeaders();
   try {
     const body = await req.text();
-    const upstream = await fetch(rpc, {
+    let upstream = await fetch(rpc, {
       method: "POST",
       headers: { "content-type": "application/json", ...extra },
       body,
       cache: "no-store",
       redirect: "follow",
     });
+    // If upstream denies due to auth (401/403) or provider-specific messages, try a safe public fallback once
+    if (upstream.status === 401 || upstream.status === 403) {
+      const fallback = net === 'devnet' ? 'https://api.devnet.solana.com' : (net === 'testnet' ? 'https://api.testnet.solana.com' : 'https://api.mainnet-beta.solana.com');
+      try {
+        upstream = await fetch(fallback, { method: 'POST', headers: { 'content-type': 'application/json' }, body, cache: 'no-store', redirect: 'follow' });
+      } catch {}
+    }
     const headers = new Headers({ "content-type": upstream.headers.get("content-type") || "application/json" });
     return new Response(upstream.body, { status: upstream.status, headers });
   } catch (e: any) {

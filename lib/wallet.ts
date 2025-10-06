@@ -393,6 +393,8 @@ export function setSelectedNetwork(n: NetworkChoice) {
 //  2. NEXT_PUBLIC_RPC_URL / RPC_URL / SOLANA_RPC_URL (single)
 //  3. Built-in default QuickNode (primary) + api.mainnet-beta fallback.
 export function getRpcEndpoints(): string[] {
+  // Prefer routing through our API proxy when running in the browser to centralize auth/fallback handling
+  const proxyBase = (typeof window !== 'undefined') ? '/api/rpc' : '';
   const primaryRaw =
     process.env.NEXT_PUBLIC_RPC_URLS ||
     process.env.RPC_URLS ||
@@ -432,7 +434,8 @@ export function getRpcEndpoints(): string[] {
     const norm = trimmed.replace(/\/{2,}$/,'/'); // collapse excessive trailing slashes
     if (!seen.has(norm)) {
       seen.add(norm);
-      out.push(norm);
+      // In the browser, use the proxy path to avoid CORS/auth issues; server can hit direct RPC
+      out.push(proxyBase ? proxyBase : norm);
     }
   }
   return out;
@@ -556,12 +559,24 @@ export function getConnection() {
               activeStatus.consecutiveFailures++;
               activeStatus.lastFailure = Date.now();
               // If provider returns 403/forbidden, rotate immediately (likely auth/IP restriction)
-              const msg = (e?.message || '').toLowerCase();
-              const isForbidden = msg.includes('403') || msg.includes('forbidden') || msg.includes('access forbidden');
+              const msg = (e?.message || (e && (e as any).toString?.()) || '').toLowerCase();
+              // Detect common provider auth/permission errors beyond plain 403
+              const isForbidden = (
+                msg.includes('403') ||
+                msg.includes('forbidden') ||
+                msg.includes('access forbidden') ||
+                msg.includes('unauthorized') ||
+                msg.includes('not authorized') ||
+                (msg.includes('api key') && (msg.includes('not allowed') || msg.includes('invalid') || msg.includes('blocked'))) ||
+                msg.includes('not allowed to access blockchain') ||
+                msg.includes('origin not allowed') ||
+                msg.includes('referer not allowed') ||
+                (msg.includes('whitelist') && msg.includes('domain'))
+              );
               if (isForbidden || activeStatus.consecutiveFailures >= 2) {
                 // Mark this endpoint as bad for this session to avoid bouncing back
                 if (isForbidden) activeStatus.consecutiveFailures = Math.max(activeStatus.consecutiveFailures, 999);
-                rotate(isForbidden ? '403-forbidden' : 'call-fail');
+                rotate(isForbidden ? 'forbidden/auth' : 'call-fail');
                 try { return await (state.conn as any)[prop](...args); } catch {}
               }
               // Try one-shot other endpoint before bubbling
