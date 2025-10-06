@@ -10,6 +10,7 @@ import TokensForYou from "../../../components/browser/TokensForYou";
 import TopLists from "../../../components/browser/TopLists";
 import TopTraders from "../../../components/browser/TopTraders";
 import TrendingSites from "../../../components/browser/TrendingSites";
+import FairbrixMining from "../../../components/browser/FairbrixMining";
 import LearnSection from "../../../components/browser/LearnSection";
 import { useWallet } from "../../../components/WalletProvider";
 import { copyText, hapticLight } from "../../../lib/clipboard";
@@ -49,11 +50,11 @@ export default function BrowserPage() {
         <div className="glass rounded-2xl p-4 border border-white/10 mb-3">
           <div className="flex items-center justify-between mb-1">
             <div className="text-lg font-semibold">Mining</div>
-            <Link href="/fairbrix" className="text-xs underline text-white/60 hover:text-white">Configure</Link>
+            <button onClick={() => setActive('mining')} className="text-xs underline text-white/60 hover:text-white">Configure</button>
           </div>
           <p className="text-sm text-white/60 mb-2">Use your Solana wallet as the username for miners. Add a Fairbrix payout address in Configure to track rewards.</p>
           <div className="flex gap-2 flex-wrap">
-            <Link href="/fairbrix" className="btn">Fairbrix Mining Pool</Link>
+            <button onClick={() => setActive('mining')} className="btn">Fairbrix Mining Pool</button>
             <a href="https://www.miningrigrentals.com/?ref=2713785" target="_blank" rel="noreferrer" className="btn">Mining Rig Rentals</a>
             {address && (
               <button
@@ -72,17 +73,7 @@ export default function BrowserPage() {
         {active === 'sites' && <TrendingSites onOpen={openUrl} />}
         {active === 'learn' && <LearnSection />}
         {active === 'mining' && (
-          <div className="glass rounded-2xl p-4 border border-white/10">
-            <div className="text-lg font-semibold mb-2">Mining</div>
-            <p className="text-sm text-white/60 mb-3">Connect your wallet as username and mine using the Scrypt algorithm.</p>
-            <div className="flex gap-2 flex-wrap">
-              <Link href="/fairbrix" className="btn">Fairbrix Mining Pool</Link>
-              <a href="https://www.miningrigrentals.com/?ref=2713785" target="_blank" rel="noreferrer" className="btn">Mining Rig Rentals</a>
-              {address && (
-                <button className="btn" onClick={copyMiningCommand}>Copy Command</button>
-              )}
-            </div>
-          </div>
+          <FairbrixMining />
         )}
       </div>
 
