@@ -12,12 +12,41 @@ type Balances = {
   error?: string;
 };
 
-const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || process.env.SOLANA_RPC_URL || "https://dopel-rpc.dopelganga.workers.dev";
+function normalizeRpcUrl(raw?: string | null): string {
+  const DEFAULT = "https://api.mainnet-beta.solana.com";
+  if (!raw || !raw.trim()) return DEFAULT;
+  let u = raw.trim();
+  // Convert ws(s) to http(s)
+  if (/^wss?:\/\//i.test(u)) {
+    u = u.replace(/^wss?:\/\//i, (m) => (m.toLowerCase() === "wss://" ? "https://" : "http://"));
+  }
+  // Prefix https:// if missing scheme
+  if (!/^https?:\/\//i.test(u)) {
+    u = `https://${u}`;
+  }
+  return u;
+}
+
+const RPC_URL = normalizeRpcUrl(process.env.NEXT_PUBLIC_RPC_URL || process.env.SOLANA_RPC_URL || process.env.RPC_URL || "");
 
 async function fetchSolBalance(address: string): Promise<number> {
-  const conn = new Connection(RPC_URL, "confirmed");
-  const lamports = await conn.getBalance(new PublicKey(address));
-  return lamports / 1e9;
+  // Attempt primary RPC first
+  try {
+    const conn = new Connection(RPC_URL, "confirmed");
+    const lamports = await conn.getBalance(new PublicKey(address));
+    return lamports / 1e9;
+  } catch (e: any) {
+    // On bad/missing scheme or auth issues, retry with a safe public fallback
+    try {
+      const fallback = "https://api.mainnet-beta.solana.com";
+      const conn2 = new Connection(fallback, "confirmed");
+      const lamports = await conn2.getBalance(new PublicKey(address));
+      return lamports / 1e9;
+    } catch (e2: any) {
+      const msg = e2?.message || e?.message || "Unknown error";
+      throw new Error(`Failed to fetch SOL balance: ${msg}`);
+    }
+  }
 }
 
 async function fetchSolUsd(): Promise<number> {

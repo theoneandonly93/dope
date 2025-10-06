@@ -19,7 +19,9 @@ function extraHeaders(): Record<string, string> {
 export async function POST(req: Request) {
   const url = new URL(req.url);
   const net = url.searchParams.get("net");
-  const rpc = endpointFromNet(net);
+  // Allow explicit upstream override via ?up= to enable client-side rotation across endpoints safely through this proxy
+  const up = url.searchParams.get("up");
+  const rpc = up && /^https?:\/\//i.test(up) ? up : endpointFromNet(net);
   const extra = extraHeaders();
   try {
     const body = await req.text();

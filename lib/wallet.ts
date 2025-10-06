@@ -428,14 +428,22 @@ export function getRpcEndpoints(): string[] {
   // Merge user provided + defaults (avoid duplicates, keep user priority)
   const seen = new Set<string>();
   const out: string[] = [];
-  for (const e of [...endpoints, ...defaults]) {
+  const allUps = [...endpoints, ...defaults];
+  const selectedNet: NetworkChoice = (() => {
+    try { return getSelectedNetwork(); } catch { return 'mainnet'; }
+  })();
+  for (const e of allUps) {
     const trimmed = e.trim();
     if (!trimmed) continue;
     const norm = trimmed.replace(/\/{2,}$/,'/'); // collapse excessive trailing slashes
-    if (!seen.has(norm)) {
-      seen.add(norm);
-      // In the browser, use the proxy path to avoid CORS/auth issues; server can hit direct RPC
-      out.push(proxyBase ? proxyBase : norm);
+    if (seen.has(norm)) continue;
+    seen.add(norm);
+    if (proxyBase) {
+      // Encode explicit upstream so proxy can rotate across different providers despite same path
+      const u = `${proxyBase}?net=${encodeURIComponent(selectedNet)}&up=${encodeURIComponent(norm)}`;
+      out.push(u);
+    } else {
+      out.push(norm);
     }
   }
   return out;

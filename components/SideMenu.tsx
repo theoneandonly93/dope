@@ -88,12 +88,20 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
               <div>
                 <div className="text-xs text-white/60">Active Address</div>
                 <div className="font-mono text-sm break-all">{address}</div>
-                <div className="mt-2 flex gap-2">
+                <div className="mt-2 flex gap-2 items-center">
                   <button
                     className="px-2.5 py-1.5 text-xs rounded-md border border-white/10 bg-white/5 hover:bg-white/10 active:bg-white/15 transition-colors"
                     onClick={doCopy}
                   >
                     Copy
+                  </button>
+                  <button
+                    className="px-2 py-1.5 text-xs rounded-md border border-white/10 bg-white/5 hover:bg-white/10 active:bg-white/15 transition-colors flex items-center gap-1"
+                    title="Public profile"
+                    onClick={() => { onClose(); if (address) router.push(`/u/${encodeURIComponent(address)}`); else router.push('/u'); }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M12 12c2.761 0 5-2.686 5-6s-2.239-6-5-6-5 2.686-5 6 2.239 6 5 6zm0 2c-4.418 0-8 3.134-8 7v1h16v-1c0-3.866-3.582-7-8-7z"/></svg>
+                    Profile
                   </button>
                   <button
                     className="px-2.5 py-1.5 text-xs rounded-md border border-red-500/20 bg-red-500/10 hover:bg-red-500/15 active:bg-red-500/20 text-red-200 transition-colors"
