@@ -24,6 +24,24 @@ export type Database = {
         Update: { id?: string; parent_wallet?: string; child_wallet?: string; child_username?: string; relationship?: string | null; approved?: boolean; created_at?: string };
         Relationships: [];
       };
+      public_profiles: {
+        Row: { id: string; wallet_address: string; username: string; avatar_url?: string | null; bio?: string | null; followers: number; following: number; created_at: string };
+        Insert: { id?: string; wallet_address: string; username: string; avatar_url?: string | null; bio?: string | null; followers?: number; following?: number; created_at?: string };
+        Update: { id?: string; wallet_address?: string; username?: string; avatar_url?: string | null; bio?: string | null; followers?: number; following?: number; created_at?: string };
+        Relationships: [];
+      };
+      follows: {
+        Row: { follower_wallet: string; following_wallet: string; created_at: string };
+        Insert: { follower_wallet: string; following_wallet: string; created_at?: string };
+        Update: { follower_wallet?: string; following_wallet?: string; created_at?: string };
+        Relationships: [];
+      };
+      followed_tokens: {
+        Row: { wallet_address: string; token_mint: string; followed_at: string };
+        Insert: { wallet_address: string; token_mint: string; followed_at?: string };
+        Update: { wallet_address?: string; token_mint?: string; followed_at?: string };
+        Relationships: [];
+      };
     };
     Views: { [key: string]: never };
     Functions: { [key: string]: never };

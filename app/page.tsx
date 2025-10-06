@@ -16,7 +16,6 @@ import SendTokenForm from "../components/SendTokenForm";
 import SuggestedTokens from "../components/SuggestedTokens";
 import SelectTokenModal from "../components/SelectTokenModal";
 import dynamic from "next/dynamic";
-import TrendingTokens from "../components/browser/TrendingTokens";
 const PhantomSwapModal = dynamic(() => import('../components/PhantomSwapModal'), { ssr: false });
 
 function formatTokenAmount(amount: number | null, symbol: string): string {
@@ -485,13 +484,13 @@ export default function Home() {
           )}
         </div>
 
-  {React.createElement(require('../components/SupportChatCard').default)}
-
-  {React.createElement(require('../components/BalanceCard').default)}
-
-  {React.createElement(require('../components/FamilyCard').default)}
-
-  {React.createElement(require('../components/MoneyOptions').default)}
+        {/* Quick actions directly under main balance card */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 w-full">
+          <button className="btn text-center px-2 py-2 text-xs sm:text-base" onClick={() => setShowSendModal(true)}>Send</button>
+          <Link href="/wallet/receive" className="btn text-center px-2 py-2 text-xs sm:text-base">Receive</Link>
+          <button className="btn text-center px-2 py-2 text-xs sm:text-base" onClick={() => setShowSwap(true)}>Swap</button>
+          <Link href="/wallet/card/topup" className="btn text-center px-2 py-2 text-xs sm:text-base">Add Cash</Link>
+        </div>
 
         {/* Fairbrix (read-only) card */}
         {fairbrixAddr && (
@@ -522,12 +521,7 @@ export default function Home() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 w-full">
-          <button className="btn text-center px-2 py-2 text-xs sm:text-base" onClick={() => setShowSendModal(true)}>Send</button>
-          <Link href="/wallet/receive" className="btn text-center px-2 py-2 text-xs sm:text-base">Receive</Link>
-          <button className="btn text-center px-2 py-2 text-xs sm:text-base" onClick={() => setShowSwap(true)}>Swap</button>
-          <Link href="/wallet/card/topup" className="btn text-center px-2 py-2 text-xs sm:text-base">Add Cash</Link>
-        </div>
+        {/* Modals and additional UI follow */}
         {showSendModal && (
           <SelectTokenModal
             tokens={tokenList.map(token => ({
@@ -569,7 +563,7 @@ export default function Home() {
               className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border border-white/10 shadow-sm ${activeTab === 'nfts' ? 'bg-white/10 text-white' : 'bg-black/30 text-white/60'}`}
               onClick={() => setActiveTab('nfts')}
             >NFTs</button>
-            <button className="btn text-xs ml-auto" onClick={() => setShowManageModal(true)}>Manage Token</button>
+            <button className="btn btn-xs ml-auto whitespace-nowrap" onClick={() => setShowManageModal(true)}>Manage Tokens</button>
           </div>
           {activeTab === 'tokens' && (
             <>
@@ -662,8 +656,18 @@ export default function Home() {
           )}
         </div>
         {/* Trending tokens removed per spec */}
-  {/* Suggested Tokens */}
-  <SuggestedTokens />
+        {/* Optional summary card before suggestions */}
+        {React.createElement(require('../components/BalanceCard').default)}
+
+        {/* Suggested Tokens */}
+        <SuggestedTokens />
+
+        {/* Place Money options and Family sections under suggested tokens */}
+        {React.createElement(require('../components/MoneyOptions').default)}
+        {React.createElement(require('../components/FamilyCard').default)}
+
+        {/* Contact support at the very bottom */}
+        {React.createElement(require('../components/SupportChatCard').default)}
       </div>
     </ErrorBoundary>
   );

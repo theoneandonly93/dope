@@ -15,6 +15,7 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
   const router = useRouter();
   const ctx = useWalletOptional();
   const address = ctx?.address || null;
+  const [username, setUsername] = useState<string>("");
   const logout = ctx?.logout || (() => {});
   const [tab, setTab] = useState<"profile" | "wallets" | "settings" | "developer">("profile");
   const [scheme, setScheme] = useState<string>("");
@@ -30,6 +31,9 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
     setWallets(getWallets());
     const stored = getStoredWallet();
     setScheme(stored?.scheme || "");
+    try {
+      if (typeof window !== 'undefined') setUsername(localStorage.getItem('dope_username') || "");
+    } catch {}
   }, [open]);
 
   const doCopy = async () => {
@@ -98,7 +102,12 @@ export default function SideMenu({ open, onClose }: { open: boolean; onClose: ()
                   <button
                     className="px-2 py-1.5 text-xs rounded-md border border-white/10 bg-white/5 hover:bg-white/10 active:bg-white/15 transition-colors flex items-center gap-1"
                     title="Public profile"
-                    onClick={() => { onClose(); if (address) router.push(`/u/${encodeURIComponent(address)}`); else router.push('/u'); }}
+                    onClick={() => {
+                      onClose();
+                      if (username && username.trim()) router.push(`/profile/${encodeURIComponent(username.trim())}`);
+                      else if (address) router.push(`/u/${encodeURIComponent(address)}`);
+                      else router.push('/');
+                    }}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M12 12c2.761 0 5-2.686 5-6s-2.239-6-5-6-5 2.686-5 6 2.239 6 5 6zm0 2c-4.418 0-8 3.134-8 7v1h16v-1c0-3.866-3.582-7-8-7z"/></svg>
                     Profile
