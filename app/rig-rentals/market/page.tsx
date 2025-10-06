@@ -4,10 +4,6 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import marketData from "../../../data/marketData.json";
 
-export const metadata = {
-  title: "Rig Rentals ⛏️ | Market",
-};
-
 const RigStats = dynamic(() => import("../../../components/RigStats"), { ssr: false });
 
 type MarketRow = {
